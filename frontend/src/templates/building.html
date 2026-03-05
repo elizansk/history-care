@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ .building.Title }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<header>
+    <div class="header-container">
+        <div class="header-left">
+            <a href="/buildings">Домой</a>
+        </div>
+        <div class="header-right">
+            <a href="/donate/{{ .building.ID }}">Помочь</a>
+        </div>
+    </div>
+</header>
+
+<div class="container">
+
+    <h1 class="service-title">{{ .building.Title }}</h1>
+    <h2 class="service-subtitle">{{ .building.Meta }}</h2>
+
+    <!-- 🔥 Видео из Minio -->
+    <video class="service-video" autoplay muted loop controls>
+        <source src="{{ .building.VideoKey }}" type="video/mp4">
+        Ваш браузер не поддерживает видео.
+    </video>
+
+    <!-- 🔥 Картинка из Minio -->
+    <img class="service-image"
+         src="{{ .building.ImageKey }}"
+         alt="{{ .building.Title }}">
+
+    <p class="service-description">
+        {{ .building.Description }}
+    </p>
+
+    <table class="service-details">
+        <tr>
+            <td>Статус реализации</td>
+            <td>{{ index .building.Details "Статус реализации" }}</td>
+        </tr>
+        <tr>
+            <td>ID объекта</td>
+            <td>{{ .building.ID }}</td>
+        </tr>
+        <tr>
+            <td>Категория</td>
+            <td>{{ index .building.Details "Категория" }}</td>
+        </tr>
+        <tr>
+            <td>Вид объекта</td>
+            <td>{{ index .building.Details "Вид объекта" }}</td>
+        </tr>
+        <tr>
+            <td>Общая площадь</td>
+            <td>{{ index .building.Details "Общая площадь" }}</td>
+        </tr>
+        <tr>
+            <td>Состояние</td>
+            <td>{{ index .building.Details "Состояние" }}</td>
+        </tr>
+        <tr>
+            <td>Вид собственности</td>
+            <td>{{ index .building.Details "Вид собственности" }}</td>
+        </tr>
+    </table>
+
+</div>
+
+<div class="donation-btn-container">
+    <a href="/donate/{{ .building.ID }}" class="donation-btn">
+        Помочь объекту
+    </a>
+</div>
+
+<footer>
+    <div class="footer-column">
+        <p>© 2025 Фонд «Наследие Нации»</p>
+    </div>
+</footer>
+
+</body>
+</html>
