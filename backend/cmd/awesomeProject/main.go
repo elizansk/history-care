@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"history-care/internal/api"
+	"history-care-texnology/internal/api"
 )
 
 func main() {

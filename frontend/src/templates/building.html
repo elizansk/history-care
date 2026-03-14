@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>{{ .building.Title }}</title>
+    <title>{{ .building.Name }}</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -20,54 +20,37 @@
 
 <div class="container">
 
-    <h1 class="service-title">{{ .building.Title }}</h1>
-    <h2 class="service-subtitle">{{ .building.Meta }}</h2>
+    <h1 class="service-title">{{ .building.Name }}</h1>
+    <h2 class="service-subtitle">{{ .building.Address }}</h2>
 
-    <!-- 🔥 Видео из Minio -->
+
+    {{ $video := "" }}
+    {{ range .building.Resources }}
+    {{ if and (eq $video "") (eq .ResourceType "video") }}
+    {{ $video = .URL }}
+    {{ end }}
+    {{ end }}
+    {{ if $video }}
     <video class="service-video" autoplay muted loop controls>
-        <source src="{{ .building.VideoKey }}" type="video/mp4">
+        <source src="{{ $video }}" type="video/mp4">
         Ваш браузер не поддерживает видео.
     </video>
+    {{ end }}
 
-    <!-- 🔥 Картинка из Minio -->
-    <img class="service-image"
-         src="{{ .building.ImageKey }}"
-         alt="{{ .building.Title }}">
+
+    {{ $photo := "" }}
+    {{ range .building.Resources }}
+    {{ if and (eq $photo "") (eq .ResourceType "photo") }}
+    {{ $photo = .URL }}
+    {{ end }}
+    {{ end }}
+    {{ if $photo }}
+    <img class="service-image" src="{{ $photo }}" alt="{{ .building.Name }}">
+    {{ end }}
 
     <p class="service-description">
         {{ .building.Description }}
     </p>
-
-    <table class="service-details">
-        <tr>
-            <td>Статус реализации</td>
-            <td>{{ index .building.Details "Статус реализации" }}</td>
-        </tr>
-        <tr>
-            <td>ID объекта</td>
-            <td>{{ .building.ID }}</td>
-        </tr>
-        <tr>
-            <td>Категория</td>
-            <td>{{ index .building.Details "Категория" }}</td>
-        </tr>
-        <tr>
-            <td>Вид объекта</td>
-            <td>{{ index .building.Details "Вид объекта" }}</td>
-        </tr>
-        <tr>
-            <td>Общая площадь</td>
-            <td>{{ index .building.Details "Общая площадь" }}</td>
-        </tr>
-        <tr>
-            <td>Состояние</td>
-            <td>{{ index .building.Details "Состояние" }}</td>
-        </tr>
-        <tr>
-            <td>Вид собственности</td>
-            <td>{{ index .building.Details "Вид собственности" }}</td>
-        </tr>
-    </table>
 
 </div>
 
@@ -75,6 +58,11 @@
     <a href="/donate/{{ .building.ID }}" class="donation-btn">
         Помочь объекту
     </a>
+    <form action="/order/delete/{{ (index .building.ReconstructionOrders 0).ID }}?building_id={{ .building.ID }}" method="POST" style="display:inline;">
+        <button type="submit" class="donation-btn delete-btn">
+            Удалить заявку
+        </button>
+    </form>
 </div>
 
 <footer>

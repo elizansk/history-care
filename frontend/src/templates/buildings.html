@@ -27,30 +27,22 @@
         <div class="search-group">
             <label>Регион</label>
             <select name="region">
-                <option value="">Все регионы</option>
-                <option value="arkhangelsk" {{ if eq .region "arkhangelsk" }}selected{{ end }}>Архангельская обл.</option>
-                <option value="tatarsan" {{ if eq .region "tatarsan" }}selected{{ end }}>Республика Татарстан</option>
-                <option value="vologodskay" {{ if eq .region "vologodskay" }}selected{{ end }}>Вологодская обл.</option>
-                <option value="nizniy" {{ if eq .region "nizniy" }}selected{{ end }}>Нижегородская обл.</option>
-                <option value="yaroslavl" {{ if eq .region "yaroslavl" }}selected{{ end }}>Ярославская обл.</option>
+                <option value="" {{ if eq .region 0 }}selected{{ end }}>Все регионы</option>
+                <option value="1" {{ if eq .region 1 }}selected{{ end }}>Архангельская обл.</option>
+                <option value="2" {{ if eq .region 2 }}selected{{ end }}>Республика Татарстан</option>
+                <option value="3" {{ if eq .region 3 }}selected{{ end }}>Вологодская обл.</option>
+                <option value="4" {{ if eq .region 4 }}selected{{ end }}>Нижегородская обл.</option>
+                <option value="5" {{ if eq .region 5 }}selected{{ end }}>Ярославская обл.</option>
             </select>
         </div>
 
         <div class="search-group">
-            <label>Категория охраны</label>
+            <label>Категория объекта</label>
             <select name="category">
-                <option value="">Все категории</option>
-                <option value="architecture" {{ if eq .category "architecture" }}selected{{ end }}>Архитектура</option>
-                <option value="monument" {{ if eq .category "monument" }}selected{{ end }}>Памятник</option>
-            </select>
-        </div>
-
-        <div class="search-group">
-            <label>Вид объекта</label>
-            <select name="type">
-                <option value="">Все виды</option>
-                <option value="house" {{ if eq .type "house" }}selected{{ end }}>Дом</option>
-                <option value="church" {{ if eq .type "church" }}selected{{ end }}>Храм</option>
+                <option value="" {{ if eq .category 0 }}selected{{ end }}>Все категории</option>
+                <option value="1" {{ if eq .category 1 }}selected{{ end }}>Историческое здание</option>
+                <option value="2" {{ if eq .category 2 }}selected{{ end }}>Деревянная архитектура</option>
+                <option value="3" {{ if eq .category 3 }}selected{{ end }}>Муниципальный объект</option>
             </select>
         </div>
 
@@ -60,10 +52,14 @@
     <div class="grid">
         {{ range .buildings }}
         <a href="/building/{{ .ID }}" class="card">
-            <img src="{{ .ImageKey }}" alt="{{ .Title }}">
+
+            <img src="{{ range .Resources }}{{ if eq .ResourceType "photo" }}{{ .URL }}{{ end }}{{ end }}" alt="{{ .Name }}">
+
             <div class="card-content">
-                <div class="card-title">{{ .Title }}</div>
-                <div class="card-meta">{{ .Meta }}</div>
+                <div class="card-title">{{ .Name }}</div>
+                <div class="card-meta">{{ .Address }}</div>
+                <div class="card-category">{{ .Category.Name }}</div>
+                <div class="card-region">{{ .Region.Name }}</div>
             </div>
         </a>
         {{ end }}
