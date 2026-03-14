@@ -1,53 +1,80 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Пожертвование — {{ .building.Title }}</title>
+    <title>Пожертвование — {{ .building.Name }}</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+
 <header>
-    <div class="header-container">c
+    <div class="header-container">
         <div class="header-left"><a href="/buildings">Домой</a></div>
         <div class="header-right"><a href="/building/{{ .building.ID }}">Назад к объекту</a></div>
     </div>
 </header>
-<div class="container"> <h1 class="service-title">{{ .building.Title }}</h1>
-    <img class="service-image"
-         src="{{ .building.ImageKey }}"
-         alt="{{ .building.Title }}">
-    <div class="donation-intro"><p> Здесь вы можете осуществить платеж, чтобы внести свой вклад в нашу общую
-        миссию. </p>
-        <p> Пожалуйста выберите размер пожертвования, заполните форму и выберите удобный для вас способ оплаты. </p>
-        <p class="mission-text"> Вместе мы сможем сделать наш мир лучше и сохранить его богатое культурное
-            наследие. </p></div>
-    <div class="steps">
-        <div class="step">Шаг 1. Выберите размер пожертвования</div>
-        <div class="step">Шаг 2. Введите данные</div>
-        <div class="step">Шаг 3. Выберите способ оплаты</div>
+
+<div class="container">
+    <h1 class="service-title">{{ .building.Name }}</h1>
+
+
+    {{ $photo := "" }}
+    {{ range .building.Resources }}
+    {{ if and (eq $photo "") (eq .ResourceType "photo") }}
+    {{ $photo = .URL }}
+    {{ end }}
+    {{ end }}
+    {{ if $photo }}
+    <img class="service-image" src="{{ $photo }}" alt="{{ .building.Name }}">
+    {{ end }}
+
+    <div class="collected-info">
+        <p>Собрано: <strong>{{ printf "%.0f" .collected }} ₽</strong> из {{ printf "%.0f" .goal }} ₽</p>
+        <progress value="{{ .collected }}" max="{{ .goal }}"></progress>
     </div>
-    <form class="donation-form">
-        <div class="donation-section"><h3>Размер пожертвования</h3>
-            <div class="amount-options"><label><input type="radio" name="amount" value="100"> 100 ₽</label>
-                <label><input type="radio" name="amount" value="300"> 300 ₽</label> <label><input type="radio"
-                                                                                                  name="amount"
-                                                                                                  value="500"> 500
-                    ₽</label> <label> <input type="radio" name="amount" value="other"> Другая сумма </label></div>
-            <input type="number" class="custom-amount" placeholder="Введите сумму"></div>
-        <div class="donation-section"><h3>Ваши данные</h3> <input type="text" placeholder="Имя"> <input type="email"
-                                                                                                        placeholder="Email">
+
+    <div class="donation-intro">
+        <p>Здесь вы можете внести свой вклад в сохранение культурного наследия.</p>
+        <p>Выберите размер пожертвования и заполните форму ниже.</p>
+    </div>
+
+    <form class="donation-form" method="POST" action="/donate/{{ .building.ID }}">
+        <div class="donation-section">
+            <h3>Размер пожертвования</h3>
+            <div class="amount-options">
+                <label><input type="radio" name="amount" value="100"> 100 ₽</label>
+                <label><input type="radio" name="amount" value="300"> 300 ₽</label>
+                <label><input type="radio" name="amount" value="500"> 500 ₽</label>
+                <label><input type="radio" name="amount" value="other"> Другая сумма</label>
+            </div>
+            <input type="number" name="custom_amount" class="custom-amount" placeholder="Введите сумму">
         </div>
-        <div class="donation-section"><h3>Способ оплаты</h3>
-            <div class="payment-options"><label><input type="radio" name="payment"> Банковская карта</label>
-                <label><input type="radio" name="payment"> СБП</label> <label><input type="radio" name="payment"> ЮMoney</label>
+
+        <div class="donation-section">
+            <h3>Ваши данные</h3>
+            <input type="text" name="name" placeholder="Имя" required>
+            <input type="email" name="email" placeholder="Email" required>
+        </div>
+
+        <div class="donation-section">
+            <h3>Способ оплаты</h3>
+            <div class="payment-options">
+                <label><input type="radio" name="payment" value="card" required> Банковская карта</label>
+                <label><input type="radio" name="payment" value="sbp"> СБП</label>
+                <label><input type="radio" name="payment" value="ymoney"> ЮMoney</label>
             </div>
         </div>
-        <button type="submit" class="donation-submit"> Перейти к оплате</button>
+
+        <button type="submit" class="donation-submit">Перейти к оплате</button>
     </form>
+
 </div>
+
 <footer>
-    <div class="footer-column"><p>© 2025 Фонд «Наследие Нации»</p></div>
+    <div class="footer-column">
+        <p>© 2025 Фонд «Наследие Нации»</p>
+    </div>
 </footer>
+
 </body>
 </html>

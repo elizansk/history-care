@@ -1,0 +1,60 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: historycare
+    ports:
+      - "8080:8080"
+    #env_file:
+    #  - ../.env.production
+    environment:
+      DB_HOST: postgres
+      DB_USER: go_user
+      DB_PASSWORD: password
+      DB_NAME: historycare
+      DB_PORT: 5432
+      TEMPLATES_PATH: "frontend/src/templates/*"
+      STATIC_PATH: "frontend/src/resources"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15
+    container_name: historycare_postgres
+    environment:
+      POSTGRES_USER: go_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: historycare
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password122
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./data:/data
+    command: server /data --console-address ":9001"
+
+
+  adminer:
+    image: adminer
+    container_name: historycare_adminer
+    restart: always
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
