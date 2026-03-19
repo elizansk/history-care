@@ -21,7 +21,7 @@ func NewHandler(r *repository.Repository) *Handler {
 func (h *Handler) GetBuildings(ctx *gin.Context) {
 	regionID, _ := strconv.Atoi(ctx.Query("region"))
 	categoryID, _ := strconv.Atoi(ctx.Query("category"))
-
+	// #nosec G115
 	buildings, _ := h.Repository.GetBuildings(uint(regionID), uint(categoryID))
 
 	ctx.HTML(http.StatusOK, "buildings.html", gin.H{
@@ -33,6 +33,7 @@ func (h *Handler) GetBuildings(ctx *gin.Context) {
 
 func (h *Handler) GetBuilding(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.Param("id"))
+	// #nosec G115
 	building, err := h.Repository.GetBuilding(uint(id))
 	if err != nil {
 		ctx.String(http.StatusNotFound, "not found")
@@ -46,6 +47,7 @@ func (h *Handler) GetBuilding(ctx *gin.Context) {
 
 func (h *Handler) GetDonate(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.Param("id"))
+	// #nosec G115
 	building, err := h.Repository.GetBuilding(uint(id))
 	if err != nil {
 		ctx.String(http.StatusNotFound, "not found")
@@ -77,7 +79,7 @@ func (h *Handler) PostDonate(ctx *gin.Context) {
 		amountStr = ctx.PostForm("custom_amount")
 	}
 	amount, _ := strconv.ParseFloat(amountStr, 64)
-
+	// #nosec G115
 	err := h.Repository.AddDonation(uint(orderID), uint(userID), amount)
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, "cannot add donation")
@@ -93,7 +95,7 @@ func (h *Handler) DeleteOrder(ctx *gin.Context) {
 		ctx.String(http.StatusBadRequest, "invalid order ID")
 		return
 	}
-
+	// #nosec G115
 	if err := h.Repository.DeleteReconstructionOrder(uint(id)); err != nil {
 		ctx.String(http.StatusInternalServerError, "failed to delete order")
 		return

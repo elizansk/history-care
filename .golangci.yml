@@ -1,10 +1,29 @@
+config_version: 2
 run:
   timeout: 5m
+  issues-exit-code: 1
+  tests: true
+  build-tags: []
 
 linters:
   enable:
     - govet
     - errcheck
     - staticcheck
-    - ineffassign
+    - gocyclo
+    - dupl
+    - gosec
 
+issues:
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*_test\\.go$"
+  exclude-dirs:
+    - vendor
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec

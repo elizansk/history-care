@@ -30,11 +30,14 @@ export default defineConfig([
       "no-unused-vars": "error",
 
       "unicorn/filename-case": [
-        "error",
-        {
-          case: "kebabCase"
-        }
-      ]
+         "error",
+         {
+           cases: {
+             kebabCase: true,
+             pascalCase: true
+           }
+         }
+       ]
     }
   },
 
