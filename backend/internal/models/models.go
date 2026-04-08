@@ -3,83 +3,99 @@ package models
 import "time"
 
 type User struct {
-	ID    uint   `gorm:"primaryKey"`
-	Name  string `gorm:"size:100;not null"`
-	Email string `gorm:"size:100;unique;not null"`
-	Role  string `gorm:"size:20;default:user"`
+	ID        uint   `gorm:"primaryKey" json:"id"`
+	Name      string `json:"name"`
+	FirstName string `gorm:"size:100;not null" json:"first_name"`
+	LastName  string `gorm:"size:100;not null" json:"last_name"`
+	Email     string `gorm:"size:100;unique;not null" json:"email"`
+	Role      string `gorm:"size:20;default:user" json:"role"`
+	Password  string `gorm:"size:100;null" json:"-"`
+
+	CityID *uint `json:"city_id"`
+	City   *City `gorm:"foreignKey:CityID" json:"city"`
 }
 
 type Region struct {
-	ID   uint   `gorm:"primaryKey"`
-	Name string `gorm:"size:100;unique;not null"`
+	ID   uint   `gorm:"primaryKey" json:"id"`
+	Name string `gorm:"size:100;unique;not null" json:"name"`
 }
 
 type BuildingCategory struct {
-	ID   uint   `gorm:"primaryKey"`
-	Name string `gorm:"size:255;not null"`
+	ID   uint   `gorm:"primaryKey" json:"id"`
+	Name string `gorm:"size:255;not null" json:"name"`
 }
 
 type Building struct {
-	ID                   uint   `gorm:"primaryKey"`
-	Name                 string `gorm:"size:255;not null"`
-	Description          string `gorm:"type:text"`
-	Address              string `gorm:"type:text"`
-	CategoryID           uint
-	Category             BuildingCategory
-	RegionID             uint
-	Region               Region
-	Resources            []BuildingResource    `gorm:"foreignKey:BuildingID"`
-	ReconstructionOrders []ReconstructionOrder `gorm:"foreignKey:BuildingID"`
+	ID          uint   `gorm:"primaryKey" json:"id"`
+	Name        string `gorm:"size:255;not null" json:"name"`
+	Description string `gorm:"type:text" json:"description"`
+	Address     string `gorm:"type:text" json:"address"`
+
+	CategoryID uint             `json:"category_id"`
+	Category   BuildingCategory `json:"category"`
+
+	RegionID uint   `json:"region_id"`
+	Region   Region `json:"region"`
+
+	Resources            []BuildingResource    `gorm:"foreignKey:BuildingID" json:"resources"`
+	ReconstructionOrders []ReconstructionOrder `gorm:"foreignKey:BuildingID" json:"orders"`
 }
 
 type BuildingResource struct {
-	ID           uint `gorm:"primaryKey"`
-	BuildingID   uint
-	ResourceType string `gorm:"type:text;check:resource_type IN ('photo','video')"`
-	URL          string `gorm:"type:text;not null"`
+	ID           uint   `gorm:"primaryKey" json:"id"`
+	BuildingID   uint   `json:"building_id"`
+	ResourceType string `gorm:"type:text;check:resource_type IN ('photo','video')" json:"resource_type"`
+	URL          string `gorm:"type:text;not null" json:"url"`
 }
 
 type BuildingService struct {
-	ID           uint   `gorm:"primaryKey"`
-	Name         string `gorm:"size:255;not null"`
-	Description  string `gorm:"type:text"`
-	DurationDays int
-	Price        float64
+	ID           uint    `gorm:"primaryKey" json:"id"`
+	Name         string  `gorm:"size:255;not null" json:"name"`
+	Description  string  `gorm:"type:text" json:"description"`
+	DurationDays int     `json:"duration_days"`
+	Price        float64 `json:"price"`
 }
 
 type ReconstructionOrder struct {
-	ID              uint `gorm:"primaryKey"`
-	BuildingID      uint
-	Building        Building
-	CreatorID       uint
-	Creator         User
-	Status          string    `gorm:"size:50;default:'draft'"`
-	CreatedAt       time.Time `gorm:"autoCreateTime"`
-	CompletedAt     *time.Time
-	TotalAmount     float64
-	CollectedAmount float64
-	Services        []OrderService `gorm:"foreignKey:OrderID"`
-	Donations       []Donation     `gorm:"foreignKey:OrderID"`
+	ID          uint       `gorm:"primaryKey" json:"id"`
+	BuildingID  uint       `json:"building_id"`
+	Building    Building   `json:"building"`
+	CreatorID   uint       `json:"creator_id"`
+	Creator     User       `json:"creator"`
+	Status      string     `gorm:"size:50;default:'draft'" json:"status"`
+	CreatedAt   time.Time  `gorm:"autoCreateTime" json:"created_at"`
+	CompletedAt *time.Time `json:"completed_at"`
+
+	TotalAmount     float64 `json:"total_amount"`
+	CollectedAmount float64 `json:"collected_amount"`
+
+	Services  []OrderService `gorm:"foreignKey:OrderID" json:"services"`
+	Donations []Donation     `gorm:"foreignKey:OrderID" json:"donations"`
 }
 
 type OrderService struct {
-	ID          uint `gorm:"primaryKey"`
-	OrderID     uint
-	Order       ReconstructionOrder
-	ServiceID   uint
-	Service     BuildingService
-	Description string
-	Price       float64
-	Quantity    int `gorm:"default:1"`
-	Result      float64
+	ID          uint                `gorm:"primaryKey" json:"id"`
+	OrderID     uint                `json:"order_id"`
+	Order       ReconstructionOrder `json:"order"`
+	ServiceID   uint                `json:"service_id"`
+	Service     BuildingService     `json:"service"`
+	Description string              `json:"description"`
+	Price       float64             `json:"price"`
+	Quantity    int                 `gorm:"default:1" json:"quantity"`
+	Result      float64             `json:"result"`
 }
 
 type Donation struct {
-	ID        uint `gorm:"primaryKey"`
-	OrderID   uint
-	Order     ReconstructionOrder
-	UserID    uint
-	User      User
-	Amount    float64
-	CreatedAt time.Time `gorm:"autoCreateTime"`
+	ID        uint                `gorm:"primaryKey" json:"id"`
+	OrderID   uint                `json:"order_id"`
+	Order     ReconstructionOrder `json:"order"`
+	UserID    *uint               `json:"user_id"`
+	User      User                `json:"user"`
+	Amount    float64             `json:"amount"`
+	CreatedAt time.Time           `gorm:"autoCreateTime" json:"created_at"`
+}
+
+type City struct {
+	ID   uint   `gorm:"primaryKey" json:"id"`
+	Name string `gorm:"size:100;unique;not null" json:"name"`
 }
