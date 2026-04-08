@@ -5,6 +5,41 @@
     <title>Наследие Нации — Объекты</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
+<script>
+    function parseJwt(token) {
+        try {
+            return JSON.parse(atob(token.split('.')[1]));
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function goToProfile() {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            window.location.href = "http://localhost:5173/login";
+            return;
+        }
+
+        const payload = parseJwt(token);
+
+        if (!payload || !payload.role) {
+            window.location.href = "http://localhost:5173/login";
+            return;
+        }
+
+        const role = payload.role;
+
+        if (role === "Admin") {
+            window.location.href = "http://localhost:5173/admin";
+        } else if (role === "City") {
+            window.location.href = "http://localhost:5173/create-order";
+        } else {
+            window.location.href = "http://localhost:5173/profile";
+        }
+    }
+</script>
 <body>
 
 <header>
@@ -13,7 +48,7 @@
             <a href="/buildings">Фонд реконструкции исторических зданий</a>
         </div>
         <div class="header-right">
-            <a href="#">Личный кабинет</a>
+            <a href="#" onclick="goToProfile()">Личный кабинет</a>
             <a href="/donate/101">Помочь</a>
         </div>
     </div>

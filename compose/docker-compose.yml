@@ -1,25 +1,4 @@
-version: '3.9'
-
 services:
-  app:
-    build:
-      context: ..
-      dockerfile: Dockerfile
-    container_name: historycare
-    ports:
-      - "8080:8080"
-    #env_file:
-    #  - ../.env.production
-    environment:
-      DB_HOST: postgres
-      DB_USER: go_user
-      DB_PASSWORD: password
-      DB_NAME: historycare
-      DB_PORT: 5432
-      TEMPLATES_PATH: "frontend/src/templates/*"
-      STATIC_PATH: "frontend/src/resources"
-    depends_on:
-      - postgres
 
   postgres:
     image: postgres:15
@@ -32,6 +11,10 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "go_user" ]
+      interval: 5s
+      retries: 5
 
   minio:
     image: minio/minio:latest
@@ -46,7 +29,6 @@ services:
       - ./data:/data
     command: server /data --console-address ":9001"
 
-
   adminer:
     image: adminer
     container_name: historycare_adminer
@@ -55,6 +37,72 @@ services:
       - "8081:8080"
     depends_on:
       - postgres
+
+  migrate:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.migrate
+    environment:
+      DB_HOST: postgres
+      DB_USER: go_user
+      DB_PASSWORD: password
+      DB_NAME: historycare
+      DB_PORT: 5432
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: app
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_USER: go_user
+      DB_PASSWORD: password
+      DB_NAME: historycare
+      DB_PORT: 5432
+      TEMPLATES_PATH: "frontend/src/templates/*"
+      STATIC_PATH: "frontend/src/resources"
+    volumes:
+      - ../frontend:/app/frontend
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "go_user" ]
+      interval: 5s
+      retries: 5
+    depends_on:
+      migrate :
+        condition: service_completed_successfully
+
+
+  frontend:
+    build: ../frontend
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - app
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
 
 volumes:
   pgdata:

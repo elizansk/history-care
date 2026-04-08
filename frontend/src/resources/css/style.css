@@ -427,3 +427,12 @@ footer {
 .footer-column a:hover {
   opacity: 0.8;
 }
+.search-group select {
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid #cce5d0;
+}
+
+.search-group input[type="number"] {
+  width: 80px;
+}
