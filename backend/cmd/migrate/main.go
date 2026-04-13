@@ -34,7 +34,6 @@ func main() {
 
 	if err := db.AutoMigrate(
 		&models.User{},
-		&models.Region{},
 		&models.City{},
 		&models.BuildingCategory{},
 		&models.Building{},

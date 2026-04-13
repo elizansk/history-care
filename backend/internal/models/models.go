@@ -15,11 +15,6 @@ type User struct {
 	City   *City `gorm:"foreignKey:CityID" json:"city"`
 }
 
-type Region struct {
-	ID   uint   `gorm:"primaryKey" json:"id"`
-	Name string `gorm:"size:100;unique;not null" json:"name"`
-}
-
 type BuildingCategory struct {
 	ID   uint   `gorm:"primaryKey" json:"id"`
 	Name string `gorm:"size:255;not null" json:"name"`
@@ -34,8 +29,8 @@ type Building struct {
 	CategoryID uint             `json:"category_id"`
 	Category   BuildingCategory `json:"category"`
 
-	RegionID uint   `json:"region_id"`
-	Region   Region `json:"region"`
+	CityID uint `json:"city_id"`
+	City   City `gorm:"foreignKey:CityID" json:"city"`
 
 	Resources            []BuildingResource    `gorm:"foreignKey:BuildingID" json:"resources"`
 	ReconstructionOrders []ReconstructionOrder `gorm:"foreignKey:BuildingID" json:"orders"`
@@ -46,6 +41,7 @@ type BuildingResource struct {
 	BuildingID   uint   `json:"building_id"`
 	ResourceType string `gorm:"type:text;check:resource_type IN ('photo','video')" json:"resource_type"`
 	URL          string `gorm:"type:text;not null" json:"url"`
+	IsMain       bool   `json:"is_main"`
 }
 
 type BuildingService struct {

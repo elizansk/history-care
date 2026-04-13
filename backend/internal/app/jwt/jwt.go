@@ -1,4 +1,4 @@
-package handler
+package jwt
 
 import (
 	"history-care-texnology/internal/logger"
@@ -10,18 +10,25 @@ import (
 
 var jwtKey = []byte("super_secret_key")
 
-func generateJWT(userID uint, role string) (string, error) {
+func GenerateJWT(userID uint, role string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
-		"role":    role, // добавляем роль
+		"role":    role,
 		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	result, err := token.SignedString(jwtKey)
+	if err != nil {
+		return "", err
+	}
 	logger.Log.WithFields(logrus.Fields{
 		"user_id":  userID,
 		"role":     role,
-		"jwtToken": token,
+		"jwtToken": result,
 	}).Debug("Generating JWT")
-	return token.SignedString(jwtKey)
+	return result, err
+}
+
+func GetJWTKey() []byte {
+	return jwtKey
 }

@@ -1,7 +1,23 @@
+// @title History Care API
+// @version 1.0
+// @description API documentation for History Care
+// @host localhost:8080
+// @BasePath /
+// @schemes http
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+
 package api
 
 import (
+	"history-care-texnology/docs"
+	"history-care-texnology/internal/storage"
+)
+import (
 	"fmt"
+	"history-care-texnology/internal/app/handlerOld"
+	"history-care-texnology/internal/app/middleware"
 	"history-care-texnology/internal/logger"
 	"log"
 	"os"
@@ -14,6 +30,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func StartServer() {
@@ -50,11 +69,17 @@ func StartServer() {
 	if err != nil {
 		log.Fatal("failed to connect to DB:", err)
 	}
+	storage.InitMinio()
 
 	h := handler.NewHandler(repo)
-
+	docs.SwaggerInfo.Title = "History Care API"
+	docs.SwaggerInfo.Description = "API documentation for History Care"
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = "localhost:8080"
+	docs.SwaggerInfo.BasePath = "/"
+	docs.SwaggerInfo.Schemes = []string{"http"}
 	r := gin.Default()
-	r.Use(handler.MetricsMiddleware())
+	r.Use(metrics.MetricsMiddleware())
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -62,16 +87,18 @@ func StartServer() {
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
-
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// ==== 1. HTML + статика ====
 	r.LoadHTMLGlob(templatesPath)
 	r.Static("/static", staticPath)
 
+	oldHandler := handlerOld.OldHandler(repo)
+
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	r.GET("/", func(c *gin.Context) { c.Redirect(302, "/buildings") })
-	r.GET("/buildings", h.GetBuildings)
-	r.GET("/building/:id", h.GetBuilding)
-	r.GET("/donate/:id", h.GetDonate)
+	r.GET("/buildings", oldHandler.GetBuildings)
+	r.GET("/building/:id", oldHandler.GetBuilding)
+	r.GET("/donate/:id", oldHandler.GetDonate)
 	r.POST("/donate/:id", h.PostDonate)
 	r.POST("/order/delete/:id", h.DeleteOrder)
 
@@ -85,29 +112,28 @@ func StartServer() {
 
 	// ==== 3. Protected API для всех авторизованных пользователей ====
 	protectedAPI := r.Group("/api")
-	protectedAPI.Use(handler.AuthMiddleware())
+	protectedAPI.Use(middleware.AuthMiddleware())
 	{
 		protectedAPI.GET("/profile", h.GetProfile)
 	}
 
 	// ==== 4. Protected API для City + Admin ====
 	cityAPI := r.Group("/api")
-	cityAPI.Use(handler.AuthMiddleware("City", "Admin"))
+	cityAPI.Use(middleware.AuthMiddleware("City", "Admin"))
 	{
-		orderRepo := repository.NewOrderRepository(repo.DB)
-		orderHandler := handler.NewOrderHandler(orderRepo)
 
-		cityAPI.GET("/services", orderHandler.GetServices)
-		cityAPI.GET("/categories", orderHandler.GetCategories)
-		cityAPI.GET("/regions", orderHandler.GetRegions)
-		cityAPI.POST("/orders", orderHandler.CreateOrder)
+		cityAPI.GET("/services", h.GetServices)
+		cityAPI.GET("/categories", h.GetCategories)
+		cityAPI.POST("/orders", h.CreateOrder)
+		cityAPI.GET("/myorders", h.CreateOrder)
 	}
 
 	// ==== 5. Protected API для Admin ====
 	adminAPI := r.Group("/api")
-	adminAPI.Use(handler.AuthMiddleware("Admin"))
+	adminAPI.Use(middleware.AuthMiddleware("Admin"))
 	{
 		adminAPI.GET("/users", h.GetUsers)
+		cityAPI.GET("/allorders", h.CreateOrder)
 	}
 
 	if err := r.Run(":8080"); err != nil {

@@ -1,7 +1,6 @@
-package handler
+package metrics
 
 import (
-	"history-care-texnology/internal/metrics"
 	"strconv"
 	"time"
 
@@ -25,15 +24,15 @@ func MetricsMiddleware() gin.HandlerFunc {
 
 		statusStr := strconv.Itoa(status)
 
-		// 📊 запросы
-		metrics.HttpRequestsTotal.WithLabelValues(
+		// запросы
+		HttpRequestsTotal.WithLabelValues(
 			method,
 			path,
 			statusStr,
 		).Inc()
 
 		// latency
-		metrics.HttpDuration.WithLabelValues(
+		HttpDuration.WithLabelValues(
 			method,
 			path,
 			statusStr,
@@ -41,10 +40,10 @@ func MetricsMiddleware() gin.HandlerFunc {
 
 		// ошибки
 		if status >= 400 && status < 500 {
-			metrics.HttpErrorsTotal.WithLabelValues("4xx").Inc()
+			HttpErrorsTotal.WithLabelValues("4xx").Inc()
 		}
 		if status >= 500 {
-			metrics.HttpErrorsTotal.WithLabelValues("5xx").Inc()
+			HttpErrorsTotal.WithLabelValues("5xx").Inc()
 		}
 	}
 }

@@ -2,12 +2,23 @@ package handler
 
 import (
 	"errors"
+	_ "history-care-texnology/internal/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
+// @Summary      Get user profile
+// @Security ApiKeyAuth
+// @Description  Возвращает информацию о текущем пользователе
+// @Tags         profile
+// @Produce      json
+// @Success      200 {object} models.User
+// @Failure      401 {object} map[string]string
+// @Failure      404 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /api/profile [get]
 func (h *Handler) GetProfile(c *gin.Context) {
 	userIDRaw, exists := c.Get("user_id")
 	if !exists {

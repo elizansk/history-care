@@ -1,4 +1,4 @@
-package handler
+package handlerOld
 
 import (
 	"net/http"
@@ -7,17 +7,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *Handler) GetBuildings(ctx *gin.Context) {
+func (h *HandlerOld) GetBuildings(ctx *gin.Context) {
 	regionID, err := strconv.Atoi(ctx.Query("region"))
 	if err != nil || regionID < 0 {
-		ctx.String(http.StatusBadRequest, "invalid region")
-		return
+		//ctx.String(http.StatusBadRequest, "invalid region")
+		//return
 	}
 
 	categoryID, err := strconv.Atoi(ctx.Query("category"))
 	if err != nil || categoryID < 0 {
-		ctx.String(http.StatusBadRequest, "invalid category")
-		return
+		//ctx.String(http.StatusBadRequest, "invalid category")
+		//return
 	}
 
 	buildings, _ := h.repo.GetBuildings(uint(regionID), uint(categoryID))
@@ -29,7 +29,7 @@ func (h *Handler) GetBuildings(ctx *gin.Context) {
 	})
 }
 
-func (h *Handler) GetBuilding(ctx *gin.Context) {
+func (h *HandlerOld) GetBuilding(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id < 0 {
 		ctx.String(http.StatusBadRequest, "invalid building id")

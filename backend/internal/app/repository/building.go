@@ -23,7 +23,7 @@ func (r *Repository) GetBuildings(regionID, categoryID uint) ([]models.Building,
 		return nil, err
 	}
 
-	// фильтрация (бизнес-логика, кстати лучше вынести потом в service)
+	// фильтрация
 	var filtered []models.Building
 	for _, b := range buildings {
 		keep := false

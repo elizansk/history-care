@@ -1,19 +1,27 @@
-package handler
+package middleware
 
 import (
+	"history-care-texnology/internal/app/jwt"
 	"history-care-texnology/internal/logger"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
+	gjwt "github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
 )
 
 func AuthMiddleware(requiredRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Фиксируем факт доступа к защищённому endpoint + требуемые роли
+		logger.Log.WithFields(logrus.Fields{
+			"requiredRoles": requiredRoles,
+			"method":        c.Request.Method,
+			"path":          c.Request.URL.Path,
+		}).Warn("AuthMiddleware called with roles")
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
+			// нет токена → попытка неавторизованного доступа
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "no token"})
 			return
 		}
@@ -21,6 +29,7 @@ func AuthMiddleware(requiredRoles ...string) gin.HandlerFunc {
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
 			logger.Log.WithFields(logrus.Fields{
+				//неправильный формат Authorization header
 				"header": authHeader,
 				"method": c.Request.Method,
 				"path":   c.Request.URL.Path,
@@ -30,10 +39,11 @@ func AuthMiddleware(requiredRoles ...string) gin.HandlerFunc {
 		}
 
 		tokenStr := parts[1]
-		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
+		token, err := gjwt.Parse(tokenStr, func(token *gjwt.Token) (interface{}, error) {
+			return jwt.GetJWTKey(), nil
 		})
 		if err != nil || !token.Valid {
+			//невалидный JWT (подпись/истёк/повреждён)
 			logger.Log.WithFields(logrus.Fields{
 				"token":  token,
 				"method": c.Request.Method,
@@ -42,9 +52,10 @@ func AuthMiddleware(requiredRoles ...string) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			return
 		}
-		claims, ok := token.Claims.(jwt.MapClaims)
+		claims, ok := token.Claims.(gjwt.MapClaims)
 		if !ok {
 			logger.Log.WithFields(logrus.Fields{
+				//некорректная структура claims (JWT сломан или не наш формат)
 				"сlaims": claims,
 				"method": c.Request.Method,
 				"path":   c.Request.URL.Path,
@@ -54,7 +65,7 @@ func AuthMiddleware(requiredRoles ...string) gin.HandlerFunc {
 		}
 
 		userIDFloat, ok := claims["user_id"].(float64)
-		if !ok {
+		if !ok { //отсутствует/битый user_id в токене
 			logger.Log.WithFields(logrus.Fields{
 				"сlaims": claims,
 				"method": c.Request.Method,
@@ -66,7 +77,7 @@ func AuthMiddleware(requiredRoles ...string) gin.HandlerFunc {
 		userID := uint(userIDFloat)
 
 		role, ok := claims["role"].(string)
-		if !ok {
+		if !ok { //отсутствует роль в токене
 			logger.Log.WithFields(logrus.Fields{
 				"user_id": userID,
 				"method":  c.Request.Method,
@@ -77,7 +88,7 @@ func AuthMiddleware(requiredRoles ...string) gin.HandlerFunc {
 		}
 
 		// Проверка ролей, если они переданы
-		if len(requiredRoles) > 0 {
+		if len(requiredRoles) > 0 { // если роль пользователя НЕ входит в allowed roles → 403
 			allowed := false
 			for _, r := range requiredRoles {
 				if r == role {
@@ -85,7 +96,7 @@ func AuthMiddleware(requiredRoles ...string) gin.HandlerFunc {
 					break
 				}
 			}
-			if !allowed {
+			if !allowed { //отказ в доступе (AUTHORIZATION FAIL / 403)
 				logger.Log.WithFields(logrus.Fields{
 					"user_id": userID,
 					"role":    role,
@@ -96,7 +107,7 @@ func AuthMiddleware(requiredRoles ...string) gin.HandlerFunc {
 				return
 			}
 		}
-
+		// пользователь прошёл проверку JWT + роль
 		c.Set("user_id", userID)
 		c.Set("role", role)
 		c.Next()

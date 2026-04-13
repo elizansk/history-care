@@ -8,7 +8,7 @@ interface User {
   role: string;
 }
 
-export default function AdminPage() {
+export default function Admin() {
   const [me, setMe] = useState<User | null>(null);
   const API_URL = import.meta.env.VITE_API_URL;
   const [users, setUsers] = useState<User[]>([]);
@@ -20,7 +20,7 @@ export default function AdminPage() {
     axios.get(`${API_URL}/profile`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-        .then(res => setMe(res.data))
+        .then(res => {console.log(res); setMe(res.data)})
         .catch(console.error);
 
     // список всех пользователей
@@ -38,7 +38,7 @@ export default function AdminPage() {
       <div className="container">
         <h2 className="search-title">Админ панель</h2>
 
-        {/* 👤 Профиль */}
+        {/* Профиль */}
         <div className="card" style={{
           maxWidth: 500,
           margin: "0 auto 40px",
@@ -49,7 +49,7 @@ export default function AdminPage() {
           <p>Роль: {me.role}</p>
         </div>
 
-        {/* 👥 Пользователи */}
+        {/* Пользователи */}
         <h3 style={{
           marginBottom: 20,
           color: "var(--primary)",

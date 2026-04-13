@@ -3,8 +3,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import CreateOrder from './pages/CreateOrder';
-import UserPage from './pages/UserPage';
-import AdminPage from './pages/AdminPage';
+import User from './pages/User.tsx';
+import Admin from './pages/Admin.tsx';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -20,7 +20,7 @@ function App() {
           path="/profile"
           element={
             <ProtectedRoute allowedRoles={["User", "City", "Admin"]}>
-              <UserPage />
+              <User />
             </ProtectedRoute>
           }
         />
@@ -40,7 +40,7 @@ function App() {
           path="/admin"
           element={
             <ProtectedRoute allowedRoles={["Admin"]}>
-              <AdminPage />
+              <Admin />
             </ProtectedRoute>
           }
         />

@@ -12,14 +12,14 @@ var (
 		[]string{"method", "path", "status"},
 	)
 
-	// ⏱ время ответа
+	// время ответа
 	HttpDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "http_request_duration_seconds",
 			Help:    "HTTP request duration",
 			Buckets: prometheus.DefBuckets,
 		},
-		[]string{"method", "path"},
+		[]string{"method", "path", "status"},
 	)
 
 	// ошибки

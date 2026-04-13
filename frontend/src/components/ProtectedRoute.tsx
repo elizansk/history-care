@@ -8,7 +8,7 @@ interface Props {
 
 export default function ProtectedRoute({ children, allowedRoles }: Props) {
   const user = getUser();
-
+    console.log(user);
   if (!user) {
     return <Navigate to="/login" />;
   }
