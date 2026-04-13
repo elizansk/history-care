@@ -9,17 +9,21 @@ interface User {
 }
 
 
-export default function UserPage() {
+export default function User() {
         const API_URL = import.meta.env.VITE_API_URL;
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
-
-    axios
-      .get((`${API_URL}/profile`), { headers: { Authorization: `Bearer ${token}` } })
+    console.log(`${API_URL}/profile`);
+    axios.get(`${API_URL}/profile`, {
+                headers: { Authorization: `Bearer ${token}` }
+              })
       .then((res) => {setUser(res.data); console.log(res.data);})
+      .catch((err) => {
+          console.error("ERROR:", err.response?.data || err.message);
+        });
   }, []);
 
   if (!user) return <p style={{ textAlign: "center", marginTop: 100 }}>Loading...</p>;

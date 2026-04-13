@@ -1,9 +1,5 @@
-export function getToken() {
-  return localStorage.getItem("token");
-}
-
 export function getUser() {
-  const token = getToken();
+  const token = localStorage.getItem("token");
   if (!token) return null;
 
   try {

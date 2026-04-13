@@ -1,0 +1,474 @@
+basePath: /
+definitions:
+  history-care-texnology_internal_models.BuildingCategory:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  history-care-texnology_internal_models.BuildingService:
+    properties:
+      description:
+        type: string
+      duration_days:
+        type: integer
+      id:
+        type: integer
+      name:
+        type: string
+      price:
+        type: number
+    type: object
+  history-care-texnology_internal_models.City:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  history-care-texnology_internal_models.Region:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  history-care-texnology_internal_models.User:
+    properties:
+      city:
+        $ref: '#/definitions/history-care-texnology_internal_models.City'
+      city_id:
+        type: integer
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: integer
+      last_name:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+    type: object
+  internal_app_handler.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  internal_app_handler.RegisterRequest:
+    properties:
+      cityId:
+        type: integer
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      password:
+        type: string
+      role:
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
+    - password
+    - role
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API documentation for History Care
+  title: History Care API
+  version: "1.0"
+paths:
+  /api/auth/cities:
+    get:
+      description: Возвращает список городов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/history-care-texnology_internal_models.City'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all cities
+      tags:
+      - auth
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Логин пользователя, возвращает JWT
+      parameters:
+      - description: Login credentials
+        in: body
+        name: loginRequest
+        required: true
+        schema:
+          $ref: '#/definitions/internal_app_handler.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User login
+      tags:
+      - auth
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создает нового пользователя и возвращает JWT
+      parameters:
+      - description: User registration data
+        in: body
+        name: registerRequest
+        required: true
+        schema:
+          $ref: '#/definitions/internal_app_handler.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - auth
+  /api/categories:
+    get:
+      description: Возвращает список категорий
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/history-care-texnology_internal_models.BuildingCategory'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all categories
+      tags:
+      - categories
+  /api/orders:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Создает новую заявку с услугами и файлами
+      parameters:
+      - description: Building name
+        in: formData
+        name: name
+        type: string
+      - description: Description
+        in: formData
+        name: description
+        type: string
+      - description: Address
+        in: formData
+        name: address
+        type: string
+      - description: Category ID
+        in: formData
+        name: category_id
+        type: integer
+      - description: Region ID
+        in: formData
+        name: region_id
+        type: integer
+      - collectionFormat: csv
+        description: IDs of services
+        in: formData
+        items:
+          type: integer
+        name: service_ids
+        type: array
+      - collectionFormat: csv
+        description: Quantities of services
+        in: formData
+        items:
+          type: integer
+        name: quantities
+        type: array
+      - collectionFormat: csv
+        description: Files
+        in: formData
+        items:
+          type: file
+        name: files
+        type: array
+      - description: Index of main photo
+        in: formData
+        name: main_photo_index
+        type: integer
+      - description: Index of main video
+        in: formData
+        name: main_video_index
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new order
+      tags:
+      - order
+  /api/profile:
+    get:
+      description: Возвращает информацию о текущем пользователе
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/history-care-texnology_internal_models.User'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get user profile
+      tags:
+      - profile
+  /api/regions:
+    get:
+      description: Возвращает список регионов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/history-care-texnology_internal_models.Region'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all regions
+      tags:
+      - regions
+  /api/services:
+    get:
+      description: Возвращает список всех услуг
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/history-care-texnology_internal_models.BuildingService'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all services
+      tags:
+      - services
+  /api/users:
+    get:
+      description: Возвращает список всех пользователей
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/history-care-texnology_internal_models.User'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all users
+      tags:
+      - users
+  /donate/{id}:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Добавляет пожертвование на заявку
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User ID
+        in: formData
+        name: user_id
+        required: true
+        type: integer
+      - description: Amount or 'other'
+        in: formData
+        name: amount
+        required: true
+        type: string
+      - description: Custom amount if 'other'
+        in: formData
+        name: custom_amount
+        type: string
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Post a donation
+      tags:
+      - donation
+  /order/delete/{id}:
+    post:
+      description: Удаляет заявку по ID
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - text/html
+      responses:
+        "303":
+          description: Redirect to /building/{building_id}
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete an order
+      tags:
+      - order
+schemes:
+- http
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

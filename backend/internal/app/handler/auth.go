@@ -1,19 +1,19 @@
 package handler
 
 import (
+	"history-care-texnology/internal/app/jwt"
 	"history-care-texnology/internal/logger"
 	"history-care-texnology/internal/metrics"
+	"history-care-texnology/internal/models"
 	"log"
 	"net/http"
-
-	"history-care-texnology/internal/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// 🔐 Запросы
+// Запросы
 type RegisterRequest struct {
 	FirstName string `json:"first_name" binding:"required"`
 	LastName  string `json:"last_name" binding:"required"`
@@ -28,6 +28,13 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+// @Summary      Get all cities
+// @Description  Возвращает список городов
+// @Tags         auth
+// @Produce      json
+// @Success      200 {array} models.City
+// @Failure      500 {object} map[string]string
+// @Router       /api/auth/cities [get]
 func (h *Handler) GetCities(c *gin.Context) {
 	cities, err := h.repo.GetCities()
 	if err != nil {
@@ -40,7 +47,7 @@ func (h *Handler) GetCities(c *gin.Context) {
 	c.JSON(http.StatusOK, cities)
 }
 
-// ---- Password helpers ----
+// Password helpers
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return string(bytes), err
@@ -51,7 +58,17 @@ func checkPassword(password, hash string) bool {
 	return err == nil
 }
 
-// ---- Register ----
+// RegisterRequest ...
+// @Summary      Register a new user
+// @Description  Создает нового пользователя и возвращает JWT
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        registerRequest body RegisterRequest true "User registration data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /api/auth/register [post]
 func (h *Handler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -81,8 +98,7 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	// 🔑 Генерация JWT с ролью
-	token, err := generateJWT(user.ID, user.Role)
+	token, err := jwt.GenerateJWT(user.ID, user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
 		return
@@ -101,6 +117,18 @@ func (h *Handler) Register(c *gin.Context) {
 }
 
 // ---- Login ----
+// LoginRequest ...
+// @Summary      User login
+// @Description  Логин пользователя, возвращает JWT
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        loginRequest body LoginRequest true "Login credentials"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /api/auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -135,8 +163,8 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	// 🔑 Генерация JWT с ролью
-	token, err := generateJWT(user.ID, user.Role)
+	// Генерация JWT с ролью
+	token, err := jwt.GenerateJWT(user.ID, user.Role)
 	if err != nil {
 		logger.Log.WithFields(logrus.Fields{
 			"user_id": user.ID,

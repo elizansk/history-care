@@ -17,12 +17,13 @@ interface Region {
   name: string;
 }
 
-const CreateOrder = () => {
+export default function  CreateOrder ()  {
 
+  const token = localStorage.getItem("token");
   const API_URL = import.meta.env.VITE_API_URL;
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [regions, setRegions] = useState<Region[]>([]);
+
 
   const [selectedServices, setSelectedServices] = useState<
     { id: number; quantity: number; price: number }[]
@@ -32,20 +33,25 @@ const CreateOrder = () => {
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
-  const [regionId, setRegionId] = useState<number | "">("");
+
 
   const [files, setFiles] = useState<File[]>([]);
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    axios.get(`${API_URL}/services`)
+
+    const token = localStorage.getItem("token");
+       if (!token) return;
+    axios.get(`${API_URL}/services`, {
+        headers: { Authorization: `Bearer ${token}` }
+                 })
       .then(res => Array.isArray(res.data) && setServices(res.data));
 
-    axios.get(`${API_URL}/categories`)
+    axios.get(`${API_URL}/categories`, {
+        headers: { Authorization: `Bearer ${token}` }
+                 })
       .then(res => Array.isArray(res.data) && setCategories(res.data));
 
-    axios.get(`${API_URL}/regions`)
-      .then(res => Array.isArray(res.data) && setRegions(res.data));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,7 +63,6 @@ const CreateOrder = () => {
     formData.append("description", description);
     formData.append("address", address);
     formData.append("category_id", String(categoryId));
-    formData.append("region_id", String(regionId));
     formData.append("total_amount", String(total));
 
     selectedServices.forEach(s => {
@@ -69,7 +74,10 @@ const CreateOrder = () => {
 
     try {
       const res = await axios.post(`${API_URL}/orders`,
-        formData
+        formData,
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          },
       );
       alert("Заявка создана! ID: " + res.data.order_id);
     } catch (err) {
@@ -121,15 +129,6 @@ const CreateOrder = () => {
               <option value="">Категория</option>
               {categories.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-
-            <select value={regionId}
-              onChange={(e) => setRegionId(e.target.value ? Number(e.target.value) : "")}
-            >
-              <option value="">Регион</option>
-              {regions.map(r => (
-                <option key={r.id} value={r.id}>{r.name}</option>
               ))}
             </select>
           </div>
@@ -257,4 +256,3 @@ const CreateOrder = () => {
   );
 };
 
-export default CreateOrder;

@@ -17,7 +17,6 @@ function parseJwt(token: string) {
 
 export default function Home() {
 
-  const FRONT_URL = import.meta.env.VITE_FRONT_URL;
   const API_FRONT_URL = import.meta.env.VITE_API_FRONT_URL;
   function goToProfile() {
     const token = localStorage.getItem("token");
@@ -99,7 +98,7 @@ export default function Home() {
 
               {(user?.role === "City" || user?.role === "Admin") && (
                   <a
-                      href={`${FRONT_URL}/buildings`}
+                      href={`/create-order`}
                       className="reconstruction-btn"
                   >
                     Создать заявку
