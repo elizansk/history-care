@@ -56,3 +56,37 @@ func (r *Repository) GetBuilding(id uint) (models.Building, error) {
 
 	return building, err
 }
+func (r *Repository) GetBuildingByID(id uint) (models.Building, error) {
+	var building models.Building
+
+	err := r.DB.
+		First(&building, id).Error
+
+	return building, err
+}
+
+func (r *Repository) CreateBuilding(b *models.Building) error {
+	return r.DB.Create(b).Error
+}
+
+func (r *Repository) UpdateBuildingByID(buildingID uint, name, description, address string, categoryID uint, cityId uint) error {
+	return r.DB.Model(&models.Building{}).
+		Where("id = ?", buildingID).
+		Updates(map[string]interface{}{
+			"name":        name,
+			"description": description,
+			"address":     address,
+			"category_id": categoryID,
+			"city_id":     cityId,
+		}).Error
+}
+
+func (r *Repository) IsBuildingAlreadyUsed(buildingID uint) (bool, error) {
+	var count int64
+
+	err := r.DB.Model(&models.ReconstructionOrder{}).
+		Where("building_id = ? AND status != ?", buildingID, "deleted").
+		Count(&count).Error
+
+	return count > 0, err
+}

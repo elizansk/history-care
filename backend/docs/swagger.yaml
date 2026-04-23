@@ -1,59 +1,18 @@
 basePath: /
 definitions:
-  history-care-texnology_internal_models.BuildingCategory:
+  handler.AddServiceToDraftRequest:
     properties:
-      id:
-        type: integer
-      name:
-        type: string
-    type: object
-  history-care-texnology_internal_models.BuildingService:
-    properties:
-      description:
-        type: string
-      duration_days:
-        type: integer
-      id:
-        type: integer
-      name:
-        type: string
       price:
         type: number
+      service_id:
+        type: integer
     type: object
-  history-care-texnology_internal_models.City:
+  handler.CreateDraftOrderRequest:
     properties:
-      id:
+      building_id:
         type: integer
-      name:
-        type: string
     type: object
-  history-care-texnology_internal_models.Region:
-    properties:
-      id:
-        type: integer
-      name:
-        type: string
-    type: object
-  history-care-texnology_internal_models.User:
-    properties:
-      city:
-        $ref: '#/definitions/history-care-texnology_internal_models.City'
-      city_id:
-        type: integer
-      email:
-        type: string
-      first_name:
-        type: string
-      id:
-        type: integer
-      last_name:
-        type: string
-      name:
-        type: string
-      role:
-        type: string
-    type: object
-  internal_app_handler.LoginRequest:
+  handler.LoginRequest:
     properties:
       email:
         type: string
@@ -63,7 +22,7 @@ definitions:
     - email
     - password
     type: object
-  internal_app_handler.RegisterRequest:
+  handler.RegisterRequest:
     properties:
       cityId:
         type: integer
@@ -84,6 +43,179 @@ definitions:
     - password
     - role
     type: object
+  handler.UpdateOrderRequest:
+    properties:
+      address:
+        type: string
+      category_id:
+        type: integer
+      city_id:
+        type: integer
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  handler.UpdateServiceInDraftRequest:
+    properties:
+      price:
+        type: number
+    type: object
+  models.Building:
+    properties:
+      address:
+        type: string
+      category:
+        $ref: '#/definitions/models.BuildingCategory'
+      category_id:
+        type: integer
+      city:
+        $ref: '#/definitions/models.City'
+      city_id:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      orders:
+        items:
+          $ref: '#/definitions/models.ReconstructionOrder'
+        type: array
+      resources:
+        items:
+          $ref: '#/definitions/models.BuildingResource'
+        type: array
+    type: object
+  models.BuildingCategory:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  models.BuildingResource:
+    properties:
+      building_id:
+        type: integer
+      id:
+        type: integer
+      is_main:
+        type: boolean
+      resource_type:
+        type: string
+      url:
+        type: string
+    type: object
+  models.City:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  models.Donation:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      id:
+        type: integer
+      order:
+        $ref: '#/definitions/models.ReconstructionOrder'
+      order_id:
+        type: integer
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        type: integer
+    type: object
+  models.OrderService:
+    properties:
+      id:
+        type: integer
+      order:
+        $ref: '#/definitions/models.ReconstructionOrder'
+      order_id:
+        type: integer
+      price:
+        type: number
+      service:
+        $ref: '#/definitions/models.Service'
+      service_id:
+        type: integer
+    type: object
+  models.ReconstructionOrder:
+    properties:
+      building:
+        $ref: '#/definitions/models.Building'
+      building_id:
+        type: integer
+      collected_amount:
+        type: number
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      creator:
+        $ref: '#/definitions/models.User'
+      creator_id:
+        type: integer
+      donations:
+        items:
+          $ref: '#/definitions/models.Donation'
+        type: array
+      id:
+        type: integer
+      moderator_id:
+        type: integer
+      services:
+        items:
+          $ref: '#/definitions/models.OrderService'
+        type: array
+      status:
+        type: string
+      total_amount:
+        type: number
+    type: object
+  models.Service:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+      video_url:
+        type: string
+    type: object
+  models.User:
+    properties:
+      city:
+        $ref: '#/definitions/models.City'
+      city_id:
+        type: integer
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: integer
+      last_name:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -101,7 +233,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/history-care-texnology_internal_models.City'
+              $ref: '#/definitions/models.City'
             type: array
         "500":
           description: Internal Server Error
@@ -123,7 +255,7 @@ paths:
         name: loginRequest
         required: true
         schema:
-          $ref: '#/definitions/internal_app_handler.LoginRequest'
+          $ref: '#/definitions/handler.LoginRequest'
       produces:
       - application/json
       responses:
@@ -153,6 +285,22 @@ paths:
       summary: User login
       tags:
       - auth
+  /api/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Заглушка выхода пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: User logout
+      tags:
+      - auth
   /api/auth/register:
     post:
       consumes:
@@ -164,7 +312,7 @@ paths:
         name: registerRequest
         required: true
         schema:
-          $ref: '#/definitions/internal_app_handler.RegisterRequest'
+          $ref: '#/definitions/handler.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -188,6 +336,66 @@ paths:
       summary: Register a new user
       tags:
       - auth
+  /api/buildings:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Building name
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Description
+        in: formData
+        name: description
+        type: string
+      - description: Address
+        in: formData
+        name: address
+        required: true
+        type: string
+      - description: Category ID
+        in: formData
+        name: category_id
+        required: true
+        type: integer
+      - description: City ID (only for admin)
+        in: formData
+        name: city_id
+        type: integer
+      - collectionFormat: csv
+        description: Photos + Videos
+        in: formData
+        items:
+          type: file
+        name: files
+        required: true
+        type: array
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Building'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create building
+      tags:
+      - buildings
   /api/categories:
     get:
       description: Возвращает список категорий
@@ -198,7 +406,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/history-care-texnology_internal_models.BuildingCategory'
+              $ref: '#/definitions/models.BuildingCategory'
             type: array
         "500":
           description: Internal Server Error
@@ -212,67 +420,41 @@ paths:
       tags:
       - categories
   /api/orders:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Создает новую заявку с услугами и файлами
+    get:
+      description: список заявок с фильтрацией (доступ ограничен ролями)
       parameters:
-      - description: Building name
-        in: formData
-        name: name
+      - description: status (formed/ finished)
+        in: query
+        name: status
         type: string
-      - description: Description
-        in: formData
-        name: description
+      - description: date from (YYYY-MM-DD)
+        in: query
+        name: from
         type: string
-      - description: Address
-        in: formData
-        name: address
+      - description: date to (YYYY-MM-DD)
+        in: query
+        name: to
         type: string
-      - description: Category ID
-        in: formData
-        name: category_id
-        type: integer
-      - description: Region ID
-        in: formData
-        name: region_id
-        type: integer
-      - collectionFormat: csv
-        description: IDs of services
-        in: formData
-        items:
-          type: integer
-        name: service_ids
-        type: array
-      - collectionFormat: csv
-        description: Quantities of services
-        in: formData
-        items:
-          type: integer
-        name: quantities
-        type: array
-      - collectionFormat: csv
-        description: Files
-        in: formData
-        items:
-          type: file
-        name: files
-        type: array
-      - description: Index of main photo
-        in: formData
-        name: main_photo_index
-        type: integer
-      - description: Index of main video
-        in: formData
-        name: main_video_index
-        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties: true
+            items:
+              $ref: '#/definitions/models.ReconstructionOrder'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
             type: object
         "500":
           description: Internal Server Error
@@ -282,9 +464,340 @@ paths:
             type: object
       security:
       - ApiKeyAuth: []
-      summary: Create a new order
+      summary: Get orders
       tags:
-      - order
+      - orders
+  /api/orders/{id}:
+    delete:
+      description: Логическое удаление заявки (только владелец)
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete order
+      tags:
+      - orders
+    get:
+      description: Получение заявки (только владелец)
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ReconstructionOrder'
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get order by ID
+      tags:
+      - orders
+    put:
+      consumes:
+      - application/json
+      description: Редактирование заявки (только если draft)
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: building fields
+        in: body
+        name: UpdateOrderRequest
+        required: true
+        schema:
+          $ref: '#/definitions/handler.UpdateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update order fields
+      tags:
+      - orders
+  /api/orders/{id}/form:
+    put:
+      description: Формирование заявки (расчет суммы)
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Form order
+      tags:
+      - orders
+  /api/orders/{id}/moderate:
+    put:
+      description: Завершение или отклонение заявки
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: finish or reject
+        in: query
+        name: status
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Finish order (admin)
+      tags:
+      - orders
+  /api/orders/draft:
+    get:
+      description: Возвращает текущую черновую заявку пользователя (корзину). Если
+        черновика нет — создаёт новый.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Draft order info
+          schema:
+            properties:
+              count:
+                type: integer
+              order_id:
+                type: integer
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get draft order (cart)
+      tags:
+      - orders
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Building id
+        in: body
+        name: CreateDraftOrderRequest
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateDraftOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ReconstructionOrder'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create draft order
+      tags:
+      - orders
+  /api/orders/services:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет услугу в заявку-черновик
+      parameters:
+      - description: service_id + price
+        in: body
+        name: AddServiceToDraftRequest
+        required: true
+        schema:
+          $ref: '#/definitions/handler.AddServiceToDraftRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Add service to draft order
+      tags:
+      - orders-services
+  /api/orders/services/{service_id}:
+    delete:
+      description: Удаляет услугу из заявки-черновика
+      parameters:
+      - description: Service ID
+        in: path
+        name: service_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete service from draft
+      tags:
+      - orders-services
+    put:
+      consumes:
+      - application/json
+      description: Изменяет стоимость услуги в заявке
+      parameters:
+      - description: Service ID
+        in: path
+        name: service_id
+        required: true
+        type: integer
+      - description: price
+        in: body
+        name: UpdateServiceInDraftRequest
+        required: true
+        schema:
+          $ref: '#/definitions/handler.UpdateServiceInDraftRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update service price in draft
+      tags:
+      - orders-services
   /api/profile:
     get:
       description: Возвращает информацию о текущем пользователе
@@ -294,7 +807,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/history-care-texnology_internal_models.User'
+            $ref: '#/definitions/models.User'
         "401":
           description: Unauthorized
           schema:
@@ -318,32 +831,9 @@ paths:
       summary: Get user profile
       tags:
       - profile
-  /api/regions:
-    get:
-      description: Возвращает список регионов
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/history-care-texnology_internal_models.Region'
-            type: array
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - ApiKeyAuth: []
-      summary: Get all regions
-      tags:
-      - regions
   /api/services:
     get:
-      description: Возвращает список всех услуг
+      description: Возвращает список не удаленных услуг
       produces:
       - application/json
       responses:
@@ -351,7 +841,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/history-care-texnology_internal_models.BuildingService'
+              $ref: '#/definitions/models.Service'
             type: array
         "500":
           description: Internal Server Error
@@ -361,7 +851,111 @@ paths:
             type: object
       security:
       - ApiKeyAuth: []
-      summary: Get all services
+      summary: Get services not delited
+      tags:
+      - services
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Service name
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Description
+        in: formData
+        name: description
+        type: string
+      - description: Image file
+        in: formData
+        name: image
+        required: true
+        type: file
+      - description: Video file
+        in: formData
+        name: video
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Service'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create service
+      tags:
+      - services
+  /api/services/{id}:
+    delete:
+      description: Удаление услуги (status = deleted)
+      parameters:
+      - description: Service ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete service
+      tags:
+      - services
+    get:
+      parameters:
+      - description: Service ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Service'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get service by id
       tags:
       - services
   /api/users:
@@ -374,7 +968,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/history-care-texnology_internal_models.User'
+              $ref: '#/definitions/models.User'
             type: array
         "500":
           description: Internal Server Error
@@ -431,39 +1025,6 @@ paths:
       summary: Post a donation
       tags:
       - donation
-  /order/delete/{id}:
-    post:
-      description: Удаляет заявку по ID
-      parameters:
-      - description: Order ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - text/html
-      responses:
-        "303":
-          description: Redirect to /building/{building_id}
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - ApiKeyAuth: []
-      summary: Delete an order
-      tags:
-      - order
 schemes:
 - http
 securityDefinitions:

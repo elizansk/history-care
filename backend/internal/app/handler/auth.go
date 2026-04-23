@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"history-care-texnology/internal/app/jwt"
 	"history-care-texnology/internal/logger"
 	"history-care-texnology/internal/metrics"
 	"history-care-texnology/internal/models"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -110,6 +112,16 @@ func (h *Handler) Register(c *gin.Context) {
 		"path":    c.Request.URL.Path,
 	}).Info("New user created")
 
+	c.SetCookie(
+		"token", // имя
+		token,   // JWT
+		3600,    // TTL
+		"/",
+		"",    // domain ( ост пустым)
+		false, // secure
+		true,  // httpOnly
+	)
+
 	c.JSON(http.StatusOK, gin.H{
 		"user":  user,
 		"token": token,
@@ -184,8 +196,37 @@ func (h *Handler) Login(c *gin.Context) {
 		"path":    c.Request.URL.Path,
 	}).Info("user login")
 	metrics.AuthAttempts.WithLabelValues("success").Inc()
+	c.SetCookie(
+		"token", // имя
+		token,   // JWT
+		3600,    // TTL
+		"/",
+		"",    // domain (ВАЖНО: оставь пустым)
+		false, // secure
+		true,  // httpOnly
+	)
+
 	c.JSON(http.StatusOK, gin.H{
 		"user":  user,
 		"token": token,
 	})
+}
+
+// @Summary      User logout
+// @Description  выход пользователя
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} map[string]interface{}
+// @Router       /api/auth/logout [post]
+func (h *Handler) Logout(c *gin.Context) {
+	token, err := c.Cookie("token")
+	if err == nil {
+		ctx := context.Background()
+		_ = h.redis.Set(ctx, "blacklist:"+token, "1", time.Hour).Err()
+	}
+
+	c.SetCookie("token", "", -1, "/", "", false, true)
+
+	c.JSON(200, gin.H{"message": "logged out"})
 }

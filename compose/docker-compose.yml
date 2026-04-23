@@ -37,7 +37,25 @@ services:
       - "8081:8080"
     depends_on:
       - postgres
+  redis:
+    image: redis:7-alpine
+    container_name: historycare_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    command: redis-server --appendonly yes
 
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis_ui
+    restart: always
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8082:8081"
+    depends_on:
+      - redis
   migrate:
     build:
       context: ../backend
@@ -106,3 +124,4 @@ services:
 
 volumes:
   pgdata:
+  redisdata:

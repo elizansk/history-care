@@ -38,7 +38,7 @@ func main() {
 		&models.BuildingCategory{},
 		&models.Building{},
 		&models.BuildingResource{},
-		&models.BuildingService{},
+		&models.Service{},
 		&models.ReconstructionOrder{},
 		&models.OrderService{},
 		&models.Donation{},
