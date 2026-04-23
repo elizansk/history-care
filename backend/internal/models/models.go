@@ -44,12 +44,14 @@ type BuildingResource struct {
 	IsMain       bool   `json:"is_main"`
 }
 
-type BuildingService struct {
-	ID           uint    `gorm:"primaryKey" json:"id"`
-	Name         string  `gorm:"size:255;not null" json:"name"`
-	Description  string  `gorm:"type:text" json:"description"`
-	DurationDays int     `json:"duration_days"`
-	Price        float64 `json:"price"`
+type Service struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	Name        string    `gorm:"size:255;not null" json:"name"`
+	Description string    `gorm:"type:text" json:"description"`
+	Status      string    `gorm:"size:50;default:'active'" json:"status"`
+	ImageUrl    string    `gorm:"type:text;not null" json:"image_url"`
+	VideoUrl    string    `gorm:"type:text;not null" json:"video_url"`
+	CreatedAt   time.Time `gorm:"autoCreateTime" json:"created_at"`
 }
 
 type ReconstructionOrder struct {
@@ -64,27 +66,29 @@ type ReconstructionOrder struct {
 
 	TotalAmount     float64 `json:"total_amount"`
 	CollectedAmount float64 `json:"collected_amount"`
+	ModeratorID     *uint   `json:"moderator_id"`
 
 	Services  []OrderService `gorm:"foreignKey:OrderID" json:"services"`
 	Donations []Donation     `gorm:"foreignKey:OrderID" json:"donations"`
 }
 
 type OrderService struct {
-	ID          uint                `gorm:"primaryKey" json:"id"`
-	OrderID     uint                `json:"order_id"`
-	Order       ReconstructionOrder `json:"order"`
-	ServiceID   uint                `json:"service_id"`
-	Service     BuildingService     `json:"service"`
-	Description string              `json:"description"`
-	Price       float64             `json:"price"`
-	Quantity    int                 `gorm:"default:1" json:"quantity"`
-	Result      float64             `json:"result"`
+	ID        uint                `gorm:"primaryKey" json:"id"`
+	OrderID   uint                `json:"order_id"`
+	Order     ReconstructionOrder `json:"-"`
+	ServiceID uint                `json:"service_id"`
+	Service   Service             `json:"service"`
+	Price     float64             `json:"price"`
+}
+
+func (OrderService) TableName() string {
+	return "orders_services"
 }
 
 type Donation struct {
 	ID        uint                `gorm:"primaryKey" json:"id"`
 	OrderID   uint                `json:"order_id"`
-	Order     ReconstructionOrder `json:"order"`
+	Order     ReconstructionOrder `json:"-"`
 	UserID    *uint               `json:"user_id"`
 	User      User                `json:"user"`
 	Amount    float64             `json:"amount"`

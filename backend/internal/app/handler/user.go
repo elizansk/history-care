@@ -8,6 +8,7 @@ import (
 
 // @Summary      Get all users
 // @Security ApiKeyAuth
+// @Security CookieAuth
 // @Description  Возвращает список всех пользователей
 // @Tags         users
 // @Produce      json

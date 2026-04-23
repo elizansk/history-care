@@ -12,11 +12,6 @@ interface Category {
   name: string;
 }
 
-interface Region {
-  id: number;
-  name: string;
-}
-
 export default function  CreateOrder ()  {
 
   const token = localStorage.getItem("token");

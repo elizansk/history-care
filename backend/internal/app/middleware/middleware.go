@@ -8,37 +8,43 @@ import (
 
 	"github.com/gin-gonic/gin"
 	gjwt "github.com/golang-jwt/jwt/v5"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
-func AuthMiddleware(requiredRoles ...string) gin.HandlerFunc {
+func AuthMiddleware(redis *redis.Client, requiredRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		// Фиксируем факт доступа к защищённому endpoint + требуемые роли
 		logger.Log.WithFields(logrus.Fields{
 			"requiredRoles": requiredRoles,
 			"method":        c.Request.Method,
 			"path":          c.Request.URL.Path,
 		}).Warn("AuthMiddleware called with roles")
+		var tokenStr string
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			// нет токена → попытка неавторизованного доступа
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "no token"})
-			return
+		if authHeader != "" {
+			parts := strings.Split(authHeader, " ")
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				tokenStr = parts[1]
+			}
+		}
+		if tokenStr == "" {
+			cookieToken, err := c.Cookie("token")
+			if err == nil {
+				tokenStr = cookieToken
+			}
 		}
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
+		if tokenStr == "" {
 			logger.Log.WithFields(logrus.Fields{
-				//неправильный формат Authorization header
-				"header": authHeader,
-				"method": c.Request.Method,
-				"path":   c.Request.URL.Path,
-			}).Warn("invalid header")
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid header"})
+				"authHeader": authHeader,
+				"method":     c.Request.Method,
+				"path":       c.Request.URL.Path,
+			}).Warn("ino token provided")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "no token provided"})
 			return
 		}
-
-		tokenStr := parts[1]
 		token, err := gjwt.Parse(tokenStr, func(token *gjwt.Token) (interface{}, error) {
 			return jwt.GetJWTKey(), nil
 		})
@@ -50,6 +56,16 @@ func AuthMiddleware(requiredRoles ...string) gin.HandlerFunc {
 				"path":   c.Request.URL.Path,
 			}).Warn("invalid token")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			return
+		}
+
+		ctx := c.Request.Context()
+
+		_, err = redis.Get(ctx, "blacklist:"+tokenStr).Result()
+		if err == nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "token revoked",
+			})
 			return
 		}
 		claims, ok := token.Claims.(gjwt.MapClaims)
