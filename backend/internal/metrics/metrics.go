@@ -40,6 +40,19 @@ var (
 		[]string{"status"}, // success / fail
 	)
 )
+var CacheHits = prometheus.NewCounter(
+	prometheus.CounterOpts{
+		Name: "cache_hits_total",
+		Help: "Total cache hits",
+	},
+)
+
+var CacheMisses = prometheus.NewCounter(
+	prometheus.CounterOpts{
+		Name: "cache_misses_total",
+		Help: "Total cache misses",
+	},
+)
 
 func Init() {
 	prometheus.MustRegister(
@@ -47,5 +60,7 @@ func Init() {
 		HttpDuration,
 		HttpErrorsTotal,
 		AuthAttempts,
+		CacheHits,
+		CacheMisses,
 	)
 }

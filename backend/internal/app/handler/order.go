@@ -4,7 +4,7 @@ import (
 	"history-care-texnology/internal/models"
 	"strconv"
 	"time"
-
+"log"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,8 +13,9 @@ type CreateDraftOrderRequest struct {
 }
 
 type AddServiceToDraftRequest struct {
-	ServiceID uint    `json:"service_id"`
-	Price     float64 `json:"price"`
+	ServiceID   uint    `json:"service_id"`
+	Price       float64 `json:"price"`
+	Description string  `json:"description"`
 }
 type UpdateOrderRequest struct {
 	Name        string `json:"name"`
@@ -25,7 +26,57 @@ type UpdateOrderRequest struct {
 }
 
 type UpdateServiceInDraftRequest struct {
-	Price float64 `json:"price"`
+	Price       float64 `json:"price"`
+	Description string  `json:"description"`
+}
+
+// @Summary      Get donatable orders
+// @Description  список заявок с фильтрацией (только заявки formed и connelction started)
+// @Tags         base_orders
+// @Produce      json
+// @Param        categoryId query int false "Category Id"
+// @Param        cityId query int false "City Id"
+// @Param        from query string false "date from (YYYY-MM-DD)"
+// @Param        to query string false "date to (YYYY-MM-DD)"
+// @Success      200 {array} models.ReconstructionOrder
+// @Failure      401 {object} map[string]string
+// @Failure      403 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /api/orders/formed [get]
+func (h *Handler) GetDonatableOrders(c *gin.Context) {
+
+	var from, to *time.Time
+	var categoryId, cityId uint
+
+	if c.Query("from") != "" {
+		t, _ := time.Parse("2006-01-02", c.Query("from"))
+		from = &t
+	}
+
+	if c.Query("to") != "" {
+		t, _ := time.Parse("2006-01-02", c.Query("to"))
+		to = &t
+	}
+
+	if v := c.Query("cityId"); v != "" {
+		if id, err := strconv.Atoi(v); err == nil {
+			cityId = uint(id)
+		}
+	}
+
+	if v := c.Query("categoryId"); v != "" {
+		if id, err := strconv.Atoi(v); err == nil {
+			categoryId = uint(id)
+		}
+	}
+
+	data, err := h.repo.GetDonatableOrders(categoryId, cityId, from, to)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed"})
+		return
+	}
+
+	c.JSON(200, data)
 }
 
 // @Summary      Get orders
@@ -83,7 +134,7 @@ func (h *Handler) GetOrders(c *gin.Context) {
 }
 
 // @Summary      Get order by ID
-// @Security     ApiKeyAuth
+
 // @Description  Получение заявки (только владелец)
 // @Tags         orders
 // @Produce      json
@@ -104,7 +155,8 @@ func (h *Handler) GetOrderByID(c *gin.Context) {
 		return
 	}
 	if role != "Admin" {
-		if order.CreatorID != userID {
+		orderNotDonation := order.Status != "formed" && order.Status != "collection_started"
+		if order.CreatorID != userID && orderNotDonation {
 			c.JSON(403, gin.H{"error": "forbidden"})
 			return
 		}
@@ -388,6 +440,9 @@ func (h *Handler) ModerateOrder(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	status := c.Query("status") // finished / rejected
 
+	if status != "finished" && status != "rejected" {
+		c.JSON(400, gin.H{"error": "bad request"})
+	}
 	order, err := h.repo.GetOrderByID(uint(id))
 	if err != nil {
 		c.JSON(404, gin.H{"error": "not found"})
@@ -453,14 +508,16 @@ func (h *Handler) AddServiceToDraft(c *gin.Context) {
 		return
 	}
 
-	err = h.repo.AddOrderService(order.ID, req.ServiceID, req.Price)
+	err = h.repo.AddOrderService(order.ID, req.ServiceID, req.Price, req.Description)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "add failed"})
 		return
 	}
 
 	// пересчёт total
-	h.repo.RecalculateOrderTotal(order.ID)
+if err := h.repo.RecalculateOrderTotal(order.ID); err != nil {
+    log.Println(err)
+}
 
 	c.JSON(200, gin.H{"status": "added"})
 }
@@ -472,7 +529,7 @@ func (h *Handler) AddServiceToDraft(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param service_id path int true "Service ID"
-// @Param UpdateServiceInDraftRequest body UpdateServiceInDraftRequest true "price"
+// @Param UpdateServiceInDraftRequest body UpdateServiceInDraftRequest true "price and description"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -494,13 +551,15 @@ func (h *Handler) UpdateServiceInDraft(c *gin.Context) {
 		return
 	}
 
-	err = h.repo.UpdateOrderService(order.ID, uint(serviceID), req.Price)
+	err = h.repo.UpdateOrderService(order.ID, uint(serviceID), req.Price, req.Description)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "update failed"})
 		return
 	}
 
-	h.repo.RecalculateOrderTotal(order.ID)
+if err := h.repo.RecalculateOrderTotal(order.ID); err != nil {
+    log.Println(err)
+}
 
 	c.JSON(200, gin.H{"status": "updated"})
 }
@@ -530,7 +589,9 @@ func (h *Handler) DeleteServiceFromDraft(c *gin.Context) {
 		return
 	}
 
-	h.repo.RecalculateOrderTotal(order.ID)
+if err := h.repo.RecalculateOrderTotal(order.ID); err != nil {
+    log.Println(err)
+}
 
 	c.JSON(200, gin.H{"status": "deleted"})
 }

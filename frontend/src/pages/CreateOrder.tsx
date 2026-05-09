@@ -12,13 +12,15 @@ interface Category {
   name: string;
 }
 
-export default function  CreateOrder ()  {
-
+export default function CreateOrder() {
   const token = localStorage.getItem("token");
   const API_URL = import.meta.env.VITE_API_URL;
+
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
+  const [servicesCache, setServicesCache] = useState("");
+  const [categoriesCache, setCategoriesCache] = useState("");
 
   const [selectedServices, setSelectedServices] = useState<
     { id: number; quantity: number; price: number }[]
@@ -28,52 +30,78 @@ export default function  CreateOrder ()  {
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
-
-
   const [files, setFiles] = useState<File[]>([]);
   const [total, setTotal] = useState(0);
 
+  const cacheKey = "categories";
+  const cacheTimeKey = "categories_time";
+  const TTL = 60 * 1000;
+
   useEffect(() => {
-
     const token = localStorage.getItem("token");
-       if (!token) return;
-    axios.get(`${API_URL}/services`, {
-        headers: { Authorization: `Bearer ${token}` }
-                 })
-      .then(res => Array.isArray(res.data) && setServices(res.data));
+    if (!token) return;
 
-    axios.get(`${API_URL}/categories`, {
-        headers: { Authorization: `Bearer ${token}` }
-                 })
-      .then(res => Array.isArray(res.data) && setCategories(res.data));
+    // SERVICES
+    axios
+      .get(`${API_URL}/services`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        const cache = res.headers["x-cache"];
+        if (cache === "HIT") {
+          setServicesCache("из кэша");
+        } else {
+          setServicesCache("с сервера");
+        }
 
+        if (Array.isArray(res.data)) {
+          setServices(res.data);
+        }
+      });
+
+    // CATEGORIES (cache)
+    const cached = sessionStorage.getItem(cacheKey);
+    const cachedTime = sessionStorage.getItem(cacheTimeKey);
+
+    if (cached && cachedTime && Date.now() - Number(cachedTime) < TTL) {
+      setCategories(JSON.parse(cached));
+      setCategoriesCache("фронт-кэш (TTL HIT)");
+    } else {
+      axios
+        .get(`${API_URL}/categories`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((res) => {
+          setCategories(res.data);
+          sessionStorage.setItem(cacheKey, JSON.stringify(res.data));
+          sessionStorage.setItem(cacheTimeKey, String(Date.now()));
+          setCategoriesCache("с сервера");
+        });
+    }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const formData = new FormData();
-
     formData.append("name", name);
     formData.append("description", description);
     formData.append("address", address);
     formData.append("category_id", String(categoryId));
     formData.append("total_amount", String(total));
 
-    selectedServices.forEach(s => {
+    selectedServices.forEach((s) => {
       formData.append("service_ids", String(s.id));
       formData.append("quantities", String(s.quantity));
     });
 
-    files.forEach(f => formData.append("files", f));
+    files.forEach((f) => formData.append("files", f));
 
     try {
-      const res = await axios.post(`${API_URL}/orders`,
-        formData,
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          },
-      );
+      const res = await axios.post(`${API_URL}/orders`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       alert("Заявка создана! ID: " + res.data.order_id);
     } catch (err) {
       console.error(err);
@@ -85,118 +113,175 @@ export default function  CreateOrder ()  {
     <div className="container">
       <h1 className="search-title">Создание заявки</h1>
 
-      <form onSubmit={handleSubmit} style={{
-        display: "grid",
-        gridTemplateColumns: "2fr 1fr",
-        gap: "30px",
-        alignItems: "start"
-      }}>
-
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "2fr 1fr",
+          gap: "30px",
+          alignItems: "start",
+        }}
+      >
         {/* LEFT CARD */}
-        <div style={{
-          background: "white",
-          padding: "30px",
-          borderRadius: "20px",
-          boxShadow: "0 15px 40px rgba(0,0,0,0.08)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "18px"
-        }}>
+        <div
+          style={{
+            background: "white",
+            padding: "30px",
+            borderRadius: "20px",
+            boxShadow: "0 15px 40px rgba(0,0,0,0.08)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "18px",
+          }}
+        >
+          <h2 style={{ fontSize: "20px", color: "var(--primary)" }}>
+            Основная информация
+          </h2>
 
-          <h2 style={{ fontSize: "20px", color: "var(--primary)" }}>Основная информация</h2>
-
-          <input placeholder="Название"
+          <input
+            placeholder="Название"
             value={name}
-            onChange={e => setName(e.target.value)} />
+            onChange={(e) => setName(e.target.value)}
+          />
 
-          <input placeholder="Описание"
+          <input
+            placeholder="Описание"
             value={description}
-            onChange={e => setDescription(e.target.value)} />
+            onChange={(e) => setDescription(e.target.value)}
+          />
 
-          <input placeholder="Адрес"
+          <input
+            placeholder="Адрес"
             value={address}
-            onChange={e => setAddress(e.target.value)} />
+            onChange={(e) => setAddress(e.target.value)}
+          />
 
           <div style={{ display: "flex", gap: "10px" }}>
-            <select value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}
+            <p style={{ fontSize: "12px", color: "gray" }}>
+              Источник категорий: {categoriesCache}
+            </p>
+
+            <select
+              value={categoryId}
+              onChange={(e) =>
+                setCategoryId(e.target.value ? Number(e.target.value) : "")
+              }
             >
               <option value="">Категория</option>
-              {categories.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label style={{ fontSize: "14px", color: "var(--text-muted)" }}>Фото</label>
-            <input type="file" multiple
-              onChange={e => e.target.files && setFiles(Array.from(e.target.files))}
+            <label style={{ fontSize: "14px", color: "var(--text-muted)" }}>
+              Фото
+            </label>
+            <input
+              type="file"
+              multiple
+              onChange={(e) =>
+                e.target.files && setFiles(Array.from(e.target.files))
+              }
             />
           </div>
-
         </div>
 
         {/* RIGHT PANEL */}
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-
           {/* SERVICES */}
-          <div style={{
-            background: "white",
-            padding: "20px",
-            borderRadius: "20px",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.08)"
-          }}>
+          <div
+            style={{
+              background: "white",
+              padding: "20px",
+              borderRadius: "20px",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+            }}
+          >
             <h3 style={{ marginBottom: "10px" }}>Услуги</h3>
+
+            <p style={{ fontSize: "12px", color: "gray" }}>
+              Источник данных: {servicesCache}
+            </p>
 
             <select
               onChange={(e) => {
-                const service = services.find(s => s.id === Number(e.target.value));
+                const service = services.find(
+                  (s) => s.id === Number(e.target.value)
+                );
                 if (!service) return;
 
-                if (!selectedServices.find(s => s.id === service.id)) {
-                  setSelectedServices(prev => [
+                if (!selectedServices.find((s) => s.id === service.id)) {
+                  setSelectedServices((prev) => [
                     ...prev,
-                    { id: service.id, quantity: 1, price: service.price }
+                    { id: service.id, quantity: 1, price: service.price },
                   ]);
                 }
               }}
             >
               <option value="">Добавить услугу</option>
-              {services.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
               ))}
             </select>
 
-            <div style={{ marginTop: "15px", display: "flex", flexDirection: "column", gap: "10px" }}>
-              {selectedServices.map(s => {
-                const service = services.find(x => x.id === s.id);
+            <div
+              style={{
+                marginTop: "15px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+              }}
+            >
+              {selectedServices.map((s) => {
+                const service = services.find((x) => x.id === s.id);
+
                 return (
-                  <div key={s.id} style={{
-                    padding: "12px",
-                    borderRadius: "14px",
-                    background: "var(--accent)",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center"
-                  }}>
+                  <div
+                    key={s.id}
+                    style={{
+                      padding: "12px",
+                      borderRadius: "14px",
+                      background: "var(--accent)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
                     <div>
-                      <div style={{ fontWeight: 600 }}>{service?.name}</div>
+                      <div style={{ fontWeight: 600 }}>
+                        {service?.name}
+                      </div>
                       <div style={{ fontSize: "12px" }}>{s.price} ₽</div>
                     </div>
 
                     <div style={{ display: "flex", gap: "6px" }}>
-                      <input type="number" min={1} value={s.quantity}
+                      <input
+                        type="number"
+                        min={1}
+                        value={s.quantity}
                         onChange={(e) => {
                           const qty = Number(e.target.value);
-                          setSelectedServices(prev =>
-                            prev.map(x => x.id === s.id ? { ...x, quantity: qty } : x)
+                          setSelectedServices((prev) =>
+                            prev.map((x) =>
+                              x.id === s.id ? { ...x, quantity: qty } : x
+                            )
                           );
                         }}
                       />
 
-                      <button type="button"
-                        onClick={() => setSelectedServices(prev => prev.filter(x => x.id !== s.id))}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedServices((prev) =>
+                            prev.filter((x) => x.id !== s.id)
+                          )
+                        }
                       >
                         ✕
                       </button>
@@ -208,14 +293,20 @@ export default function  CreateOrder ()  {
           </div>
 
           {/* TOTAL */}
-          <div style={{
-            background: "linear-gradient(135deg, var(--primary), var(--primary-light))",
-            color: "white",
-            padding: "20px",
-            borderRadius: "20px",
-            boxShadow: "0 12px 30px rgba(0,0,0,0.2)"
-          }}>
-            <div style={{ fontSize: "14px", opacity: 0.8 }}>Сумма заявки</div>
+          <div
+            style={{
+              background:
+                "linear-gradient(135deg, var(--primary), var(--primary-light))",
+              color: "white",
+              padding: "20px",
+              borderRadius: "20px",
+              boxShadow: "0 12px 30px rgba(0,0,0,0.2)",
+            }}
+          >
+            <div style={{ fontSize: "14px", opacity: 0.8 }}>
+              Сумма заявки
+            </div>
+
             <input
               type="number"
               value={total}
@@ -226,28 +317,28 @@ export default function  CreateOrder ()  {
                 padding: "12px",
                 borderRadius: "12px",
                 border: "none",
-                fontSize: "18px"
+                fontSize: "18px",
               }}
             />
           </div>
 
-          <button type="submit" style={{
-            padding: "16px",
-            borderRadius: "16px",
-            background: "var(--primary)",
-            color: "white",
-            fontSize: "16px",
-            fontWeight: 600,
-            border: "none",
-            cursor: "pointer"
-          }}>
+          <button
+            type="submit"
+            style={{
+              padding: "16px",
+              borderRadius: "16px",
+              background: "var(--primary)",
+              color: "white",
+              fontSize: "16px",
+              fontWeight: 600,
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
             Создать заявку
           </button>
-
         </div>
-
       </form>
     </div>
   );
-};
-
+}

@@ -15,6 +15,7 @@ coverage
 
 compose/data/buildings/
 compose/data/.minio.sys/
+compose/data/
 
 
 .vscode/*
@@ -31,7 +32,7 @@ compose/data/.minio.sys/
 .stylelintcache
 .prettiercache
 
-
+co
 frontend/src/templates/*.html   # Go шаблоны, чтобы Prettier не ругался
 *.min.css
 *.min.js

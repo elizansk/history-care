@@ -1,0 +1,38 @@
+export interface DonationRequest {
+  order_id: number;
+  amount: number;
+  name?: string;
+  email?: string;
+}
+
+export interface DonationResponse {
+  id: number;
+  order_id: number;
+  amount: number;
+  user_id?: number;
+  creator_name?: string;
+  created_at: string;
+}
+
+export async function submitDonation(donation: DonationRequest): Promise<DonationResponse> {
+  const token = localStorage.getItem('token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  console.log('Donation request payload:', donation);
+  const response = await fetch('/api/donations', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(donation),
+  });
+  console.log('Donation request response:', response);
+  if (!response.ok) {
+    throw new Error(`Failed to submit donation: ${response.statusText}`);
+  }
+
+  return response.json();
+}

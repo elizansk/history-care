@@ -1,72 +1,98 @@
 package handler
 
 import (
+	"history-care-texnology/internal/app/jwt"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	gjwt "github.com/golang-jwt/jwt/v5"
 )
 
-//func (h *Handler) GetDonate(ctx *gin.Context) {
-//	id, err := strconv.Atoi(ctx.Param("id"))
-//	if err != nil || id < 0 {
-//		ctx.String(http.StatusBadRequest, "invalid building id")
-//		return
-//	}
-//
-//	building, err := h.repo.GetBuilding(uint(id))
-//	if err != nil {
-//		ctx.String(http.StatusNotFound, "not found")
-//		return
-//	}
-//
-//	var order *models.ReconstructionOrder
-//	if len(building.ReconstructionOrders) > 0 {
-//		order = &building.ReconstructionOrders[0]
-//	} else {
-//		order = &models.ReconstructionOrder{
-//			TotalAmount:     0,
-//			CollectedAmount: 0,
-//		}
-//	}
-//	ctx.JSON(200, data)
-//	ctx.HTML(http.StatusOK, "donate.html", gin.H{
-//		"building":  building,
-//		"collected": order.CollectedAmount,
-//		"goal":      order.TotalAmount,
-//	})
-//}
+type DonationRequest struct {
+	OrderID uint    `json:"order_id" binding:"required"`
+	Amount  float64 `json:"amount" binding:"required,gt=0"`
+	Name    *string `json:"name"`
+	Email   *string `json:"email"`
+}
+
+type DonationResponse struct {
+	ID           uint    `json:"id"`
+	OrderID      uint    `json:"order_id"`
+	Amount       float64 `json:"amount"`
+	UserID       *uint   `json:"user_id"`
+	CreatorName  *string `json:"creator_name"`
+	CreatorEmail *string `json:"creator_email"`
+	Message      string  `json:"message"`
+}
 
 // @Summary      Post a donation
-// @Security ApiKeyAuth
 // @Description  Добавляет пожертвование на заявку
 // @Tags         donation
-// @Accept       application/x-www-form-urlencoded
-// @Produce      html
-// @Param        id path int true "Order ID"
-// @Param        user_id formData int true "User ID"
-// @Param        amount formData string true "Amount or 'other'"
-// @Param        custom_amount formData string false "Custom amount if 'other'"
-// @Success      200 {object} map[string]interface{}
+// @Accept       json
+// @Produce      json
+// @Param        donationRequest body DonationRequest true "Donation data"
+// @Success      201 {object} DonationResponse
+// @Failure      400 {object} map[string]string
 // @Failure      500 {object} map[string]string
-// @Router       /donate/{id} [post]
+// @Router       /api/donations [post]
 func (h *Handler) PostDonate(ctx *gin.Context) {
-	orderID, _ := strconv.Atoi(ctx.Param("id"))
-	userID, _ := strconv.Atoi(ctx.PostForm("user_id"))
-
-	amountStr := ctx.PostForm("amount")
-	if amountStr == "other" {
-		amountStr = ctx.PostForm("custom_amount")
-	}
-
-	amount, _ := strconv.ParseFloat(amountStr, 64)
-
-	uid := uint(userID)
-	err := h.repo.AddDonation(uint(orderID), &uid, amount)
-	if err != nil {
-		ctx.String(http.StatusInternalServerError, "cannot add donation")
+	var req DonationRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request: " + err.Error()})
 		return
 	}
 
-	ctx.Redirect(http.StatusSeeOther, "/donate/"+ctx.Param("id"))
+	var userID *uint
+	var name *string
+	var email *string
+
+	// Try to parse JWT from Authorization header
+	authHeader := ctx.GetHeader("Authorization")
+	if authHeader != "" {
+		parts := strings.Split(authHeader, " ")
+		if len(parts) == 2 && parts[0] == "Bearer" {
+			tokenStr := parts[1]
+			if tokenStr == "" {
+				cookieToken, err := ctx.Cookie("token")
+				if err == nil {
+					tokenStr = cookieToken
+				}
+			}
+			token, err := gjwt.Parse(tokenStr, func(token *gjwt.Token) (interface{}, error) {
+				return jwt.GetJWTKey(), nil
+			})
+			if err == nil && token.Valid {
+				claims, ok := token.Claims.(gjwt.MapClaims)
+				if ok {
+					if userIDFloat, ok := claims["user_id"].(float64); ok {
+						id := uint(userIDFloat)
+						userID = &id
+					}
+				}
+			}
+		}
+	}
+
+	// If no JWT, use name and email from request
+	if userID == nil {
+		name = req.Name
+		email = req.Email
+	}
+
+	// Save donation
+	err := h.repo.AddDonation(req.OrderID, userID, req.Amount, name, email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create donation"})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, DonationResponse{
+		OrderID:      req.OrderID,
+		Amount:       req.Amount,
+		UserID:       userID,
+		CreatorName:  name,
+		CreatorEmail: email,
+		Message:      "Donation created successfully",
+	})
 }

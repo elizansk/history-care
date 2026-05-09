@@ -28,3 +28,39 @@ func InitLogger(env string) {
 		Log.Warn("Failed to log to file, using default stdout")
 	}
 }
+func CacheHit(key string) {
+	Log.WithFields(logrus.Fields{
+		"cache_key": key,
+		"event":     "cache_hit",
+	}).Info("cache hit")
+}
+
+func CacheMiss(key string) {
+	Log.WithFields(logrus.Fields{
+		"cache_key": key,
+		"event":     "cache_miss",
+	}).Info("cache miss")
+}
+
+func CacheSet(key string) {
+	Log.WithFields(logrus.Fields{
+		"cache_key": key,
+		"event":     "cache_set",
+	}).Info("cache set")
+}
+
+func CacheInvalidate(key string) {
+	Log.WithFields(logrus.Fields{
+		"cache_key": key,
+		"event":     "cache_invalidate",
+	}).Info("cache invalidate")
+}
+
+func CacheError(key string, err error, op string) {
+	Log.WithFields(logrus.Fields{
+		"cache_key": key,
+		"event":     "cache_error",
+		"operation": op,
+		"error":     err.Error(),
+	}).Error("cache error")
+}

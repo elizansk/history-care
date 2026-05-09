@@ -73,12 +73,13 @@ type ReconstructionOrder struct {
 }
 
 type OrderService struct {
-	ID        uint                `gorm:"primaryKey" json:"id"`
-	OrderID   uint                `json:"order_id"`
-	Order     ReconstructionOrder `json:"-"`
-	ServiceID uint                `json:"service_id"`
-	Service   Service             `json:"service"`
-	Price     float64             `json:"price"`
+	ID          uint                `gorm:"primaryKey" json:"id"`
+	OrderID     uint                `json:"order_id"`
+	Order       ReconstructionOrder `json:"-"`
+	ServiceID   uint                `json:"service_id"`
+	Service     Service             `json:"service"`
+	Price       float64             `json:"price"`
+	Description string              `json:"description"`
 }
 
 func (OrderService) TableName() string {
@@ -90,7 +91,9 @@ type Donation struct {
 	OrderID   uint                `json:"order_id"`
 	Order     ReconstructionOrder `json:"-"`
 	UserID    *uint               `json:"user_id"`
-	User      User                `json:"user"`
+	User      User                `json:"-"`
+	Name      *string             `json:"name"`
+	Email     *string             `json:"email"`
 	Amount    float64             `json:"amount"`
 	CreatedAt time.Time           `gorm:"autoCreateTime" json:"created_at"`
 }

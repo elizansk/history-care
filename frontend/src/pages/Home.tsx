@@ -16,8 +16,6 @@ function parseJwt(token: string) {
 }
 
 export default function Home() {
-
-  const API_FRONT_URL = import.meta.env.VITE_API_FRONT_URL;
   function goToProfile() {
     const token = localStorage.getItem("token");
 
@@ -90,19 +88,13 @@ export default function Home() {
                 Личный кабинет
               </a>
 
-              <a href={`${API_FRONT_URL}/buildings`} className="reconstruction-btn">
+              <a href="/buildings" >
                 Исторические здания
               </a>
 
-              <a href="/about">О нас</a>
 
               {(user?.role === "City" || user?.role === "Admin") && (
-                  <a
-                      href={`/create-order`}
-                      className="reconstruction-btn"
-                  >
-                    Создать заявку
-                  </a>
+                  <a href={`/create-order`}>Создать заявку</a>
               )}
 
             </div>

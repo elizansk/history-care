@@ -2,13 +2,15 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"history-care-texnology/internal/logger"
 	"history-care-texnology/internal/models"
 	"history-care-texnology/internal/storage"
 	"net/http"
 	"strconv"
 	"time"
-
+    "log"
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
 )
@@ -28,6 +30,7 @@ func (h *Handler) GetAllServices(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "failed"})
 		return
 	}
+
 	c.JSON(200, data)
 }
 
@@ -41,11 +44,41 @@ func (h *Handler) GetAllServices(c *gin.Context) {
 // @Failure      500 {object} map[string]string
 // @Router       /api/services [get]
 func (h *Handler) GetServices(c *gin.Context) {
+	ctx := context.Background()
+	cacheKey := "services:active"
+
+	//  1. пробуем кэш
+	cached, err := h.redis.Get(ctx, cacheKey).Result()
+	if err == nil {
+		logger.CacheHit(cacheKey)
+		c.Header("X-Cache", "HIT")
+		c.Data(http.StatusOK, "application/json", []byte(cached))
+		return
+
+	}
+	logger.CacheMiss(cacheKey)
+	//  2. БД
 	data, err := h.repo.GetServices()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get services"})
 		return
 	}
+
+	//  3. кладём в кэш
+	jsonData, err := json.Marshal(data)
+	if err == nil {
+		err := h.redis.Set(ctx, cacheKey, jsonData, time.Minute).Err()
+		if err != nil {
+			logger.CacheError(cacheKey, err, "set")
+		} else {
+			logger.CacheSet(cacheKey)
+		}
+	}
+	if err != nil && err.Error() != "redis: nil" {
+		logger.CacheError(cacheKey, err, "get")
+	}
+
+	c.Header("X-Cache", "MISS")
 	c.JSON(http.StatusOK, data)
 }
 
@@ -58,14 +91,38 @@ func (h *Handler) GetServices(c *gin.Context) {
 // @Failure 404 {object} map[string]string
 // @Router /api/services/{id} [get]
 func (h *Handler) GetServiceByID(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
+	ctx := context.Background()
 
-	service, err := h.repo.GetServiceByID(uint(id))
+	id := c.Param("id")
+	cacheKey := fmt.Sprintf("services:%s", id)
+
+	//  1. кэш
+	cached, err := h.redis.Get(ctx, cacheKey).Result()
+	if err == nil {
+		logger.CacheHit(cacheKey)
+		c.Header("X-Cache", "HIT")
+		c.Data(http.StatusOK, "application/json", []byte(cached))
+		return
+	}
+	logger.CacheMiss(cacheKey)
+	//  2. БД
+	idInt, _ := strconv.Atoi(id)
+	service, err := h.repo.GetServiceByID(uint(idInt))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
 
+	// 3. кэшируем
+	jsonData, err := json.Marshal(service)
+	if err == nil {
+		h.redis.Set(ctx, cacheKey, jsonData, time.Minute*2)
+		logger.CacheSet(cacheKey)
+	}
+	if err != nil && err.Error() != "redis: nil" {
+		logger.CacheError(cacheKey, err, "get")
+	}
+	c.Header("X-Cache", "MISS")
 	c.JSON(http.StatusOK, service)
 }
 
@@ -110,7 +167,11 @@ func (h *Handler) CreateService(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "failed to open image"})
 		return
 	}
-	defer imgSrc.Close()
+defer func() {
+    if err := imgSrc.Close(); err != nil {
+        log.Println(err)
+    }
+}()
 
 	imgName := fmt.Sprintf("service_img_%d_%s", time.Now().UnixNano(), imageFile.Filename)
 
@@ -137,7 +198,11 @@ func (h *Handler) CreateService(c *gin.Context) {
 
 		videoSrc, err := videoFile.Open()
 		if err == nil {
-			defer videoSrc.Close()
+		defer func() {
+            if err := videoSrc.Close(); err != nil {
+                log.Println(err)
+            }
+        }()
 
 			videoName := fmt.Sprintf("service_video_%d_%s", time.Now().UnixNano(), videoFile.Filename)
 
@@ -171,7 +236,12 @@ func (h *Handler) CreateService(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "db error"})
 		return
 	}
-
+	err = h.redis.Del(context.Background(), "services:active").Err()
+	if err != nil {
+		logger.CacheError("services:active", err, "delete")
+	} else {
+		logger.CacheInvalidate("services:active") // 👈 ДОБАВИТЬ
+	}
 	c.JSON(201, service)
 }
 
@@ -197,7 +267,23 @@ func (h *Handler) DeleteService(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "failed to delete service"})
 		return
 	}
+	ctx := context.Background()
 
+	key1 := "services:active"
+	err = h.redis.Del(ctx, key1).Err()
+	if err != nil {
+		logger.CacheError(key1, err, "delete")
+	} else {
+		logger.CacheInvalidate(key1)
+	}
+
+	key2 := fmt.Sprintf("services:%d", id)
+	err = h.redis.Del(ctx, key2).Err()
+	if err != nil {
+		logger.CacheError(key2, err, "delete")
+	} else {
+		logger.CacheInvalidate(key2)
+	}
 	c.JSON(200, gin.H{
 		"message": "service deleted (soft delete)",
 	})

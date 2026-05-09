@@ -14,11 +14,12 @@ func (r *Repository) CheckServiceInOrder(orderID, serviceID uint) (bool, error) 
 	return count > 0, err
 }
 
-func (r *Repository) AddOrderService(orderID uint, serviceID uint, price float64) error {
+func (r *Repository) AddOrderService(orderID uint, serviceID uint, price float64, description string) error {
 	return r.DB.Create(&models.OrderService{
-		OrderID:   orderID,
-		ServiceID: serviceID,
-		Price:     price,
+		OrderID:     orderID,
+		ServiceID:   serviceID,
+		Price:       price,
+		Description: description,
 	}).Error
 }
 func (r *Repository) DeleteOrderService(orderID, serviceID uint) error {
@@ -27,10 +28,11 @@ func (r *Repository) DeleteOrderService(orderID, serviceID uint) error {
 		Delete(&models.OrderService{}).Error
 }
 
-func (r *Repository) UpdateOrderService(orderID, serviceID uint, price float64) error {
+func (r *Repository) UpdateOrderService(orderID, serviceID uint, price float64, description string) error {
 	return r.DB.Model(&models.OrderService{}).
 		Where("order_id = ? AND service_id = ?", orderID, serviceID).
 		Updates(map[string]interface{}{
-			"price": price,
+			"price":       price,
+			"description": description,
 		}).Error
 }

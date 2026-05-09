@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"history-care-texnology/docs"
 	"history-care-texnology/internal/app/handler"
-	"history-care-texnology/internal/app/handlerOld"
 	"history-care-texnology/internal/app/middleware"
 	"history-care-texnology/internal/app/repository"
 	"history-care-texnology/internal/logger"
@@ -31,7 +30,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
-	"github.com/swaggo/files"
+	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
@@ -53,9 +52,6 @@ func StartServer() {
 		log.Printf("No %s file found, using system environment variables", envFile)
 	}
 
-	templatesPath := os.Getenv("TEMPLATES_PATH")
-	staticPath := os.Getenv("STATIC_PATH")
-
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		os.Getenv("DB_HOST"),
@@ -71,7 +67,7 @@ func StartServer() {
 	}
 	storage.InitMinio()
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: os.Getenv("REDIS_HOST"),
 	})
 
 	h := handler.NewHandler(repo, redisClient)
@@ -87,33 +83,30 @@ func StartServer() {
 		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
+		ExposeHeaders:    []string{"X-Cache", "Content-Length"},
 		AllowCredentials: true,
 	}))
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	// ==== 1. HTML + статика ====
-	r.LoadHTMLGlob(templatesPath)
-	r.Static("/static", staticPath)
-
-	oldHandler := handlerOld.OldHandler(repo)
 
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
-	r.GET("/", func(c *gin.Context) { c.Redirect(302, "/buildings") })
-	r.GET("/buildings", oldHandler.GetBuildings)
-	r.GET("/building/:id", oldHandler.GetBuilding)
-	r.GET("/donate/:id", oldHandler.GetDonate)
-	r.POST("/donate/:id", h.PostDonate)
-	r.POST("/order/delete/:id", h.DeleteOrder)
 
-	// ==== 2. Auth API для React ====
+	//  2. Auth API для React
 	authAPI := r.Group("/api/auth")
 	{
 		authAPI.POST("/login", h.Login)
 		authAPI.POST("/register", h.Register)
-		authAPI.GET("/cities", h.GetCities)
+		authAPI.GET("/cities", h.GetCities) //вызывает все города
 	}
 
-	// ==== 3. Protected API для всех авторизованных пользователей ====
+	baseAPI := r.Group("/api")
+	{
+		baseAPI.GET("/orders/formed", h.GetDonatableOrders)
+		baseAPI.GET("/categories", h.GetCategories)
+		baseAPI.GET("/orders/:id", h.GetOrderByID) // Домен заявки GET одна запись
+		baseAPI.POST("/donations", h.PostDonate)   // POST donation
+	}
+
+	// 3. Protected API для всех авторизованных пользователей
 	protectedAPI := r.Group("/api")
 	protectedAPI.Use(middleware.AuthMiddleware(redisClient))
 	{
@@ -121,12 +114,11 @@ func StartServer() {
 		protectedAPI.POST("/auth/logout", h.Logout)
 	}
 
-	// ==== 4. Protected API для City + Admin ====
+	// 4. Protected API для City + Admin
 	cityAPI := r.Group("/api")
 	cityAPI.Use(middleware.AuthMiddleware(redisClient, "City", "Admin"))
 	{
 		cityAPI.GET("/orders", h.GetOrders)           // Домен заявки GET список
-		cityAPI.GET("/orders/:id", h.GetOrderByID)    // Домен заявки GET одна запись
 		cityAPI.GET("/orders/draft", h.GetDraftOrder) // Домен заявки GET иконки корзины
 
 		cityAPI.POST("/orders/services", h.AddServiceToDraft)                    // Домен м-м POST добавления в заявку-черновик
@@ -143,11 +135,10 @@ func StartServer() {
 
 		cityAPI.POST("/buildings", h.CreateBuilding)      // Создать здание
 		cityAPI.POST("/orders/draft", h.CreateDraftOrder) // Создать draft заявки
-		cityAPI.GET("/categories", h.GetCategories)
-
+		cityAPI.POST("/order/delete/:id", h.DeleteOrder)
 	}
 
-	// ==== 5. Protected API для Admin ====
+	// 5. Protected API для Admin
 	adminAPI := r.Group("/api")
 	adminAPI.Use(middleware.AuthMiddleware(redisClient, "Admin"))
 	{
