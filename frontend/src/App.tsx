@@ -5,6 +5,9 @@ import Home from './pages/Home';
 import CreateOrder from './pages/CreateOrder';
 import User from './pages/User.tsx';
 import Admin from './pages/Admin.tsx';
+import Buildings from './pages/Buildings';
+import Building from './pages/Building';
+import Donate from './pages/Donate';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -44,6 +47,12 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Заявки на реконструкцию и донаты */}
+        <Route path="/buildings" element={<Buildings />} />
+        <Route path="/building/:id" element={<Building />} />
+        <Route path="/donate/:id" element={<Donate />} />
+        <Route path="/donate" element={<Donate />} />
 
       </Routes>
     </BrowserRouter>

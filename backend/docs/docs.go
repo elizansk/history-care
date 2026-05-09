@@ -111,7 +111,7 @@ const docTemplate = `{
         },
         "/api/auth/logout": {
             "post": {
-                "description": "Заглушка выхода пользователя",
+                "description": "выход пользователя",
                 "consumes": [
                     "application/json"
                 ],
@@ -279,11 +279,6 @@ const docTemplate = `{
         },
         "/api/categories": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Возвращает список категорий",
                 "produces": [
                     "application/json"
@@ -299,6 +294,58 @@ const docTemplate = `{
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/models.BuildingCategory"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/donations": {
+            "post": {
+                "description": "Добавляет пожертвование на заявку",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "donation"
+                ],
+                "summary": "Post a donation",
+                "parameters": [
+                    {
+                        "description": "Donation data",
+                        "name": "donationRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.DonationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/handler.DonationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     },
@@ -485,6 +532,82 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/orders/formed": {
+            "get": {
+                "description": "список заявок с фильтрацией (только заявки formed и connelction started)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "base_orders"
+                ],
+                "summary": "Get donatable orders",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Category Id",
+                        "name": "categoryId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "City Id",
+                        "name": "cityId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "date from (YYYY-MM-DD)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "date to (YYYY-MM-DD)",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.ReconstructionOrder"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/orders/services": {
             "post": {
                 "security": [
@@ -572,7 +695,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "price",
+                        "description": "price and description",
                         "name": "UpdateServiceInDraftRequest",
                         "in": "body",
                         "required": true,
@@ -658,11 +781,6 @@ const docTemplate = `{
         },
         "/api/orders/{id}": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Получение заявки (только владелец)",
                 "produces": [
                     "application/json"
@@ -670,7 +788,6 @@ const docTemplate = `{
                 "tags": [
                     "orders"
                 ],
-                "summary": "Get order by ID",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1165,6 +1282,9 @@ const docTemplate = `{
                 "security": [
                     {
                         "ApiKeyAuth": []
+                    },
+                    {
+                        "CookieAuth": []
                     }
                 ],
                 "description": "Возвращает список всех пользователей",
@@ -1196,79 +1316,15 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/donate/{id}": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Добавляет пожертвование на заявку",
-                "consumes": [
-                    "application/x-www-form-urlencoded"
-                ],
-                "produces": [
-                    "text/html"
-                ],
-                "tags": [
-                    "donation"
-                ],
-                "summary": "Post a donation",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Order ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "user_id",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Amount or 'other'",
-                        "name": "amount",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Custom amount if 'other'",
-                        "name": "custom_amount",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
         "handler.AddServiceToDraftRequest": {
             "type": "object",
             "properties": {
+                "description": {
+                    "type": "string"
+                },
                 "price": {
                     "type": "number"
                 },
@@ -1281,6 +1337,53 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "building_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handler.DonationRequest": {
+            "type": "object",
+            "required": [
+                "amount",
+                "order_id"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "order_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handler.DonationResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "creator_email": {
+                    "type": "string"
+                },
+                "creator_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "order_id": {
+                    "type": "integer"
+                },
+                "user_id": {
                     "type": "integer"
                 }
             }
@@ -1353,6 +1456,9 @@ const docTemplate = `{
         "handler.UpdateServiceInDraftRequest": {
             "type": "object",
             "properties": {
+                "description": {
+                    "type": "string"
+                },
                 "price": {
                     "type": "number"
                 }
@@ -1450,17 +1556,17 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "email": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
-                "order": {
-                    "$ref": "#/definitions/models.ReconstructionOrder"
+                "name": {
+                    "type": "string"
                 },
                 "order_id": {
                     "type": "integer"
-                },
-                "user": {
-                    "$ref": "#/definitions/models.User"
                 },
                 "user_id": {
                     "type": "integer"
@@ -1470,11 +1576,11 @@ const docTemplate = `{
         "models.OrderService": {
             "type": "object",
             "properties": {
+                "description": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
-                },
-                "order": {
-                    "$ref": "#/definitions/models.ReconstructionOrder"
                 },
                 "order_id": {
                     "type": "integer"
@@ -1601,6 +1707,11 @@ const docTemplate = `{
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"
+        },
+        "CookieAuth": {
+            "type": "apiKey",
+            "name": "token",
+            "in": "cookie"
         }
     }
 }`

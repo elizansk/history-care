@@ -32,17 +32,51 @@ func (r *Repository) GetOrders(status string, from, to *time.Time) ([]models.Rec
 	return orders, err
 }
 
+func (r *Repository) GetDonatableOrders(categoryId, cityId uint, from, to *time.Time) ([]models.ReconstructionOrder, error) {
+
+	var orders []models.ReconstructionOrder
+
+	query := r.DB.
+		Model(&models.ReconstructionOrder{}).
+		Joins("JOIN buildings ON buildings.id = reconstruction_orders.building_id").
+		Preload("Donations").
+		Preload("Building").
+		Preload("Building.Resources").
+		Preload("Building.Category").
+		Preload("Building.City").
+		Preload("Services.Service").
+		Where("reconstruction_orders.status IN ?", []string{"formed", "collection_started"})
+
+	if categoryId != 0 {
+		query = query.Where("buildings.category_id = ?", categoryId)
+	}
+
+	if cityId != 0 {
+		query = query.Where("buildings.city_id = ?", cityId)
+	}
+
+	if from != nil {
+		query = query.Where("reconstruction_orders.created_at >= ?", *from)
+	}
+
+	if to != nil {
+		query = query.Where("reconstruction_orders.created_at <= ?", *to)
+	}
+
+	err := query.Find(&orders).Error
+	return orders, err
+}
+
 func (r *Repository) GetOrderByID(id uint) (models.ReconstructionOrder, error) {
 	var order models.ReconstructionOrder
 
 	err := r.DB.
 		Preload("Services.Service").
-		Preload("Donations.Donation").
-		Preload("Donations.Donation.User").
+		Preload("Donations").
 		Preload("Building").
 		Preload("Building.Resources").
 		Preload("Building.Category").
-		Preload("Building.Creator").
+		Preload("Creator").
 		Preload("Building.City").
 		First(&order, id).Error
 
@@ -58,7 +92,7 @@ func (r *Repository) GetDraftOrder(userID uint) (*models.ReconstructionOrder, er
 		Preload("Building").
 		Preload("Building.Resources").
 		Preload("Building.Category").
-		Preload("Building.Creator").
+		Preload("Creator").
 		Preload("Building.City").
 		First(&order).Error
 

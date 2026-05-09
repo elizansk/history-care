@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
+    "log"
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
 )
@@ -23,7 +23,7 @@ import (
 // @Param address formData string true "Address"
 // @Param category_id formData int true "Category ID"
 // @Param city_id formData int false "City ID (only for admin)"
-// @Param files formData file true "Photos + Videos"
+// @Param files formData []file true "Photos + Videos"
 // @Success 201 {object} models.Building
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -104,7 +104,11 @@ func (h *Handler) CreateBuilding(c *gin.Context) {
 		if err != nil {
 			continue
 		}
-		defer src.Close()
+	defer func() {
+        if err := src.Close(); err != nil {
+            log.Println(err)
+        }
+    }()
 
 		objectName := fmt.Sprintf("building_%d_%s", time.Now().UnixNano(), file.Filename)
 

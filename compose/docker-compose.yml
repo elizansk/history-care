@@ -85,6 +85,11 @@ services:
       DB_PORT: 5432
       TEMPLATES_PATH: "frontend/src/templates/*"
       STATIC_PATH: "frontend/src/resources"
+      REDIS_HOST: local:redis:6379
+      MINIO_HOST: minio
+      MINIO_KEY: "admin"
+      MINIO_SECRET: "password122"
+
     volumes:
       - ../frontend:/app/frontend
     healthcheck:

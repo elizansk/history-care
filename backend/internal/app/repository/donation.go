@@ -4,10 +4,12 @@ import (
 	"history-care-texnology/internal/models"
 )
 
-func (r *Repository) AddDonation(orderID uint, userID *uint, amount float64) error {
+func (r *Repository) AddDonation(orderID uint, userID *uint, amount float64, name *string, email *string) error {
 	donation := models.Donation{
 		OrderID: orderID,
 		UserID:  userID,
+		Name:    name,
+		Email:   email,
 		Amount:  amount,
 	}
 
@@ -24,7 +26,7 @@ func (r *Repository) AddDonation(orderID uint, userID *uint, amount float64) err
 
 	newStatus := "collection_started"
 	if newCollected >= order.TotalAmount {
-		newStatus = "collection_completed"
+		newStatus = "finish"
 	}
 
 	return r.DB.Model(&models.ReconstructionOrder{}).

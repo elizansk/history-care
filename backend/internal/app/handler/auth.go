@@ -201,7 +201,7 @@ func (h *Handler) Login(c *gin.Context) {
 		token,   // JWT
 		3600,    // TTL
 		"/",
-		"",    // domain (ВАЖНО: оставь пустым)
+		"",
 		false, // secure
 		true,  // httpOnly
 	)
