@@ -40,7 +40,7 @@ export async function getFormedOrders(categoryId?: number, cityId?: number, from
         const data = await res.json();
         console.log('Fetched orders:', data);
         return data;
-    } catch (error) {
+    } catch  {
         console.warn('Using mock data for getFormedOrders');
         let filtered = mockOrders;
         if (categoryId) {
@@ -70,7 +70,7 @@ export async function getOrderById(id: number): Promise<MockOrder> {
         }
 
         return await res.json();
-    } catch (error) {
+    } catch {
         console.warn('Using mock data for getOrderById');
         const order = mockOrders.find(o => o.id === id);
         if (!order) {

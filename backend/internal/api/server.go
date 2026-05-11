@@ -95,7 +95,6 @@ func StartServer() {
 	{
 		authAPI.POST("/login", h.Login)
 		authAPI.POST("/register", h.Register)
-		authAPI.GET("/cities", h.GetCities) //вызывает все города
 	}
 
 	baseAPI := r.Group("/api")
@@ -104,6 +103,7 @@ func StartServer() {
 		baseAPI.GET("/categories", h.GetCategories)
 		baseAPI.GET("/orders/:id", h.GetOrderByID) // Домен заявки GET одна запись
 		baseAPI.POST("/donations", h.PostDonate)   // POST donation
+		baseAPI.GET("/cities", h.GetCities)        //вызывает все города
 	}
 
 	// 3. Protected API для всех авторизованных пользователей
@@ -125,6 +125,8 @@ func StartServer() {
 		cityAPI.PUT("/orders/services/:service_id", h.UpdateServiceInDraft)      // Домен м-м PUT изменение price
 		cityAPI.DELETE("/orders/services/:service_id", h.DeleteServiceFromDraft) // Домен м-м DELETE удаление из заявки
 
+		cityAPI.POST("/orders/:id/services", h.BulkAddServicesToOrder) // Домен м-м POST массовое добавление услуг
+
 		cityAPI.PUT("/orders/:id", h.UpdateOrder)    // Домен заявки PUT изменения полей заявки
 		cityAPI.DELETE("/orders/:id", h.DeleteOrder) // Домен заявки DELETE удаление
 
@@ -134,7 +136,9 @@ func StartServer() {
 		cityAPI.GET("/services/:id", h.GetServiceByID)
 
 		cityAPI.POST("/buildings", h.CreateBuilding)      // Создать здание
+		cityAPI.PUT("/buildings/:id", h.UpdateBuilding)   // Обновить здание
 		cityAPI.POST("/orders/draft", h.CreateDraftOrder) // Создать draft заявки
+		cityAPI.POST("/orders", h.FinalizeOrder)          // Завершить draft заявку
 		cityAPI.POST("/order/delete/:id", h.DeleteOrder)
 	}
 

@@ -6,7 +6,6 @@ import Breadcrumbs from '../components/Breadcrumbs';
 import { getOrderById } from '../api/orders';
 import type { MockOrder } from '../api/orders';
 import Footer from '../components/Footer';
-
 const Building: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<MockOrder | null>(null);//Хранит объект заявки
@@ -30,6 +29,7 @@ const Building: React.FC = () => {
     fetchOrder();
   }, [id]);//заново при изменении
 
+
   if (loading) return <div className="text-center p-5">Загрузка...</div>;
   if (error || !order) return <Alert variant="danger">{error || 'Объект не найден'}</Alert>;
 
@@ -49,7 +49,7 @@ const Building: React.FC = () => {
     setModalImage(url);
     setShowModal(true);
   };
-//Передается prop
+
   return (
     <>
       <NavigationBar />
@@ -140,6 +140,7 @@ const Building: React.FC = () => {
                 Помочь объекту
               </Link>
             </div>
+
           </div>
 
           <Footer />

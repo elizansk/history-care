@@ -18,7 +18,7 @@ export interface MockOrder {
     city_id: number;
     city: { id: number; name: string };
     resources: { id: number; building_id: number; resource_type: string; url: string; is_main: boolean }[];
-    orders: null | any;
+    orders: null | unknown;
   };
   services: {
     id: number;
@@ -36,7 +36,15 @@ export interface MockOrder {
     price: number;
     description: string;
   }[];
-  donations: any[];
+  donations: {
+    id: number;
+    order_id: number;
+    amount: number;
+    created_at: string;
+    name: string;
+    email: string;
+    user_id: number | null;
+  }[];
 }
 
 // Placeholder URLs for mock data
