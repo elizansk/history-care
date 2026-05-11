@@ -19,9 +19,9 @@ export async function getCategories(): Promise<Category[]> {
     if (!res.ok) {
       throw new Error('API not available');
     }
-    var data = await res.json();
+    const data = await res.json();
     return data;
-  } catch (error) {
+  } catch {
     console.warn('Using mock data for categories');
     return mockCategories;
   }
@@ -36,9 +36,9 @@ export async function getCities(): Promise<City[]> {
     if (!res.ok) {
       throw new Error('API not available');
     }
-    var data = await res.json();
+    const data = await res.json();
     return data;
-  } catch (error) {
+  } catch  {
     console.warn('Using mock data for cities');
     return mockCities;
   }

@@ -124,6 +124,21 @@ func (r *Repository) UpdateOrderTotal(orderID uint, total float64) error {
 		Update("total_amount", total).Error
 }
 
+func (r *Repository) UpdateOrderDetails(orderID uint, totalAmount float64, description string) error {
+	return r.DB.Model(&models.ReconstructionOrder{}).
+		Where("id = ?", orderID).
+		Updates(map[string]interface{}{
+			"total_amount": totalAmount,
+			"description":  description,
+		}).Error
+}
+
+func (r *Repository) UpdateOrderStatus(orderID uint, status string) error {
+	return r.DB.Model(&models.ReconstructionOrder{}).
+		Where("id = ?", orderID).
+		Update("status", status).Error
+}
+
 func (r *Repository) UpdateOrderFields(orderID uint, name, description, address string, categoryID uint, cityId uint) error {
 	return r.DB.Model(&models.Building{}).
 		Where("id = (SELECT building_id FROM reconstruction_orders WHERE id = ?)", orderID).

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Alert, Form, Button, ProgressBar, Modal } from 'react-bootstrap';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import NavigationBar from '../components/NavigationBar';
 import Breadcrumbs from '../components/Breadcrumbs';
-import { getOrderById } from '../api/orders';
+import { getFormedOrders, getOrderById } from '../api/orders';
 import { submitDonation } from '../api/donations';
 import { getUser } from '../utils/auth';
 import type { MockOrder } from '../api/orders';
+
+let embedderPromise: any = null;
 
 const Donate: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +18,9 @@ const Donate: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [similarOrders, setSimilarOrders] = useState<MockOrder[]>([]);
+  const [similarLoading, setSimilarLoading] = useState(false);
+  const [similarError, setSimilarError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     amount: '',
     customAmount: '',
@@ -71,6 +76,94 @@ const Donate: React.FC = () => {
     }
   };
 
+  const getText = (source: MockOrder) => source.building.description?.trim() || source.building.name || '';
+
+  const cosineSimilarity = (a: number[], b: number[]) => {
+    const dot = a.reduce((sum, value, index) => sum + value * (b[index] ?? 0), 0);
+    const normA = Math.sqrt(a.reduce((sum, value) => sum + value * value, 0));
+    const normB = Math.sqrt(b.reduce((sum, value) => sum + value * value, 0));
+    return normA === 0 || normB === 0 ? 0 : dot / (normA * normB);
+  };
+
+  const flattenEmbedding = (value: any): number[] => {
+    if (!Array.isArray(value)) return [];
+    if (typeof value[0] === 'number') return value as number[];
+    return (value as any[]).flat(Infinity).filter((item: any) => typeof item === 'number');
+  };
+
+  const loadSimilarOrders = async () => {
+    setSimilarLoading(true);
+    setSimilarError(null);
+    setSimilarOrders([]);
+
+    let candidates: MockOrder[] = [];
+    try {
+      const allOrders = await getFormedOrders();
+      candidates = allOrders.filter((item) => item.id !== order?.id);
+
+      if (candidates.length === 0) {
+        setSimilarOrders([]);
+        setSimilarError(null);
+        return;
+      }
+
+      const texts = [order?.building.description || order?.building.name || '', ...candidates.map(getText)];
+      let embedder: any;
+      if (!embedderPromise) {
+        embedderPromise = import('@xenova/transformers').then(({ pipeline }) =>
+          pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2')
+        );
+      }
+      embedder = await embedderPromise;
+
+      const rawEmbedding: any = await embedder(texts);
+      const embeddings = Array.isArray(rawEmbedding)
+        ? rawEmbedding.map(flattenEmbedding).filter((vec) => vec.length > 0)
+        : [];
+
+      if (embeddings.length <= 1) {
+        throw new Error('Embedding generation failed');
+      }
+
+      const baseEmbedding = embeddings[0];
+      const similar = candidates
+        .map((candidate, index) => ({
+          order: candidate,
+          score: cosineSimilarity(baseEmbedding, embeddings[index + 1] || []),
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .map((item) => item.order);
+
+      if (similar.length > 0) {
+        setSimilarOrders(similar);
+      } else {
+        setSimilarOrders(
+          candidates
+            .filter(
+              (candidate) =>
+                candidate.building.category_id === order?.building.category_id ||
+                candidate.building.city_id === order?.building.city_id
+            )
+            .slice(0, 3)
+        );
+      }
+    } catch (err) {
+      console.warn('Не удалось загрузить похожие заявки:', err);
+      const fallback = candidates
+        .filter(
+          (candidate) =>
+            candidate.building.category_id === order?.building.category_id ||
+            candidate.building.city_id === order?.building.city_id
+        )
+        .slice(0, 3);
+      setSimilarOrders(fallback);
+      setSimilarError(fallback.length === 0 ? 'Не удалось загрузить похожие заявки' : null);
+    } finally {
+      setSimilarLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!order || !id) return;
@@ -90,6 +183,7 @@ const Donate: React.FC = () => {
       console.log('Submitting donation:', donationData);
       await submitDonation(donationData);
       setShowQR(true);
+      loadSimilarOrders();
     } catch (err) {
       alert('Ошибка при отправке пожертвования: ' + (err as Error).message);
     } finally {
@@ -114,7 +208,7 @@ const Donate: React.FC = () => {
 
           <div className="donation-content">
             {mainPhoto && (
-              <img className="donation-image" src={mainPhoto.url} alt={order?.building.name} />
+              <img className="building-media building-image" src={mainPhoto.url} alt={order?.building.name} />
             )}
 
             {order && (
@@ -255,6 +349,56 @@ const Donate: React.FC = () => {
             style={{ maxWidth: '400px' }}
           />
           <p className="mt-3">Отсканируйте QR код для завершения платежа</p>
+
+          <section className="similar-section mt-4 text-start">
+            <h5>Похожие заявки</h5>
+            {similarLoading && <p>Ищем похожие заявки...</p>}
+            {!similarLoading && similarError && similarOrders.length === 0 && (
+              <Alert variant="warning">{similarError}</Alert>
+            )}
+            {!similarLoading && similarOrders.length === 0 && !similarError && (
+              <p>Похожих заявок не найдено.</p>
+            )}
+            <div className="similar-grid">
+              {similarOrders.map((similar) => {
+                const media =
+                  similar.building.resources.find((r) => r.resource_type === 'photo' && r.is_main) ||
+                  similar.building.resources.find((r) => r.resource_type === 'video' && r.is_main);
+                const isVideo = media?.resource_type === 'video';
+                return (
+                  <article className="similar-card" key={similar.id}>
+                    {media && !isVideo && (
+                      <img
+                        src={media.url}
+                        alt={similar.building.name}
+                        className="similar-card-image"
+                      />
+                    )}
+                    {media && isVideo && (
+                      <div className="video-thumbnail similar-card-image">
+                        <video src={media.url} />
+                        <span className="play-icon">▶</span>
+                      </div>
+                    )}
+                    <div className="similar-card-body">
+                      <h4>{similar.building.name}</h4>
+                      <p>
+                        {similar.building.description?.slice(0, 120)}
+                        {similar.building.description && similar.building.description.length > 120 ? '...' : ''}
+                      </p>
+                      <div className="similar-card-meta">
+                        <span>{similar.building.city.name}</span>
+                        <span>{similar.building.category.name}</span>
+                      </div>
+                      <Link to={`/building/${similar.id}`} className="btn btn-outline-primary btn-sm">
+                        Открыть
+                      </Link>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
         </Modal.Body>
       </Modal>
     </>

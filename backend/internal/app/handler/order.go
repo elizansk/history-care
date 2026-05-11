@@ -9,7 +9,9 @@ import (
 )
 
 type CreateDraftOrderRequest struct {
-	BuildingID uint `json:"building_id"`
+	BuildingID  uint    `json:"building_id"`
+	TotalAmount float64 `json:"total_amount"`
+	Description string  `json:"description"`
 }
 
 type AddServiceToDraftRequest struct {
@@ -17,6 +19,16 @@ type AddServiceToDraftRequest struct {
 	Price       float64 `json:"price"`
 	Description string  `json:"description"`
 }
+
+type BulkAddServicesRequest struct {
+	Services []struct {
+		ServiceID   uint    `json:"service_id"`
+		Quantity    int     `json:"quantity"`
+		Price       float64 `json:"price"`
+		Description string  `json:"description"`
+	} `json:"services"`
+}
+
 type UpdateOrderRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -194,7 +206,7 @@ func (h *Handler) GetDraftOrder(c *gin.Context) {
 // @Tags orders
 // @Accept json
 // @Produce json
-// @Param CreateDraftOrderRequest body CreateDraftOrderRequest true "Building id"
+// @Param CreateDraftOrderRequest body CreateDraftOrderRequest true "Building id and order details"
 // @Success 201 {object} models.ReconstructionOrder
 // @Failure 400 {object} map[string]string
 // @Router /api/orders/draft [post]
@@ -211,7 +223,15 @@ func (h *Handler) CreateDraftOrder(c *gin.Context) {
 
 	existingDraft, err := h.repo.GetDraftOrder(userID)
 	if err == nil && existingDraft.ID != 0 {
-		c.JSON(400, gin.H{"error": "draft already exists"})
+		// Update existing draft instead of returning error
+		// We'll handle this by updating the order
+		err = h.repo.UpdateOrderDetails(existingDraft.ID, req.TotalAmount, req.Description)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "failed to update draft"})
+			return
+		}
+		updated, _ := h.repo.GetOrderByID(existingDraft.ID)
+		c.JSON(200, updated)
 		return
 	}
 
@@ -236,7 +256,15 @@ func (h *Handler) CreateDraftOrder(c *gin.Context) {
 		return
 	}
 
-	c.JSON(201, order)
+	// Update order with total_amount and description
+	err = h.repo.UpdateOrderDetails(order.ID, req.TotalAmount, req.Description)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to update draft details"})
+		return
+	}
+
+	updated, _ := h.repo.GetOrderByID(order.ID)
+	c.JSON(201, updated)
 }
 
 // @Summary      Delete order
@@ -596,7 +624,113 @@ if err := h.repo.RecalculateOrderTotal(order.ID); err != nil {
 	c.JSON(200, gin.H{"status": "deleted"})
 }
 
-// @Summary      Create a new order
+// @Summary Add multiple services to draft order
+// @Security ApiKeyAuth
+// @Description Добавляет несколько услуг к заявке (массовое добавление)
+// @Tags orders-services
+// @Accept json
+// @Produce json
+// @Param id path int true "Order ID"
+// @Param BulkAddServicesRequest body BulkAddServicesRequest true "Services with quantities and descriptions"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/orders/{id}/services [post]
+func (h *Handler) BulkAddServicesToOrder(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	orderID, _ := strconv.Atoi(c.Param("id"))
+
+	// Verify order belongs to user
+	order, err := h.repo.GetOrderByID(uint(orderID))
+	if err != nil {
+		c.JSON(404, gin.H{"error": "order not found"})
+		return
+	}
+
+	if order.CreatorID != userID {
+		c.JSON(403, gin.H{"error": "forbidden"})
+		return
+	}
+
+	var req BulkAddServicesRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "bad request"})
+		return
+	}
+
+	if len(req.Services) == 0 {
+		c.JSON(400, gin.H{"error": "no services provided"})
+		return
+	}
+
+	for _, svc := range req.Services {
+		// Add service to order
+		err = h.repo.AddOrderService(uint(orderID), svc.ServiceID, svc.Price, svc.Description)
+		if err != nil {
+			log.Println("failed to add service:", err)
+		}
+	}
+
+	// Recalculate total
+	if err := h.repo.RecalculateOrderTotal(uint(orderID)); err != nil {
+		log.Println("failed to recalculate total:", err)
+	}
+
+	c.JSON(200, gin.H{"status": "services added"})
+}
+
+// @Summary Create final order from draft
+// @Security ApiKeyAuth
+// @Description Завершает черновую заявку и создает финальный заказ
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Param order_id body object{order_id=int} true "Draft order ID"
+// @Success 201 {object} models.ReconstructionOrder
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/orders [post]
+func (h *Handler) FinalizeOrder(c *gin.Context) {
+	userID := c.GetUint("user_id")
+
+	var req struct {
+		OrderID uint `json:"order_id"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil || req.OrderID == 0 {
+		c.JSON(400, gin.H{"error": "order_id required"})
+		return
+	}
+
+	// Get order
+	order, err := h.repo.GetOrderByID(req.OrderID)
+	if err != nil {
+		c.JSON(404, gin.H{"error": "order not found"})
+		return
+	}
+
+	// Verify ownership
+	if order.CreatorID != userID {
+		c.JSON(403, gin.H{"error": "forbidden"})
+		return
+	}
+
+	// Verify draft status
+	if order.Status != "draft" {
+		c.JSON(400, gin.H{"error": "order is not in draft status"})
+		return
+	}
+
+	// Update status to formed
+	err = h.repo.UpdateOrderStatus(req.OrderID, "formed")
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to finalize order"})
+		return
+	}
+
+	updated, _ := h.repo.GetOrderByID(req.OrderID)
+	c.JSON(201, updated)
+}
 // @Security ApiKeyAuth
 // @Description  Создает новую заявку с услугами и файлами
 // @Tags         order
