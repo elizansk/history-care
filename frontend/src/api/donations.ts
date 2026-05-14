@@ -1,4 +1,4 @@
-export interface DonationRequest {
+export interface DonationRequest {//Типизация запроса
   order_id: number;
   amount: number;
   name?: string;
@@ -15,13 +15,13 @@ export interface DonationResponse {
 }
 
 export async function submitDonation(donation: DonationRequest): Promise<DonationResponse> {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token');//берем jwt
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers['Authorization'] = `Bearer ${token}`;//если автор добавл
   }
   console.log('Donation request payload:', donation);
   const response = await fetch('/api/donations', {

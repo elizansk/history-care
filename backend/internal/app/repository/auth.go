@@ -11,7 +11,10 @@ func (r *Repository) CreateUser(user *models.User) error {
 func (r *Repository) GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
 
-	if err := r.DB.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := r.DB.
+		Where("email = ?", email).
+		Preload("Role").
+		First(&user).Error; err != nil {
 		return nil, err
 	}
 

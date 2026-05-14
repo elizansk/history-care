@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"errors"
 	"history-care-texnology/internal/models"
+	"log"
 	"strconv"
 	"time"
-"log"
+
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type CreateDraftOrderRequest struct {
@@ -191,14 +194,15 @@ func (h *Handler) GetDraftOrder(c *gin.Context) {
 
 	order, err := h.repo.GetDraftOrder(userID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, gin.H{"error": "draft not found"})
+			return
+		}
 		c.JSON(500, gin.H{"error": "failed"})
 		return
 	}
 
-	c.JSON(200, gin.H{
-		"order_id":   order.ID,
-		"buildingId": order.BuildingID,
-	})
+	c.JSON(200, order)
 }
 
 // @Summary Create draft order
@@ -223,15 +227,11 @@ func (h *Handler) CreateDraftOrder(c *gin.Context) {
 
 	existingDraft, err := h.repo.GetDraftOrder(userID)
 	if err == nil && existingDraft.ID != 0 {
-		// Update existing draft instead of returning error
-		// We'll handle this by updating the order
-		err = h.repo.UpdateOrderDetails(existingDraft.ID, req.TotalAmount, req.Description)
-		if err != nil {
-			c.JSON(500, gin.H{"error": "failed to update draft"})
+		if existingDraft.BuildingID == req.BuildingID {
+			c.JSON(200, existingDraft)
 			return
 		}
-		updated, _ := h.repo.GetOrderByID(existingDraft.ID)
-		c.JSON(200, updated)
+		c.JSON(400, gin.H{"error": "draft already exists"})
 		return
 	}
 
@@ -256,15 +256,7 @@ func (h *Handler) CreateDraftOrder(c *gin.Context) {
 		return
 	}
 
-	// Update order with total_amount and description
-	err = h.repo.UpdateOrderDetails(order.ID, req.TotalAmount, req.Description)
-	if err != nil {
-		c.JSON(500, gin.H{"error": "failed to update draft details"})
-		return
-	}
-
-	updated, _ := h.repo.GetOrderByID(order.ID)
-	c.JSON(201, updated)
+	c.JSON(201, order)
 }
 
 // @Summary      Delete order
@@ -543,9 +535,9 @@ func (h *Handler) AddServiceToDraft(c *gin.Context) {
 	}
 
 	// пересчёт total
-if err := h.repo.RecalculateOrderTotal(order.ID); err != nil {
-    log.Println(err)
-}
+	if err := h.repo.RecalculateOrderTotal(order.ID); err != nil {
+		log.Println(err)
+	}
 
 	c.JSON(200, gin.H{"status": "added"})
 }
@@ -585,9 +577,9 @@ func (h *Handler) UpdateServiceInDraft(c *gin.Context) {
 		return
 	}
 
-if err := h.repo.RecalculateOrderTotal(order.ID); err != nil {
-    log.Println(err)
-}
+	if err := h.repo.RecalculateOrderTotal(order.ID); err != nil {
+		log.Println(err)
+	}
 
 	c.JSON(200, gin.H{"status": "updated"})
 }
@@ -617,9 +609,9 @@ func (h *Handler) DeleteServiceFromDraft(c *gin.Context) {
 		return
 	}
 
-if err := h.repo.RecalculateOrderTotal(order.ID); err != nil {
-    log.Println(err)
-}
+	if err := h.repo.RecalculateOrderTotal(order.ID); err != nil {
+		log.Println(err)
+	}
 
 	c.JSON(200, gin.H{"status": "deleted"})
 }
@@ -664,7 +656,20 @@ func (h *Handler) BulkAddServicesToOrder(c *gin.Context) {
 	}
 
 	for _, svc := range req.Services {
-		// Add service to order
+		exists, err := h.repo.CheckServiceInOrder(uint(orderID), svc.ServiceID)
+		if err != nil {
+			log.Println("failed to check existing service:", err)
+			continue
+		}
+
+		if exists {
+			err = h.repo.UpdateOrderService(uint(orderID), svc.ServiceID, svc.Price, svc.Description)
+			if err != nil {
+				log.Println("failed to update existing service:", err)
+			}
+			continue
+		}
+
 		err = h.repo.AddOrderService(uint(orderID), svc.ServiceID, svc.Price, svc.Description)
 		if err != nil {
 			log.Println("failed to add service:", err)
@@ -731,184 +736,3 @@ func (h *Handler) FinalizeOrder(c *gin.Context) {
 	updated, _ := h.repo.GetOrderByID(req.OrderID)
 	c.JSON(201, updated)
 }
-// @Security ApiKeyAuth
-// @Description  Создает новую заявку с услугами и файлами
-// @Tags         order
-// @Accept       multipart/form-data
-// @Produce      json
-// @Param        name formData string false "Building name"
-// @Param        description formData string false "Description"
-// @Param        address formData string false "Address"
-// @Param        category_id formData int false "Category ID"
-// @Param        service_ids formData []int false "IDs of services"
-// @Param        quantities formData []int false "Quantities of services"
-// @Param        files formData []file false "Files"
-// @Param main_photo_index formData int false "Index of main photo"
-// @Param main_video_index formData int false "Index of main video"
-// @Success      200 {object} map[string]interface{}
-// @Failure      500 {object} map[string]string
-// @Router       /api/orders [post]
-//func (h *Handler) CreateOrder(c *gin.Context) {
-//
-//	userIDValue, exists := c.Get("user_id")
-//	if !exists {
-//		c.JSON(401, gin.H{"error": "unauthorized"})
-//		return
-//	}
-//	userID, ok := userIDValue.(uint)
-//	if !ok {
-//		c.JSON(500, gin.H{"error": "invalid user_id type"})
-//		return
-//	}
-//	user, err := h.repo.GetUserByID(userID)
-//	if err != nil {
-//		c.JSON(500, gin.H{"error": "user not found"})
-//		return
-//	}
-//
-//	if user.CityID == nil {
-//		c.JSON(400, gin.H{"error": "user has no city"})
-//		return
-//	}
-//	name := c.PostForm("name")
-//	description := c.PostForm("description")
-//	address := c.PostForm("address")
-//
-//	categoryID, _ := strconv.Atoi(c.PostForm("category_id"))
-//	serviceIDs := c.PostFormArray("service_ids")
-//	quantities := c.PostFormArray("quantities")
-//
-//	// 1. здание
-//	building := models.Building{
-//		Name:        name,
-//		Description: description,
-//		Address:     address,
-//		CategoryID:  uint(categoryID),
-//		CityID:      *user.CityID,
-//	}
-//
-//	if err := h.repo.CreateBuilding(&building); err != nil {
-//		c.JSON(500, gin.H{"error": "building error"})
-//		return
-//	}
-//
-//	// 2. заявка
-//	order := models.ReconstructionOrder{
-//		BuildingID: building.ID,
-//		CreatorID:  userID,
-//		Status:     "draft",
-//	}
-//
-//	if err := h.repo.CreateOrder(&order); err != nil {
-//		c.JSON(500, gin.H{"error": "order error"})
-//		return
-//	}
-//
-//	// 3. услуги
-//	var orderServices []models.OrderService
-//	var total float64
-//
-//	for i, sID := range serviceIDs {
-//		id, _ := strconv.Atoi(sID)
-//		qty, _ := strconv.Atoi(quantities[i])
-//
-//		service, err := h.repo.GetServiceByID(uint(id))
-//		if err != nil {
-//			continue
-//		}
-//
-//		result := service.Price * float64(qty)
-//		total += result
-//
-//		orderServices = append(orderServices, models.OrderService{
-//			OrderID:   order.ID,
-//			ServiceID: service.ID,
-//			Price:     service.Price,
-//			Quantity:  qty,
-//			Result:    result,
-//		})
-//	}
-//
-//	if len(orderServices) > 0 {
-//		if err := h.repo.AddServices(orderServices); err != nil {
-//			log.Println("AddServices error:", err)
-//		}
-//	}
-//
-//	if err := h.repo.UpdateOrderTotal(order.ID, total); err != nil {
-//		log.Println("UpdateOrderTotal error:", err)
-//	}
-//
-//	// 4. файлы
-//	form, err := c.MultipartForm()
-//	if err != nil {
-//		log.Println("Multipart error:", err)
-//		c.JSON(400, gin.H{"error": "no multipart"})
-//		return
-//	}
-//
-//	files := form.File["files"]
-//
-//	if len(files) == 0 {
-//		log.Println("NO FILES RECEIVED")
-//		c.JSON(400, gin.H{"error": "no files"})
-//		return
-//	}
-//
-//	if storage.MinioClient == nil {
-//		log.Println("MINIO CLIENT IS NIL")
-//		c.JSON(500, gin.H{"error": "minio not initialized"})
-//		return
-//	}
-//
-//	var resources []models.BuildingResource
-//
-//	for _, file := range files {
-//		log.Println("FILE RECEIVED:", file.Filename)
-//
-//		src, err := file.Open()
-//		if err != nil {
-//			log.Println("OPEN ERROR:", err)
-//			continue
-//		}
-//
-//		objectName := fmt.Sprintf("building_%d_%s", building.ID, file.Filename)
-//		log.Println("UPLOADING:", objectName)
-//
-//		_, err = storage.MinioClient.PutObject(
-//			context.Background(),
-//			"buildings",
-//			objectName,
-//			src,
-//			file.Size,
-//			minio.PutObjectOptions{
-//				ContentType: file.Header.Get("Content-Type"),
-//			},
-//		)
-//
-//		src.Close() // ← ВАЖНО: закрываем тут, не defer
-//
-//		if err != nil {
-//			log.Println("MinIO upload error:", err)
-//			continue
-//		}
-//
-//		url := "http://localhost:9000/buildings/" + objectName
-//
-//		resources = append(resources, models.BuildingResource{
-//			BuildingID:   building.ID,
-//			ResourceType: "photo",
-//			URL:          url,
-//		})
-//	}
-//
-//	if len(resources) > 0 {
-//		if err := h.repo.AddResources(resources); err != nil {
-//			log.Println("AddResources error:", err)
-//		}
-//	}
-//
-//	c.JSON(200, gin.H{
-//		"order_id": order.ID,
-//	})
-//}

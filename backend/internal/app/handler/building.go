@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"history-care-texnology/internal/models"
 	"history-care-texnology/internal/storage"
+	"log"
 	"strconv"
 	"strings"
 	"time"
-    "log"
+
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
 )
@@ -51,26 +52,26 @@ func (h *Handler) CreateBuilding(c *gin.Context) {
 	var cityID uint
 
 	switch role {
-    case "City":
-    	user, err := h.repo.GetUserByID(userID)
-    	if err != nil || user.CityID == nil {
-    		c.JSON(400, gin.H{"error": "user city not found"})
-    		return
-    	}
-    	cityID = *user.CityID
+	case "City":
+		user, err := h.repo.GetUserByID(userID)
+		if err != nil || user.CityID == nil {
+			c.JSON(400, gin.H{"error": "user city not found"})
+			return
+		}
+		cityID = *user.CityID
 
-    case "Admin":
-    	id, _ := strconv.Atoi(cityIDParam)
-    	if id == 0 {
-    		c.JSON(400, gin.H{"error": "city_id required for admin"})
-    		return
-    	}
-    	cityID = uint(id)
+	case "Admin":
+		id, _ := strconv.Atoi(cityIDParam)
+		if id == 0 {
+			c.JSON(400, gin.H{"error": "city_id required for admin"})
+			return
+		}
+		cityID = uint(id)
 
-    default:
-    	c.JSON(403, gin.H{"error": "forbidden"})
-    	return
-    }
+	default:
+		c.JSON(403, gin.H{"error": "forbidden"})
+		return
+	}
 
 	//  4. создаём здание
 	building := models.Building{
@@ -106,11 +107,11 @@ func (h *Handler) CreateBuilding(c *gin.Context) {
 		if err != nil {
 			continue
 		}
-	defer func() {
-        if err := src.Close(); err != nil {
-            log.Println(err)
-        }
-    }()
+		defer func() {
+			if err := src.Close(); err != nil {
+				log.Println(err)
+			}
+		}()
 
 		objectName := fmt.Sprintf("building_%d_%s", time.Now().UnixNano(), file.Filename)
 

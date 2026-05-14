@@ -101,9 +101,8 @@ func StartServer() {
 	{
 		baseAPI.GET("/orders/formed", h.GetDonatableOrders)
 		baseAPI.GET("/categories", h.GetCategories)
-		baseAPI.GET("/orders/:id", h.GetOrderByID) // Домен заявки GET одна запись
-		baseAPI.POST("/donations", h.PostDonate)   // POST donation
-		baseAPI.GET("/cities", h.GetCities)        //вызывает все города
+		baseAPI.POST("/donations", h.PostDonate) // POST donation
+		baseAPI.GET("/cities", h.GetCities)      //вызывает все города
 	}
 
 	// 3. Protected API для всех авторизованных пользователей
@@ -111,6 +110,8 @@ func StartServer() {
 	protectedAPI.Use(middleware.AuthMiddleware(redisClient))
 	{
 		protectedAPI.GET("/profile", h.GetProfile)
+		protectedAPI.PUT("/profile", h.UpdateProfile)
+		protectedAPI.GET("/orders/:id", h.GetOrderByID) // Домен заявки GET одна запись
 		protectedAPI.POST("/auth/logout", h.Logout)
 	}
 

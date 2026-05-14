@@ -46,7 +46,7 @@ const Buildings: React.FC = () => {
       const cityId = filters.cityId ? parseInt(filters.cityId, 10) : undefined;
       const data = await getFormedOrders(categoryId, cityId, filters.from || undefined, filters.to || undefined);
       setOrders(data);
-    } catch (err) {
+    } catch  {
       setError('Не удалось загрузить заявки.');
     } finally {
       setLoading(false);
@@ -67,7 +67,7 @@ const Buildings: React.FC = () => {
      { day: 'numeric', month: 'long', year: 'numeric' });
   const breadcrumbItems = [
     { label: 'Главная', href: '/' },
-    { label: 'Заявки на реконструкцию'},
+    { label: 'Исторические здания'},
   ];
 
   return (

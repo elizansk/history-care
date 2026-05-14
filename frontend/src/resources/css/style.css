@@ -61,6 +61,28 @@ header, .main-header {
   opacity: 0.85;
 }
 
+.header-right span.header-user {
+  color: rgba(255,255,255,0.95);
+  font-size: 15px;
+  margin-left: 20px;
+  font-weight: 500;
+}
+
+.header-right button.header-logout {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.7);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 12px;
+  margin-left: 20px;
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+.header-right button.header-logout:hover {
+  background: rgba(255,255,255,0.14);
+}
+
 .page-container {
   max-width: 1180px;
   margin: 0 auto;

@@ -1,46 +1,38 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
 import NavigationBar from "../components/NavigationBar";
 import Footer from "../components/Footer";
 import { getUser } from "../utils/auth";
-
-interface Service {
-  id: number;
-  name: string;
-  price: number;
-}
-
-interface Category {
-  id: number;
-  name: string;
-}
-
-interface City {
-  id: number;
-  name: string;
-}
-
-interface Building {
-  id: number;
-  name: string;
-  description: string;
-  address: string;
-  category_id: number;
-  city_id: number;
-}
+import { Button, Card, Container, Form, ProgressBar, Spinner, Alert } from "react-bootstrap";
+import type { RootState, AppDispatch } from "../store";
+import {//асинхронные операции
+  fetchCategories,
+  fetchCities,
+  fetchServices,
+  createBuilding,
+  updateBuilding,
+  createOrderDraft,
+  fetchDraftOrder,
+  deleteDraftService,
+  addServicesToOrder,
+  FormOrder,
+  clearError,
+  resetOrder,
+} from "../store/order-slice";
+import CreateOrderBuildingStep from "../components/CreateOrderBuildingStep";//разбиваем создание заявки на 3 компонента
+import CreateOrderServicesStep from "../components/CreateOrderServicesStep";
+import CreateOrderSummaryStep from "../components/CreateOrderSummaryStep";
 
 export default function CreateOrder() {
+  const dispatch = useDispatch<AppDispatch>();
+  const { loading, error, categories, cities, services, building, order } = useSelector((state: RootState) => state.order);//берём данные из Redux store
   const token = localStorage.getItem("token");
 
-  const [services, setServices] = useState<Service[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [cities, setCities] = useState<City[]>([]);
-
-  const [selectedServices, setSelectedServices] = useState<
-    { id: number; quantity: number; price: number; description: string }[]
+  const [selectedServices, setSelectedServices] = useState< //локальная корзина услуг (ещё НЕ в Redux)
+    { id: number; price: number; description: string; quantity: number }[]
   >([]);
 
-  // Building data
+  // форма здания хранится локально
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
@@ -50,34 +42,33 @@ export default function CreateOrder() {
 
   // Building ID (after creation)
   const [buildingId, setBuildingId] = useState<number | null>(null);
-  const [building, setBuilding] = useState<Building | null>(null);
-
+ // связывают frontend и backend сущности
   // Order data
   const [orderId, setOrderId] = useState<number | null>(null);
   const [total, setTotal] = useState(0);
   const [orderDescription, setOrderDescription] = useState("");
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [draftServiceIds, setDraftServiceIds] = useState<number[]>([]);
 
-  // Wizard state
+  // 3 шага заявки
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 4;
+  const totalSteps = 3;
 
-  // User data
+  // User
   const [user, setUser] = useState<any>(null);
 
   // Service descriptions (for step 3)
   const [serviceDescriptions, setServiceDescriptions] = useState<Record<number, string>>({});
-
-  const cacheKey = "categories";
-  const cacheTimeKey = "categories_time";
-  const citiesCacheKey = "cities";
-  const citiesCacheTimeKey = "cities_time";
-  const TTL = 60 * 1000;
-
-  // Load from sessionStorage on mount
+//при старте страницы грузим данные из backend
+  useEffect(() => {
+    dispatch(fetchCategories());
+    dispatch(fetchCities());
+    dispatch(fetchServices());
+  }, [dispatch]);
+//если пользователь обновил страницу восстанавливаем форму продолжаем заявку
   useEffect(() => {
     const savedBuildingId = sessionStorage.getItem("buildingId");
     const savedOrderId = sessionStorage.getItem("orderId");
-    const savedBuildingData = sessionStorage.getItem("buildingData");
     const savedName = sessionStorage.getItem("buildingName");
     const savedDescription = sessionStorage.getItem("buildingDescription");
     const savedAddress = sessionStorage.getItem("buildingAddress");
@@ -87,9 +78,9 @@ export default function CreateOrder() {
     const savedOrderDescription = sessionStorage.getItem("orderDescription");
     const savedSelectedServices = sessionStorage.getItem("selectedServices");
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (savedBuildingId) setBuildingId(Number(savedBuildingId));
     if (savedOrderId) setOrderId(Number(savedOrderId));
-    if (savedBuildingData) setBuilding(JSON.parse(savedBuildingData));
     if (savedName) setName(savedName);
     if (savedDescription) setDescription(savedDescription);
     if (savedAddress) setAddress(savedAddress);
@@ -97,75 +88,51 @@ export default function CreateOrder() {
     if (savedCityId) setCityId(Number(savedCityId));
     if (savedTotal) setTotal(Number(savedTotal));
     if (savedOrderDescription) setOrderDescription(savedOrderDescription);
-    if (savedSelectedServices) setSelectedServices(JSON.parse(savedSelectedServices));
+    if (savedSelectedServices) {
+      const parsed = JSON.parse(savedSelectedServices);
+      setSelectedServices(parsed.map((s: any) => ({ ...s, quantity: s.quantity || 1 })));
+    }
   }, []);
 
-  useEffect(() => {
+  useEffect(() => {//получение пользователя
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(getUser());
   }, []);
 
-  useEffect(() => {
+  useEffect(() => {//фикс города под сити
     if (user) {
-      if (user.role === 'City') {
-        setCityId(user.city_id);
+      if (user.role === "City") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setCityId(0);
       }
     }
   }, [user]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    // SERVICES
-    axios
-      .get("/api/services", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        if (Array.isArray(res.data)) {
-          setServices(res.data);
-        }
-      });
-
-    // CATEGORIES (cache)
-    const cached = sessionStorage.getItem(cacheKey);
-    const cachedTime = sessionStorage.getItem(cacheTimeKey);
-
-    if (cached && cachedTime && Date.now() - Number(cachedTime) < TTL) {
-      setCategories(JSON.parse(cached));
-    } else {
-      axios
-        .get("/api/categories", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((res) => {
-          setCategories(res.data);
-          sessionStorage.setItem(cacheKey, JSON.stringify(res.data));
-          sessionStorage.setItem(cacheTimeKey, String(Date.now()));
-        });
+    if (!token || draftLoaded) {
+      return;
     }
 
-    // CITIES (cache)
-    const citiesCached = sessionStorage.getItem(citiesCacheKey);
-    const citiesCachedTime = sessionStorage.getItem(citiesCacheTimeKey);
+    const loadDraft = async () => {
+      await dispatch(fetchDraftOrder());//проверяем есть ли уже черновик заявки
+      setDraftLoaded(true);
+      if (order && (order.order_id || order.id)) {
+        setCurrentStep(2);
+      } else {
+        setCurrentStep(1);
+      }
+    };
 
-    if (citiesCached && citiesCachedTime && Date.now() - Number(citiesCachedTime) < TTL) {
-      setCities(JSON.parse(citiesCached));
-    } else {
-      axios
-        .get("/api/auth/cities", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((res) => {
-          setCities(res.data);
-          sessionStorage.setItem(citiesCacheKey, JSON.stringify(res.data));
-          sessionStorage.setItem(citiesCacheTimeKey, String(Date.now()));
-        });
-    }
-  }, []);
+    loadDraft();
+  }, [token, draftLoaded, dispatch, order]);
 
-  // Save to sessionStorage whenever data changes
   useEffect(() => {
+    const computedTotal = selectedServices.reduce((sum, service) => sum + service.price, 0);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTotal(computedTotal);//сумма всех услуг
+  }, [selectedServices]);
+
+  useEffect(() => {//сохр в сесионстор
     sessionStorage.setItem("buildingName", name);
     sessionStorage.setItem("buildingDescription", description);
     sessionStorage.setItem("buildingAddress", address);
@@ -179,38 +146,21 @@ export default function CreateOrder() {
     if (building) sessionStorage.setItem("buildingData", JSON.stringify(building));
   }, [name, description, address, categoryId, cityId, total, orderDescription, selectedServices, buildingId, orderId, building]);
 
-  const createOrUpdateBuilding = async () => {
-    if (!name.trim() || !description.trim() || !address.trim() || !categoryId || (user?.role === 'Admin' && !cityId)) {
+  const createOrUpdateBuilding = async (): Promise<number | false> => {//если buildingId есть - update,нет то create
+    if (!name.trim() || !description.trim() || !address.trim() || !categoryId || (user?.role === "Admin" && !cityId)) {
       alert("Пожалуйста, заполните все обязательные поля для здания.");
       return false;
     }
-
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("description", description);
-    formData.append("address", address);
-    formData.append("category_id", String(categoryId));
-    formData.append("city_id", String(cityId));
-
-    files.forEach((f) => formData.append("files", f));
-
     try {
-      let res;
+      let result;
       if (buildingId) {
-        // Update building
-        res = await axios.put(`/api/buildings/${buildingId}`, formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        result = await dispatch(updateBuilding({ id: buildingId, data: { name, description, address, category_id: Number(categoryId), city_id: Number(cityId), files } })).unwrap();
       } else {
-        // Create new building
-        res = await axios.post("/api/buildings", formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setBuildingId(res.data.id);
+        result = await dispatch(createBuilding({ name, description, address, category_id: Number(categoryId), city_id: Number(cityId), files })).unwrap();
+        setBuildingId(result.id ?? null);
       }
 
-      setBuilding(res.data);
-      return true;
+      return result.id || buildingId || false;
     } catch (err) {
       console.error(err);
       alert("Ошибка при создании/обновлении здания");
@@ -218,46 +168,58 @@ export default function CreateOrder() {
     }
   };
 
-  const createOrderDraft = async () => {
+  const createDraftOrder = async (draftBuildingId: number | null = buildingId) => {//creat draft
+    const targetBuildingId = draftBuildingId || buildingId;
+    if (!targetBuildingId) {
+      alert("Сначала создайте здание на шаге 1");
+      return false;
+    }
     try {
-      const res = await axios.post("/api/orders/draft", {
-        building_id: buildingId,
-        total_amount: total,
-        description: orderDescription,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setOrderId(res.data.id);
+      const result = await dispatch(createOrderDraft(targetBuildingId)).unwrap();
+      setOrderId((result as any).id || (result as any).order_id);
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      if (err.response?.status === 400) {
+        await dispatch(fetchDraftOrder());
+        if (order && (order.order_id || order.id)) {
+          return true;
+        }
+      }
       alert("Ошибка при создании черновика заявки");
       return false;
     }
   };
 
-  const addServicesToOrder = async () => {
-    if (selectedServices.length === 0) {
-      alert("Пожалуйста, добавьте хотя бы одну услугу");
+  const applyServicesToOrder = async () => {//синхронизация услуг удаляем старые добавляем новые обновляем backend
+    if (!orderId) {
+      alert("Сначала создайте черновик заявки");
       return false;
     }
 
+    const currentServiceIds = selectedServices.map((s) => s.id);
+    const deletedServiceIds = draftServiceIds.filter((id) => !currentServiceIds.includes(id));
+
     try {
-      const servicesData = selectedServices.map(s => ({
+      for (const serviceId of deletedServiceIds) {
+        await dispatch(deleteDraftService(serviceId)).unwrap();
+      }
+
+      if (selectedServices.length === 0) {
+        alert("Пожалуйста, добавьте хотя бы одну услугу");
+        return false;
+      }
+
+      const servicesData = selectedServices.map((s) => ({
         service_id: s.id,
-        quantity: s.quantity,
         price: s.price,
-        description: serviceDescriptions[s.id] || ""
+        description: serviceDescriptions[s.id] || "",
+        quantity: 1,
       }));
 
-      await axios.post(`/api/orders/${orderId}/services`, 
-        { services: servicesData },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await dispatch(addServicesToOrder({ orderId, services: servicesData })).unwrap();
 
+      setDraftServiceIds(currentServiceIds);
       return true;
     } catch (err) {
       console.error(err);
@@ -266,15 +228,15 @@ export default function CreateOrder() {
     }
   };
 
-  const nextStep = async () => {
+  const nextStep = async () => {//проверка для перехода между шагами
     if (currentStep === 1) {
-      const success = await createOrUpdateBuilding();
-      if (!success) return;
+      const buildingIdFromCreate = await createOrUpdateBuilding();
+      if (!buildingIdFromCreate) return;
+
+      const draftSuccess = await createDraftOrder(buildingIdFromCreate);
+      if (!draftSuccess) return;
     } else if (currentStep === 2) {
-      const success = await createOrderDraft();
-      if (!success) return;
-    } else if (currentStep === 3) {
-      const success = await addServicesToOrder();
+      const success = await applyServicesToOrder();
       if (!success) return;
     }
 
@@ -289,20 +251,18 @@ export default function CreateOrder() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {//отправляем заявку в статус сформирована
     e.preventDefault();
 
     try {
-      // Final order creation
-      const res = await axios.post("/api/orders", {
-        order_id: orderId,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const result = await dispatch(FormOrder({ orderId: orderId! })).unwrap();
+      console.log(result);
+      if (result.status === 'formed') {
+        alert("Заявка создана! ID: " + orderId);
+      }
 
-      alert("Заявка создана! ID: " + res.data.id);
-      
-      // Clear sessionStorage
+
+      dispatch(resetOrder());
       sessionStorage.removeItem("buildingId");
       sessionStorage.removeItem("orderId");
       sessionStorage.removeItem("buildingData");
@@ -315,20 +275,19 @@ export default function CreateOrder() {
       sessionStorage.removeItem("orderDescription");
       sessionStorage.removeItem("selectedServices");
 
-      // Reset form
       setName("");
       setDescription("");
       setAddress("");
       setCategoryId("");
-      setCityId(user?.role === 'City' ? user.city_id : "");
+      setCityId(user?.role === "City" ? user.city_id : "");
       setFiles([]);
       setTotal(0);
       setOrderDescription("");
       setSelectedServices([]);
       setBuildingId(null);
       setOrderId(null);
-      setBuilding(null);
       setCurrentStep(1);
+      setDraftLoaded(false);
     } catch (err) {
       console.error(err);
       alert("Ошибка при создании заявки");
@@ -338,405 +297,105 @@ export default function CreateOrder() {
   return (
     <>
       <NavigationBar />
-      <div className="container" style={{ paddingTop: "20px", paddingBottom: "40px" }}>
-        <h1 className="search-title">Создание заявки</h1>
+      <Container className="py-4">
+        <h1 className="search-title mb-4">Создание заявки</h1>
 
-        {/* Progress Bar */}
-        <div style={{ marginBottom: "30px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-            {Array.from({ length: totalSteps }, (_, i) => (
-              <div
-                key={i + 1}
-                style={{
-                  flex: 1,
-                  height: "6px",
-                  background: currentStep > i ? "var(--primary)" : "#e0e0e0",
-                  margin: "0 2px",
-                  borderRadius: "3px",
-                  transition: "background 0.3s ease",
-                }}
-              />
-            ))}
-          </div>
-          <div style={{ textAlign: "center", fontSize: "14px", color: "var(--text-muted)" }}>
-            Шаг {currentStep} из {totalSteps}
-          </div>
-        </div>
+        <Card className="mb-4 shadow-sm">
+          <Card.Body>
+            <ProgressBar variant="success" now={(currentStep / totalSteps) * 100} />
+            <div className="text-center text-muted mt-2">
+              Шаг {currentStep} из {totalSteps}
+            </div>
+          </Card.Body>
+        </Card>
 
-        <form onSubmit={handleSubmit}>
-          {/* Step 1: Building Creation */}
+        <Form onSubmit={handleSubmit}>
+          {error && <Alert variant="danger" dismissible onClose={() => dispatch(clearError())}>{error}</Alert>}
+
           {currentStep === 1 && (
-            <div
-              style={{
-                background: "white",
-                padding: "30px",
-                borderRadius: "20px",
-                boxShadow: "0 15px 40px rgba(0,0,0,0.08)",
-                maxWidth: "800px",
-                margin: "0 auto",
-              }}
-            >
-              <h2 style={{ fontSize: "24px", color: "var(--primary)", marginBottom: "20px" }}>
-                Шаг 1: Создание здания
-              </h2>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-                <input
-                  placeholder="Название здания"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  style={{ padding: "12px", borderRadius: "8px", border: "1px solid #ddd" }}
-                  required
-                />
-
-                <textarea
-                  placeholder="Описание здания"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  style={{ padding: "12px", borderRadius: "8px", border: "1px solid #ddd", resize: "vertical" }}
-                  required
-                />
-
-                <input
-                  placeholder="Адрес"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  style={{ padding: "12px", borderRadius: "8px", border: "1px solid #ddd" }}
-                  required
-                />
-
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <select
-                    value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}
-                    style={{ flex: 1, padding: "12px", borderRadius: "8px", border: "1px solid #ddd" }}
-                    required
-                  >
-                    <option value="">Категория</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-
-                  {user?.role === 'Admin' ? (
-                    <select
-                      value={cityId}
-                      onChange={(e) => setCityId(e.target.value ? Number(e.target.value) : "")}
-                      style={{ flex: 1, padding: "12px", borderRadius: "8px", border: "1px solid #ddd" }}
-                      required
-                    >
-                      <option value="">Город</option>
-                      {cities.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : null}
-                </div>
-
-                <div>
-                  <label style={{ fontSize: "14px", color: "var(--text-muted)", display: "block", marginBottom: "8px" }}>
-                    Фото и видео здания
-                  </label>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*,video/*"
-                    onChange={(e) => e.target.files && setFiles(Array.from(e.target.files))}
-                    style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "8px" }}
-                  />
-                  {files.length > 0 && (
-                    <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "8px" }}>
-                      Выбрано файлов: {files.length}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <CreateOrderBuildingStep
+              categories={categories}
+              cities={cities}
+              userRole={user?.role}
+              name={name}
+              description={description}
+              address={address}
+              categoryId={categoryId}
+              cityId={cityId}
+              files={files}
+              onNameChange={setName}
+              onDescriptionChange={setDescription}
+              onAddressChange={setAddress}
+              onCategoryChange={setCategoryId}
+              onCityChange={setCityId}
+              onFilesChange={setFiles}
+            />
           )}
 
-          {/* Step 2: Order Draft */}
           {currentStep === 2 && (
-            <div
-              style={{
-                background: "white",
-                padding: "30px",
-                borderRadius: "20px",
-                boxShadow: "0 15px 40px rgba(0,0,0,0.08)",
-                maxWidth: "800px",
-                margin: "0 auto",
+            <CreateOrderServicesStep
+              services={services}
+              selectedServices={selectedServices}
+              serviceDescriptions={serviceDescriptions}
+              onAddService={(serviceId) => {
+                const service = services.find((s) => s.id === serviceId);
+                if (!service) return;
+                if (!selectedServices.find((s) => s.id === service.id)) {
+                  setSelectedServices((prev) => [
+                    ...prev,
+                    { id: service.id, price: service.price, description: "", quantity: 1 },
+                  ]);
+                }
               }}
-            >
-              <h2 style={{ fontSize: "24px", color: "var(--primary)", marginBottom: "20px" }}>
-                Шаг 2: Информация о здании
-              </h2>
-
-              {building && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "15px", marginBottom: "30px" }}>
-                  <div style={{ padding: "20px", background: "#f8f9fa", borderRadius: "12px" }}>
-                    <p><strong>Название:</strong> {building.name}</p>
-                    <p><strong>Адрес:</strong> {building.address}</p>
-                    <p><strong>Описание:</strong> {building.description}</p>
-                    <p><strong>Категория:</strong> {categories.find(c => c.id === building.category_id)?.name}</p>
-                    {user.role === 'Admin' && (
-                      <p><strong>Город:</strong> {cities.find(c => c.id === building.city_id)?.name}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+              onRemoveService={(serviceId) => {
+                setSelectedServices((prev) => prev.filter((item) => item.id !== serviceId));
+              }}
+              onPriceChange={(serviceId, price) => {
+                setSelectedServices((prev) =>
+                  prev.map((item) => (item.id === serviceId ? { ...item, price } : item))
+                );
+              }}
+              onDescriptionChange={(serviceId, description) => {
+                setServiceDescriptions((prev) => ({
+                  ...prev,
+                  [serviceId]: description,
+                }));
+              }}
+            />
           )}
 
-          {/* Step 3: Services */}
           {currentStep === 3 && (
-            <div
-              style={{
-                background: "white",
-                padding: "30px",
-                borderRadius: "20px",
-                boxShadow: "0 15px 40px rgba(0,0,0,0.08)",
-                maxWidth: "800px",
-                margin: "0 auto",
-              }}
-            >
-              <h2 style={{ fontSize: "24px", color: "var(--primary)", marginBottom: "20px" }}>
-                Шаг 3: Добавление услуг реконструкции
-              </h2>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                <div>
-                  <select
-                    onChange={(e) => {
-                      const service = services.find((s) => s.id === Number(e.target.value));
-                      if (!service) return;
-
-                      if (!selectedServices.find((s) => s.id === service.id)) {
-                        setSelectedServices((prev) => [
-                          ...prev,
-                          { id: service.id, quantity: 1, price: service.price, description: "" },
-                        ]);
-                      }
-                    }}
-                    style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ddd" }}
-                  >
-                    <option value="">Добавить услугу</option>
-                    {services
-                      .filter((s) => !selectedServices.find((ss) => ss.id === s.id))
-                      .map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} - {s.price} ₽
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {selectedServices.map((s) => {
-                    const service = services.find((x) => x.id === s.id);
-
-                    return (
-                      <div
-                        key={s.id}
-                        style={{
-                          padding: "16px",
-                          borderRadius: "12px",
-                          background: "var(--accent)",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "12px",
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <div>
-                            <div style={{ fontWeight: 600, fontSize: "16px" }}>
-                              {service?.name}
-                            </div>
-                            <div style={{ fontSize: "14px", color: "var(--text-muted)" }}>
-                              {s.price} ₽ за единицу
-                            </div>
-                          </div>
-
-                          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                            <input
-                              type="number"
-                              min={1}
-                              value={s.quantity}
-                              onChange={(e) => {
-                                const qty = Number(e.target.value);
-                                setSelectedServices((prev) =>
-                                  prev.map((x) => (x.id === s.id ? { ...x, quantity: qty } : x))
-                                );
-                              }}
-                              style={{ width: "60px", padding: "4px", borderRadius: "4px", border: "1px solid #ddd" }}
-                            />
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setSelectedServices((prev) => prev.filter((x) => x.id !== s.id))
-                              }
-                              style={{
-                                padding: "4px 8px",
-                                borderRadius: "4px",
-                                border: "none",
-                                background: "#dc3545",
-                                color: "white",
-                                cursor: "pointer",
-                              }}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-
-                        <textarea
-                          placeholder="Описание услуги (опционально)"
-                          value={serviceDescriptions[s.id] || ""}
-                          onChange={(e) =>
-                            setServiceDescriptions((prev) => ({
-                              ...prev,
-                              [s.id]: e.target.value,
-                            }))
-                          }
-                          rows={2}
-                          style={{
-                            padding: "8px",
-                            borderRadius: "4px",
-                            border: "1px solid #ddd",
-                            fontSize: "14px",
-                            resize: "vertical",
-                          }}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+            <CreateOrderSummaryStep
+              name={name}
+              address={address}
+              categoryName={categories.find((c) => c.id === categoryId)?.name}
+              cityName={cities.find((c) => c.id === cityId)?.name}
+              filesCount={files.length}
+              total={total}
+              orderDescription={orderDescription}
+              selectedServices={selectedServices}
+              services={services}
+              serviceDescriptions={serviceDescriptions}
+            />
           )}
 
-          {/* Step 4: Finalization */}
-          {currentStep === 4 && (
-            <div
-              style={{
-                background: "white",
-                padding: "30px",
-                borderRadius: "20px",
-                boxShadow: "0 15px 40px rgba(0,0,0,0.08)",
-                maxWidth: "800px",
-                margin: "0 auto",
-              }}
-            >
-              <h2 style={{ fontSize: "24px", color: "var(--primary)", marginBottom: "20px" }}>
-                Шаг 4: Формирование заявки
-              </h2>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                <div style={{ padding: "20px", background: "#f8f9fa", borderRadius: "12px" }}>
-                  <h3 style={{ marginBottom: "15px", fontSize: "18px" }}>Здание</h3>
-                  <p><strong>Название:</strong> {name}</p>
-                  <p><strong>Адрес:</strong> {address}</p>
-                  <p><strong>Категория:</strong> {categories.find(c => c.id === categoryId)?.name}</p>
-                  <p><strong>Город:</strong> {cities.find(c => c.id === cityId)?.name}</p>
-                  <p><strong>Файлов:</strong> {files.length}</p>
-                </div>
-
-                <div style={{ padding: "20px", background: "#f8f9fa", borderRadius: "12px" }}>
-                  <h3 style={{ marginBottom: "15px", fontSize: "18px" }}>Заявка</h3>
-                  <p><strong>Цель сбора:</strong> {total.toLocaleString()} ₽</p>
-                  {orderDescription && <p><strong>Описание:</strong> {orderDescription}</p>}
-                </div>
-
-                <div style={{ padding: "20px", background: "#f8f9fa", borderRadius: "12px" }}>
-                  <h3 style={{ marginBottom: "15px", fontSize: "18px" }}>Услуги</h3>
-                  {selectedServices.length === 0 ? (
-                    <p>Услуги не выбраны</p>
-                  ) : (
-                    selectedServices.map((s) => {
-                      const service = services.find((x) => x.id === s.id);
-                      return (
-                        <div key={s.id} style={{ marginBottom: "16px", paddingBottom: "16px", borderBottom: "1px solid #ddd" }}>
-                          <div style={{ fontWeight: 600 }}>
-                            {service?.name} x{s.quantity} = {(s.price * s.quantity).toLocaleString()} ₽
-                          </div>
-                          {serviceDescriptions[s.id] && (
-                            <div style={{ fontSize: "14px", color: "var(--text-muted)", marginTop: "4px" }}>
-                              {serviceDescriptions[s.id]}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Navigation Buttons */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              maxWidth: "800px",
-              margin: "30px auto 0",
-            }}
-          >
-            <button
-              type="button"
-              onClick={prevStep}
-              disabled={currentStep === 1}
-              style={{
-                padding: "12px 24px",
-                borderRadius: "8px",
-                border: "1px solid #ddd",
-                background: currentStep === 1 ? "#f8f9fa" : "white",
-                color: currentStep === 1 ? "#6c757d" : "var(--text)",
-                cursor: currentStep === 1 ? "not-allowed" : "pointer",
-              }}
-            >
+          <div className="d-flex justify-content-between" style={{ maxWidth: 800, margin: "0 auto" }}>
+            <Button variant="secondary" onClick={prevStep} disabled={currentStep === 1}>
               Назад
-            </button>
-
+            </Button>
             {currentStep < totalSteps ? (
-              <button
-                type="button"
-                onClick={nextStep}
-                style={{
-                  padding: "12px 24px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: "var(--primary)",
-                  color: "white",
-                  cursor: "pointer",
-                }}
-              >
-                Далее
-              </button>
+              <Button variant="success" type="button" onClick={nextStep} disabled={loading}>
+                {loading ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> Загрузка...</> : "Далее"}
+              </Button>
             ) : (
-              <button
-                type="submit"
-                style={{
-                  padding: "12px 24px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: "var(--primary)",
-                  color: "white",
-                  cursor: "pointer",
-                  fontWeight: "600",
-                }}
-              >
-                Создать заявку
-              </button>
+              <Button variant="success" type="submit" disabled={loading}>
+                {loading ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> Создание...</> : "Создать заявку"}
+              </Button>
             )}
           </div>
-        </form>
-      </div>
+        </Form>
+      </Container>
       <Footer />
     </>
   );
-};
+}

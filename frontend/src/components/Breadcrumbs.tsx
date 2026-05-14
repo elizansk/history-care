@@ -10,10 +10,10 @@ interface BreadcrumbsProps {
   items: BreadcrumbItem[];
 }
 
-const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
-  return (
+const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {//Компонент принимает массив breadcrumbs
+  return (//Контейнер bootstrap breadcrumbs
     <Breadcrumb>
-      {items.map((item, index) => (
+      {items.map((item, index) => (//проходимся по breadcrumbs
         <Breadcrumb.Item key={index} href={item.href} active={!item.href}>
           {item.label}
         </Breadcrumb.Item>

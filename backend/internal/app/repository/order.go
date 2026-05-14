@@ -13,8 +13,7 @@ func (r *Repository) GetOrders(status string, from, to *time.Time) ([]models.Rec
 
 	query := r.DB.
 		Preload("Creator").
-		Preload("Services.Service").
-		Where("status NOT IN ?", []string{"deleted", "draft"})
+		Preload("Services.Service")
 
 	if status != "" {
 		query = query.Where("status = ?", status)
@@ -122,15 +121,6 @@ func (r *Repository) UpdateOrderTotal(orderID uint, total float64) error {
 	return r.DB.Model(&models.ReconstructionOrder{}).
 		Where("id = ?", orderID).
 		Update("total_amount", total).Error
-}
-
-func (r *Repository) UpdateOrderDetails(orderID uint, totalAmount float64, description string) error {
-	return r.DB.Model(&models.ReconstructionOrder{}).
-		Where("id = ?", orderID).
-		Updates(map[string]interface{}{
-			"total_amount": totalAmount,
-			"description":  description,
-		}).Error
 }
 
 func (r *Repository) UpdateOrderStatus(orderID uint, status string) error {

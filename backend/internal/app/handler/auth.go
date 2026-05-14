@@ -21,7 +21,7 @@ type RegisterRequest struct {
 	LastName  string `json:"last_name" binding:"required"`
 	Email     string `json:"email" binding:"required,email"`
 	Password  string `json:"password" binding:"required"`
-	Role      string `json:"role" binding:"required"`
+	RoleId    uint   `json:"role_id" binding:"required"`
 	CityID    *uint  `json:"cityId"`
 }
 
@@ -71,7 +71,7 @@ func (h *Handler) Register(c *gin.Context) {
 		LastName:  req.LastName,
 		Email:     req.Email,
 		Password:  hashedPassword,
-		Role:      req.Role,
+		RoleID:    req.RoleId,
 		CityID:    req.CityID,
 	}
 
@@ -81,11 +81,6 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	token, err := jwt.GenerateJWT(user.ID, user.Role)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
-		return
-	}
 	logger.Log.WithFields(logrus.Fields{
 		"user_id": user.ID,
 		"email":   user.Email,
@@ -93,19 +88,8 @@ func (h *Handler) Register(c *gin.Context) {
 		"path":    c.Request.URL.Path,
 	}).Info("New user created")
 
-	c.SetCookie(
-		"token", // имя
-		token,   // JWT
-		3600,    // TTL
-		"/",
-		"",    // domain ( ост пустым)
-		false, // secure
-		true,  // httpOnly
-	)
-
 	c.JSON(http.StatusOK, gin.H{
-		"user":  user,
-		"token": token,
+		"user": user,
 	})
 }
 
@@ -157,7 +141,7 @@ func (h *Handler) Login(c *gin.Context) {
 	}
 
 	// Генерация JWT с ролью
-	token, err := jwt.GenerateJWT(user.ID, user.Role)
+	token, err := jwt.GenerateJWT(user.ID, user.RoleID, user.Role.Name)
 	if err != nil {
 		logger.Log.WithFields(logrus.Fields{
 			"user_id": user.ID,

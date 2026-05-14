@@ -4,14 +4,12 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/FormStyles.css';
 
-type Role = 'User' | 'City';
-
 interface RegisterForm {
   last_name: string;
   first_name: string;
   email: string;
   password: string;
-  role: Role;
+  role_id: number;
   cityId?: number;
 }
 
@@ -22,26 +20,23 @@ interface City {
 }
 
 export default function Register() {
-    const API_URL = import.meta.env.VITE_API_URL;
-    console.log(`${API_URL}/auth/cities`);
     const [form, setForm] = useState<RegisterForm>({
     last_name: '',
     first_name: '',
     email: '',
     password: '',
-    role: 'User'
+    role_id: 3,
   });
 
   const [cities, setCities] = useState<City[]>([]);
 
 
   useEffect(() => {
-    fetch(`${API_URL}/auth/cities`)
-      .then(res => res.json())
-      .then(data => setCities(data))
+    fetch(`/api/cities`)
+      .then(res => res.json())//сервер вернул ответ - json в строку
+      .then(data => setCities(data))//города в state
       .catch(err => console.error('Ошибка загрузки городов:', err));
   }, []);
- console.log(cities);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -62,13 +57,14 @@ const handleSubmit = async (e: FormEvent) => {
       cityId: form.cityId || undefined, // если пусто — не отправляем
     };
 
-    const response = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
+    const response = await fetch(`/api/auth/register`, {//отправляем запрос на сервер
+      method: 'POST',//создаём нового пользователя
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json',//говорим серверу “я отправляю JSON”
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload),//превращаем JS объект в JSON строку
     });
+    console.log(JSON.stringify(payload));
 
     const data = await response.json();
     console.log('Ответ сервера:', data);
@@ -128,13 +124,13 @@ const handleSubmit = async (e: FormEvent) => {
             required
           />
 
-          <select name="role" value={form.role} onChange={handleChange}>
-            <option value="User">Пользователь (донат)</option>
-            <option value="City">Город (заявки)</option>
+          <select name="roleId" value={form.role_id} onChange={handleChange}>
+            <option value={3}>Пользователь</option>
+            <option value={2}>Город</option>
           </select>
         </div>
 
-        {form.role === 'City' && (
+        {form.role_id === 2 && (
           <>
             <h3 className="city-title">Данные города</h3>
             <div className="form-section">

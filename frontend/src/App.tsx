@@ -1,9 +1,15 @@
+import { useEffect } from 'react';
+import axios from 'axios';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState } from './store';
+import { setUser } from './store/auth-slice.ts';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import CreateOrder from './pages/CreateOrder';
 import User from './pages/User.tsx';
+import MyOrders from './pages/MyOrders';
 import Admin from './pages/Admin.tsx';
 import Buildings from './pages/Buildings';
 import Building from './pages/Building';
@@ -11,6 +17,25 @@ import Donate from './pages/Donate';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
+  const user = useSelector((state: RootState) => state.auth.user);
+  const localToken = localStorage.getItem('token');
+  const token = useSelector((state: RootState) => state.auth.token) || localToken;
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (!token || user) return;
+
+    axios.get('/api/profile', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then((res) => {
+      dispatch(setUser(res.data));
+    })
+    .catch((err) => {
+      console.error('Failed to load profile:', err);
+    });
+  }, [token, user, dispatch]);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -44,6 +69,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["Admin"]}>
               <Admin />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/my-orders"
+          element={
+            <ProtectedRoute allowedRoles={["User", "City", "Admin"]}>
+              <MyOrders />
             </ProtectedRoute>
           }
         />

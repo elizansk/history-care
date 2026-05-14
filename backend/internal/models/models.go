@@ -8,7 +8,8 @@ type User struct {
 	FirstName string `gorm:"size:100;not null" json:"first_name"`
 	LastName  string `gorm:"size:100;not null" json:"last_name"`
 	Email     string `gorm:"size:100;unique;not null" json:"email"`
-	Role      string `gorm:"size:20;default:user" json:"role"`
+	Role      Role   `gorm:"foreignKey:RoleID" json:"role"`
+	RoleID    uint   `json:"roleId"`
 	Password  string `gorm:"size:100;null" json:"-"`
 
 	CityID *uint `json:"city_id"`
@@ -55,21 +56,19 @@ type Service struct {
 }
 
 type ReconstructionOrder struct {
-	ID          uint       `gorm:"primaryKey" json:"id"`
-	BuildingID  uint       `json:"building_id"`
-	Building    Building   `json:"building"`
-	CreatorID   uint       `json:"creator_id"`
-	Creator     User       `json:"creator"`
-	Status      string     `gorm:"size:50;default:'draft'" json:"status"`
-	CreatedAt   time.Time  `gorm:"autoCreateTime" json:"created_at"`
-	CompletedAt *time.Time `json:"completed_at"`
-
-	TotalAmount     float64 `json:"total_amount"`
-	CollectedAmount float64 `json:"collected_amount"`
-	ModeratorID     *uint   `json:"moderator_id"`
-
-	Services  []OrderService `gorm:"foreignKey:OrderID" json:"services"`
-	Donations []Donation     `gorm:"foreignKey:OrderID" json:"donations"`
+	ID              uint           `gorm:"primaryKey" json:"id"`
+	BuildingID      uint           `json:"building_id"`
+	Building        Building       `json:"building"`
+	CreatorID       uint           `json:"creator_id"`
+	Creator         User           `json:"creator"`
+	Status          string         `gorm:"size:50;default:'draft'" json:"status"`
+	CreatedAt       time.Time      `gorm:"autoCreateTime" json:"created_at"`
+	CompletedAt     *time.Time     `json:"completed_at"`
+	TotalAmount     float64        `json:"total_amount"`
+	CollectedAmount float64        `json:"collected_amount"`
+	ModeratorID     *uint          `json:"moderator_id"`
+	Services        []OrderService `gorm:"foreignKey:OrderID" json:"services"`
+	Donations       []Donation     `gorm:"foreignKey:OrderID" json:"donations"`
 }
 
 type OrderService struct {
@@ -101,4 +100,8 @@ type Donation struct {
 type City struct {
 	ID   uint   `gorm:"primaryKey" json:"id"`
 	Name string `gorm:"size:100;unique;not null" json:"name"`
+}
+type Role struct {
+	ID   uint   `gorm:"primaryKey" json:"id"`
+	Name string `gorm:"size:10;unique;not null" json:"name"`
 }
