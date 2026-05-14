@@ -8,12 +8,12 @@ import { submitDonation } from '../api/donations';
 import { getUser } from '../utils/auth';
 import type { MockOrder } from '../api/orders';
 
-let embedderPromise: any = null;
+let embedderPromise: any = null;//Хранит загруженную AI модель
 
-const Donate: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const [order, setOrder] = useState<MockOrder | null>(null);
-  const [loading, setLoading] = useState(true);
+const Donate: React.FC = () => {//создаем реакт компонент
+  const { id } = useParams<{ id: string }>();//берём id из URL
+  const [order, setOrder] = useState<MockOrder | null>(null);//текущая заявка
+  const [loading, setLoading] = useState(true);//идет ли загрузка
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showQR, setShowQR] = useState(false);
@@ -21,7 +21,7 @@ const Donate: React.FC = () => {
   const [similarOrders, setSimilarOrders] = useState<MockOrder[]>([]);
   const [similarLoading, setSimilarLoading] = useState(false);
   const [similarError, setSimilarError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({//формат доната
     amount: '',
     customAmount: '',
     name: '',
@@ -29,33 +29,33 @@ const Donate: React.FC = () => {
     payment: '',
   });
 
-  useEffect(() => {
+  useEffect(() => {//загрузка пользователя, читает JWT,кладёт пользователя в state
     setUser(getUser());
   }, []);
 
-  useEffect(() => {
+  useEffect(() => {//загрузка заявки если нет id - ничего не делаем
     if (!id) return;
     const fetchOrder = async () => {
       try {
-        const data = await getOrderById(parseInt(id));
+        const data = await getOrderById(parseInt(id));//берем заявку с сервера и сохраняем в state
         setOrder(data);
-      } catch (err) {
+      } catch  {
         setError('Не удалось загрузить данные объекта');
       } finally {
-        setLoading(false);
+        setLoading(false);//выключаем loading
       }
     };
     fetchOrder();
   }, [id]);
 
-  if (loading && id) return <div className="text-center p-5">Загрузка...</div>;
-  if (error && id) return <Alert variant="danger">{error}</Alert>;
+  if (loading && id) return <div className="text-center p-5">Загрузка...</div>;//если грузится показываем загрузку
+  if (error && id) return <Alert variant="danger">{error}</Alert>;//ошибка отображ
 
   const mainPhoto = order?.building.resources.find(r => r.resource_type === 'photo' && r.is_main);
 
   const breadcrumbItems = [
     { label: 'Главная', href: '/' },
-    { label: 'Заявки на реконструкцию', href: '/buildings' },
+    { label: 'Исторические здания', href: '/buildings' },
     { label: order?.building.name || 'Пожертвования', href: order ? `/building/${id}` : '/buildings' },
     { label: 'Пожертвование' },
   ];
@@ -78,7 +78,7 @@ const Donate: React.FC = () => {
 
   const getText = (source: MockOrder) => source.building.description?.trim() || source.building.name || '';
 
-  const cosineSimilarity = (a: number[], b: number[]) => {
+  const cosineSimilarity = (a: number[], b: number[]) => {//1.0 → полностью похожи,0.0 → не похожи ,-1.0 → противоположны
     const dot = a.reduce((sum, value, index) => sum + value * (b[index] ?? 0), 0);
     const normA = Math.sqrt(a.reduce((sum, value) => sum + value * value, 0));
     const normB = Math.sqrt(b.reduce((sum, value) => sum + value * value, 0));
@@ -94,11 +94,11 @@ const Donate: React.FC = () => {
   const loadSimilarOrders = async () => {
     setSimilarLoading(true);
     setSimilarError(null);
-    setSimilarOrders([]);
+    setSimilarOrders([]);//Похожие заявки
 
     let candidates: MockOrder[] = [];
     try {
-      const allOrders = await getFormedOrders();
+      const allOrders = await getFormedOrders();//получаем все услуги
       candidates = allOrders.filter((item) => item.id !== order?.id);
 
       if (candidates.length === 0) {
@@ -107,31 +107,31 @@ const Donate: React.FC = () => {
         return;
       }
 
-      const texts = [order?.building.description || order?.building.name || '', ...candidates.map(getText)];
+      const texts = [order?.building.description || order?.building.name || '', ...candidates.map(getText)];//текст для сравненния
       let embedder: any;
       if (!embedderPromise) {
-        embedderPromise = import('@xenova/transformers').then(({ pipeline }) =>
-          pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2')
+        embedderPromise = import('@xenova/transformers').then(({ pipeline }) =>//библиотека, которая запускает ML модель прямо в браузере
+          pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2')//готовая NLP модель,которая умеет понимать смысл текста,оптимизирована для поиска похожих предложений
         );
       }
-      embedder = await embedderPromise;
+       embedder = await embedderPromise;
 
-      const rawEmbedding: any = await embedder(texts);
+      const rawEmbedding: any = await embedder(texts);//texts = массив описаний
       const embeddings = Array.isArray(rawEmbedding)
-        ? rawEmbedding.map(flattenEmbedding).filter((vec) => vec.length > 0)
+        ? rawEmbedding.map(flattenEmbedding).filter((vec) => vec.length > 0)//приводим к нормальному виду
         : [];
 
       if (embeddings.length <= 1) {
         throw new Error('Embedding generation failed');
       }
 
-      const baseEmbedding = embeddings[0];
+      const baseEmbedding = embeddings[0];//это текущая услуга
       const similar = candidates
         .map((candidate, index) => ({
           order: candidate,
-          score: cosineSimilarity(baseEmbedding, embeddings[index + 1] || []),
+          score: cosineSimilarity(baseEmbedding, embeddings[index + 1] || []),//считаем схожесть
         }))
-        .sort((a, b) => b.score - a.score)
+        .sort((a, b) => b.score - a.score)//сортируем в топ 3 по схожести
         .slice(0, 3)
         .map((item) => item.order);
 
@@ -291,7 +291,6 @@ const Donate: React.FC = () => {
               )}
 
               <div className="donation-section">
-               
                 <div className="payment-options">
 
                 </div>

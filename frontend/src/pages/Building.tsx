@@ -39,7 +39,7 @@ const Building: React.FC = () => {
   console.log('Order details:', order);
   const breadcrumbItems = [
     { label: 'Главная', href: '/' },
-    { label: 'Заявки на реконструкцию', href: '/buildings' },
+    { label: 'Исторические здания', href: '/buildings' },
     { label: order.building.name },
   ];
 

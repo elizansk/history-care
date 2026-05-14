@@ -29,7 +29,7 @@ export async function getCategories(): Promise<Category[]> {
 
 export async function getCities(): Promise<City[]> {
   try {
-    const res = await fetch('/api/auth/cities', {
+    const res = await fetch('/api/cities', {
       credentials: 'include',
     });
 

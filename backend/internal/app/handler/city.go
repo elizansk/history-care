@@ -8,11 +8,11 @@ import (
 
 // @Summary      Get all cities
 // @Description  Возвращает список городов
-// @Tags         auth
+// @Tags         cities
 // @Produce      json
 // @Success      200 {array} models.City
 // @Failure      500 {object} map[string]string
-// @Router       /api/auth/cities [get]
+// @Router       /api/cities [get]
 func (h *Handler) GetCities(c *gin.Context) {
 	cities, err := h.repo.GetCities()
 	if err != nil {

@@ -1,4 +1,4 @@
-export function getUser() {
+export function getUser() {//Функция получает пользователя из JWT token
   const token = localStorage.getItem("token");
   if (!token) return null;
 

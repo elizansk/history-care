@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { login } from '../store/auth-slice.ts';
 import '../styles/FormStyles.css';
 
 interface LoginForm {
@@ -10,11 +12,11 @@ interface LoginForm {
 
 export default function Login() {
 
-  const API_URL = import.meta.env.VITE_API_URL;
   const [form, setForm] = useState<LoginForm>({
     email: '',
     password: ''
   });
+  const dispatch = useDispatch();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -24,7 +26,7 @@ export default function Login() {
     e.preventDefault();
 
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await fetch(`/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -45,10 +47,14 @@ export default function Login() {
         localStorage.setItem("token", data.token);
       }
 
+      // передаем login в Redux
+      dispatch(login({ user: data.user, token: data.token }));
+
       console.log('Ответ сервера:', data);
       alert('Успешный вход!');
 
       window.location.href = '/';
+
 
     } catch (error) {
       console.error('Ошибка:', error);

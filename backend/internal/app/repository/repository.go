@@ -27,5 +27,21 @@ func NewRepository(dsn string) (*Repository, error) {
 		log.Printf("ошибка подключения к БД: %v", err)
 		return nil, err
 	}
+
+	if err := db.AutoMigrate(
+		&models.User{},
+		&models.City{},
+		&models.BuildingCategory{},
+		&models.Building{},
+		&models.BuildingResource{},
+		&models.Service{},
+		&models.ReconstructionOrder{},
+		&models.OrderService{},
+		&models.Donation{},
+	); err != nil {
+		log.Printf("ошибка миграции БД: %v", err)
+		return nil, err
+	}
+
 	return &Repository{DB: db}, nil
 }

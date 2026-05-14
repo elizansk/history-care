@@ -3,14 +3,14 @@ import type { MockOrder } from '../mock/reconstruction.mock';
 
 export type { MockOrder };
 
-export async function createDraftOrder(buildingId: number) {
+export async function createDraftOrder(buildingId: number) {//черновик заявки
     const res = await fetch("/api/orders/draft", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ building_id: buildingId }),
-        credentials: "include",
+        body: JSON.stringify({ building_id: buildingId }),//Отправляем backend
+        credentials: "include",//отправка куки
     });
 
     const data = await res.json();
@@ -24,7 +24,7 @@ export async function createDraftOrder(buildingId: number) {
 
 export async function getFormedOrders(categoryId?: number, cityId?: number, from?: string, to?: string): Promise<MockOrder[]> {
     try {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams();//создаём строку запроса
         if (categoryId) params.append('categoryId', categoryId.toString());
         if (cityId) params.append('cityId', cityId.toString());
         if (from) params.append('from', from);
@@ -42,7 +42,7 @@ export async function getFormedOrders(categoryId?: number, cityId?: number, from
         return data;
     } catch  {
         console.warn('Using mock data for getFormedOrders');
-        let filtered = mockOrders;
+        let filtered = mockOrders;//берём локальные данные
         if (categoryId) {
             filtered = filtered.filter(o => o.building.category_id === categoryId);
         }

@@ -278,27 +278,6 @@ info:
   title: History Care API
   version: "1.0"
 paths:
-  /api/auth/cities:
-    get:
-      description: Возвращает список городов
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.City'
-            type: array
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get all cities
-      tags:
-      - auth
   /api/auth/login:
     post:
       consumes:
@@ -539,6 +518,27 @@ paths:
       summary: Get all categories
       tags:
       - categories
+  /api/cities:
+    get:
+      description: Возвращает список городов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.City'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all cities
+      tags:
+      - cities
   /api/donations:
     post:
       consumes:
