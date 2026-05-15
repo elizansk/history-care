@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"history-care-texnology/internal/logger"
+	"history-care-texnology/internal/metrics"
 	"history-care-texnology/internal/models"
 	"history-care-texnology/internal/storage"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
-    "log"
+
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
 )
@@ -51,12 +53,14 @@ func (h *Handler) GetServices(c *gin.Context) {
 	cached, err := h.redis.Get(ctx, cacheKey).Result()
 	if err == nil {
 		logger.CacheHit(cacheKey)
+		metrics.CacheHits.Inc()
 		c.Header("X-Cache", "HIT")
 		c.Data(http.StatusOK, "application/json", []byte(cached))
 		return
 
 	}
 	logger.CacheMiss(cacheKey)
+	metrics.CacheMisses.Inc()
 	//  2. БД
 	data, err := h.repo.GetServices()
 	if err != nil {
@@ -67,7 +71,7 @@ func (h *Handler) GetServices(c *gin.Context) {
 	//  3. кладём в кэш
 	jsonData, err := json.Marshal(data)
 	if err == nil {
-		err := h.redis.Set(ctx, cacheKey, jsonData, time.Minute).Err()
+		err := h.redis.Set(ctx, cacheKey, jsonData, time.Minute*2).Err()
 		if err != nil {
 			logger.CacheError(cacheKey, err, "set")
 		} else {
@@ -100,11 +104,13 @@ func (h *Handler) GetServiceByID(c *gin.Context) {
 	cached, err := h.redis.Get(ctx, cacheKey).Result()
 	if err == nil {
 		logger.CacheHit(cacheKey)
+		metrics.CacheHits.Inc()
 		c.Header("X-Cache", "HIT")
 		c.Data(http.StatusOK, "application/json", []byte(cached))
 		return
 	}
 	logger.CacheMiss(cacheKey)
+	metrics.CacheMisses.Inc()
 	//  2. БД
 	idInt, _ := strconv.Atoi(id)
 	service, err := h.repo.GetServiceByID(uint(idInt))
@@ -167,11 +173,11 @@ func (h *Handler) CreateService(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "failed to open image"})
 		return
 	}
-defer func() {
-    if err := imgSrc.Close(); err != nil {
-        log.Println(err)
-    }
-}()
+	defer func() {
+		if err := imgSrc.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	imgName := fmt.Sprintf("service_img_%d_%s", time.Now().UnixNano(), imageFile.Filename)
 
@@ -198,11 +204,11 @@ defer func() {
 
 		videoSrc, err := videoFile.Open()
 		if err == nil {
-		defer func() {
-            if err := videoSrc.Close(); err != nil {
-                log.Println(err)
-            }
-        }()
+			defer func() {
+				if err := videoSrc.Close(); err != nil {
+					log.Println(err)
+				}
+			}()
 
 			videoName := fmt.Sprintf("service_video_%d_%s", time.Now().UnixNano(), videoFile.Filename)
 

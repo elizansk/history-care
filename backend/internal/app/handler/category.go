@@ -47,7 +47,7 @@ func (h *Handler) GetCategories(c *gin.Context) {
 	// 3. SET cache
 	jsonData, err := json.Marshal(data)
 	if err == nil {
-		err := h.redis.Set(ctx, cacheKey, jsonData, time.Minute).Err()
+		err := h.redis.Set(ctx, cacheKey, jsonData, time.Minute*2).Err()
 		if err != nil {
 			logger.CacheError(cacheKey, err, "set")
 		} else {

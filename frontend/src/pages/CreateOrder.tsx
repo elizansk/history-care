@@ -25,7 +25,7 @@ import CreateOrderSummaryStep from "../components/CreateOrderSummaryStep";
 
 export default function CreateOrder() {
   const dispatch = useDispatch<AppDispatch>();
-  const { loading, error, categories, cities, services, building, order } = useSelector((state: RootState) => state.order);//берём данные из Redux store
+  const { loading, error, categories, cities, services, servicesCacheInfo, building, order } = useSelector((state: RootState) => state.order);//берём данные из Redux store
   const token = localStorage.getItem("token");
 
   const [selectedServices, setSelectedServices] = useState< //локальная корзина услуг (ещё НЕ в Redux)
@@ -335,6 +335,7 @@ export default function CreateOrder() {
           {currentStep === 2 && (
             <CreateOrderServicesStep
               services={services}
+              cacheInfo={servicesCacheInfo}
               selectedServices={selectedServices}
               serviceDescriptions={serviceDescriptions}
               onAddService={(serviceId) => {
