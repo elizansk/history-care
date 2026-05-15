@@ -8,6 +8,7 @@ import {
   OrdersServicesApi,
   CitiesApi
 } from '../api/generated';
+import type { ModelsService } from '../api/generated';
 //импорт автосгенерированных API клиентов из swagger
 const config = new Configuration({// конфиг для API клиентов
   basePath: import.meta.env.VITE_API_URL || '',//базовый URL backend
@@ -22,12 +23,33 @@ const servicesApi = new ServicesApi(config);
 const citiesApi = new CitiesApi(config);
 const ordersServicesApi = new OrdersServicesApi(config);
 
+const SERVICES_CACHE_KEY = 'history-care:services';
+const SERVICES_CACHE_TTL_MS = 60 * 1000;
+
+type CacheSource = 'frontend-cache-hit' | 'frontend-cache-miss';
+type CachedService = ModelsService & {
+  id: number;
+  name: string;
+  price: number;
+};
+
+interface ServicesCacheEntry {
+  savedAt: number;
+  data: CachedService[];
+}
+
 interface OrderState {// интерфейс состояния Redux
   loading: boolean;
   error: string | null;
   categories: any[];
   cities: any[];
-  services: any[];
+  services: CachedService[];
+  servicesCacheInfo: {
+    source: CacheSource | null;
+    backendCache: string | null;
+    cacheKey: string;
+    ttlSeconds: number;
+  };
   building: any | null;
   order: any | null;
 }
@@ -38,9 +60,81 @@ const initialState: OrderState = {// // начальное состояние Re
   categories: [],
   cities: [],
   services: [],
+  servicesCacheInfo: {
+    source: null,
+    backendCache: null,
+    cacheKey: SERVICES_CACHE_KEY,
+    ttlSeconds: SERVICES_CACHE_TTL_MS / 1000,
+  },
   building: null,
   order: null,
 };
+
+function readServicesCache(): CachedService[] | null {
+  try {
+    const raw = localStorage.getItem(SERVICES_CACHE_KEY);
+    if (!raw) {
+      console.info('[services cache] miss', {
+        cacheKey: SERVICES_CACHE_KEY,
+        result: 'miss',
+        reason: 'empty',
+      });
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as ServicesCacheEntry;
+    const age = Date.now() - parsed.savedAt;
+    if (!Array.isArray(parsed.data) || age > SERVICES_CACHE_TTL_MS) {
+      localStorage.removeItem(SERVICES_CACHE_KEY);
+      console.info('[services cache] invalidate', {
+        cacheKey: SERVICES_CACHE_KEY,
+        result: 'invalidate',
+        reason: age > SERVICES_CACHE_TTL_MS ? 'ttl_expired' : 'invalid_payload',
+      });
+      return null;
+    }
+
+    console.info('[services cache] hit', {
+      cacheKey: SERVICES_CACHE_KEY,
+      result: 'hit',
+      ageMs: age,
+    });
+    return parsed.data;
+  } catch (error) {
+    localStorage.removeItem(SERVICES_CACHE_KEY);
+    console.error('[services cache] error', {
+      cacheKey: SERVICES_CACHE_KEY,
+      result: 'error',
+      operation: 'get',
+      error,
+    });
+    return null;
+  }
+}
+
+function writeServicesCache(data: CachedService[]) {
+  try {
+    localStorage.setItem(
+      SERVICES_CACHE_KEY,
+      JSON.stringify({
+        savedAt: Date.now(),
+        data,
+      } satisfies ServicesCacheEntry)
+    );
+    console.info('[services cache] set', {
+      cacheKey: SERVICES_CACHE_KEY,
+      result: 'set',
+      ttlSeconds: SERVICES_CACHE_TTL_MS / 1000,
+    });
+  } catch (error) {
+    console.error('[services cache] error', {
+      cacheKey: SERVICES_CACHE_KEY,
+      result: 'error',
+      operation: 'set',
+      error,
+    });
+  }
+}
 
 // Async thunks
 export const fetchCategories = createAsyncThunk(// async action для получения категорий
@@ -62,8 +156,33 @@ export const fetchCities = createAsyncThunk(//   async action для получ�
 export const fetchServices = createAsyncThunk(
   'order/fetchServices',
   async () => {
+    const cached = readServicesCache();
+    if (cached) {
+      return {
+        data: cached,
+        cacheInfo: {
+          source: 'frontend-cache-hit' as CacheSource,
+          backendCache: null,
+        },
+      };
+    }
+
     const response = await servicesApi.apiServicesGet();   // запрос на backend
-    return response.data;
+    const data = response.data as CachedService[];
+    writeServicesCache(data);
+    console.info('[services cache] miss', {
+      cacheKey: SERVICES_CACHE_KEY,
+      result: 'miss',
+      backendCache: response.headers?.['x-cache'] || null,
+    });
+
+    return {
+      data,
+      cacheInfo: {
+        source: 'frontend-cache-miss' as CacheSource,
+        backendCache: response.headers?.['x-cache'] || null,
+      },
+    };
   }
 );
 
@@ -112,8 +231,9 @@ export const fetchDraftOrder = createAsyncThunk(
     try {
       const response = await ordersApi.apiOrdersDraftGet();
       return response.data;
-    } catch (err: any) {  // если черновик не найден
-      if (err?.response?.status === 404) {
+    } catch (err: unknown) {  // если черновик не найден
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 404) {
         return null;
       }// остальные ошибки пробрасываем дальше
       throw err;
@@ -186,7 +306,11 @@ const orderSlice = createSlice({
       })
       .addCase(fetchServices.fulfilled, (state, action) => {
         state.loading = false;
-        state.services = action.payload;
+        state.services = action.payload.data;
+        state.servicesCacheInfo = {
+          ...state.servicesCacheInfo,
+          ...action.payload.cacheInfo,
+        };
       })
       .addCase(fetchServices.rejected, (state, action) => {
         state.loading = false;

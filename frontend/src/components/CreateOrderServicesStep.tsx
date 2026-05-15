@@ -15,6 +15,12 @@ interface SelectedService {
 
 interface Props {
   services: Service[];
+  cacheInfo?: {
+    source: string | null;
+    backendCache: string | null;
+    cacheKey: string;
+    ttlSeconds: number;
+  };
   selectedServices: SelectedService[];
   serviceDescriptions: Record<number, string>;
   onAddService: (serviceId: number) => void;
@@ -25,6 +31,7 @@ interface Props {
 
 export default function CreateOrderServicesStep({
   services,
+  cacheInfo,
   selectedServices,
   serviceDescriptions,
   onAddService,
@@ -35,7 +42,19 @@ export default function CreateOrderServicesStep({
   return (
     <Card className="mb-4 shadow-sm">
       <Card.Body>
-        <Card.Title className="mb-3 text-success">Шаг 2: Добавление услуг реконструкции</Card.Title>
+        <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
+          <Card.Title className="mb-0 text-success">Шаг 2: Добавление услуг реконструкции</Card.Title>
+          {cacheInfo?.source && (
+            <div className="text-end small text-muted">
+              <div>
+                Services: {cacheInfo.source === "frontend-cache-hit" ? "frontend cache HIT" : "frontend cache MISS"}
+              </div>
+              <div>
+                Backend: {cacheInfo.backendCache || "not requested"} · TTL {cacheInfo.ttlSeconds}s
+              </div>
+            </div>
+          )}
+        </div>
         <Stack gap={3}>
           <Form.Group controlId="serviceSelect">
             <Form.Label>Добавить услугу</Form.Label>
