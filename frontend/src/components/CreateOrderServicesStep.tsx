@@ -15,6 +15,7 @@ interface SelectedService {
 
 interface Props {
   services: Service[];
+  // Данные о том, откуда пришел список услуг: frontend cache или backend.
   cacheInfo?: {
     source: string | null;
     backendCache: string | null;
@@ -44,12 +45,15 @@ export default function CreateOrderServicesStep({
       <Card.Body>
         <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
           <Card.Title className="mb-0 text-success">Шаг 2: Добавление услуг реконструкции</Card.Title>
+          {/* Показываем источник данных по services */}
           {cacheInfo?.source && (
             <div className="text-end small text-muted">
               <div>
+                {/* Показываем HIT/MISS frontend-кэша */}
                 Services: {cacheInfo.source === "frontend-cache-hit" ? "frontend cache HIT" : "frontend cache MISS"}
               </div>
               <div>
+                {/* Показываем HIT/MISS backend-кэша и TTL frontend-кэша */}
                 Backend: {cacheInfo.backendCache || "not requested"} · TTL {cacheInfo.ttlSeconds}s
               </div>
             </div>

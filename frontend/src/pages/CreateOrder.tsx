@@ -25,6 +25,7 @@ import CreateOrderSummaryStep from "../components/CreateOrderSummaryStep";
 
 export default function CreateOrder() {
   const dispatch = useDispatch<AppDispatch>();
+  // Берем данные услуг и информацию о кэше из Redux.
   const { loading, error, categories, cities, services, servicesCacheInfo, building, order } = useSelector((state: RootState) => state.order);//берём данные из Redux store
   const token = localStorage.getItem("token");
 
@@ -335,6 +336,7 @@ export default function CreateOrder() {
           {currentStep === 2 && (
             <CreateOrderServicesStep
               services={services}
+              // Передаем HIT/MISS в компонент выбора услуг.
               cacheInfo={servicesCacheInfo}
               selectedServices={selectedServices}
               serviceDescriptions={serviceDescriptions}

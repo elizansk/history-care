@@ -23,16 +23,21 @@ const servicesApi = new ServicesApi(config);
 const citiesApi = new CitiesApi(config);
 const ordersServicesApi = new OrdersServicesApi(config);
 
+// Ключ, по которому список услуг хранится во frontend-кэше
 const SERVICES_CACHE_KEY = 'history-care:services';
+// TTL frontend-кэша услуг: 60 секунд
 const SERVICES_CACHE_TTL_MS = 60 * 1000;
 
+// Источник данных для отображения HIT/MISS на клиенте
 type CacheSource = 'frontend-cache-hit' | 'frontend-cache-miss';
+// Тип услуги, которую кладем в frontend-кэш
 type CachedService = ModelsService & {
   id: number;
   name: string;
   price: number;
 };
 
+// Формат записи services в localStorage
 interface ServicesCacheEntry {
   savedAt: number;
   data: CachedService[];
@@ -44,6 +49,7 @@ interface OrderState {// интерфейс состояния Redux
   categories: any[];
   cities: any[];
   services: CachedService[];
+  // Информация о frontend/backend кэше для вывода в UI.
   servicesCacheInfo: {
     source: CacheSource | null;
     backendCache: string | null;
@@ -60,6 +66,7 @@ const initialState: OrderState = {// // начальное состояние Re
   categories: [],
   cities: [],
   services: [],
+  // Начальное состояние: источник services еще неизвестен
   servicesCacheInfo: {
     source: null,
     backendCache: null,
@@ -70,10 +77,13 @@ const initialState: OrderState = {// // начальное состояние Re
   order: null,
 };
 
+// Читает services из localStorage и проверяет TTL
 function readServicesCache(): CachedService[] | null {
   try {
+    // Берем сырую строку из frontend-кэша
     const raw = localStorage.getItem(SERVICES_CACHE_KEY);
     if (!raw) {
+      // Кэша нет
       console.info('[services cache] miss', {
         cacheKey: SERVICES_CACHE_KEY,
         result: 'miss',
@@ -82,25 +92,30 @@ function readServicesCache(): CachedService[] | null {
       return null;
     }
 
+    // Преобразуем строку из localStorage обратно в объект
     const parsed = JSON.parse(raw) as ServicesCacheEntry;
+    // Считаем возраст записи в кэше
     const age = Date.now() - parsed.savedAt;
     if (!Array.isArray(parsed.data) || age > SERVICES_CACHE_TTL_MS) {
+      // Удаляем битый или устаревший кэш
       localStorage.removeItem(SERVICES_CACHE_KEY);
       console.info('[services cache] invalidate', {
         cacheKey: SERVICES_CACHE_KEY,
-        result: 'invalidate',
+        result: 'invalidate',//логирование инвалидации
         reason: age > SERVICES_CACHE_TTL_MS ? 'ttl_expired' : 'invalid_payload',
       });
       return null;
     }
 
+    // Данные найдены в frontend-кэше
     console.info('[services cache] hit', {
       cacheKey: SERVICES_CACHE_KEY,
-      result: 'hit',
+      result: 'hit',//логируем
       ageMs: age,
     });
     return parsed.data;
   } catch (error) {
+    // При ошибке чтения очищаем frontend-кэш
     localStorage.removeItem(SERVICES_CACHE_KEY);
     console.error('[services cache] error', {
       cacheKey: SERVICES_CACHE_KEY,
@@ -112,8 +127,10 @@ function readServicesCache(): CachedService[] | null {
   }
 }
 
+// Записывает services в localStorage
 function writeServicesCache(data: CachedService[]) {
   try {
+    // Сохраняем данные и время записи для проверки TTL
     localStorage.setItem(
       SERVICES_CACHE_KEY,
       JSON.stringify({
@@ -121,12 +138,14 @@ function writeServicesCache(data: CachedService[]) {
         data,
       } satisfies ServicesCacheEntry)
     );
+    // Логируем запись в frontend-кэш
     console.info('[services cache] set', {
       cacheKey: SERVICES_CACHE_KEY,
       result: 'set',
       ttlSeconds: SERVICES_CACHE_TTL_MS / 1000,
     });
   } catch (error) {
+    // Логируем ошибку записи в frontend-кэш
     console.error('[services cache] error', {
       cacheKey: SERVICES_CACHE_KEY,
       result: 'error',
@@ -156,8 +175,10 @@ export const fetchCities = createAsyncThunk(//   async action для получ�
 export const fetchServices = createAsyncThunk(
   'order/fetchServices',
   async () => {
+    // Сначала пробуем взять услуги из frontend-кэша.
     const cached = readServicesCache();
     if (cached) {
+      // Возвращаем frontend cache HIT без запроса на backend
       return {
         data: cached,
         cacheInfo: {
@@ -167,15 +188,19 @@ export const fetchServices = createAsyncThunk(
       };
     }
 
+    // Если frontend-кэша нет, запрашиваем услуги с backend
     const response = await servicesApi.apiServicesGet();   // запрос на backend
     const data = response.data as CachedService[];
+    // Сохраняем ответ backend во frontend-кэш
     writeServicesCache(data);
+    // Логируем frontend cache MISS и backend X-Cache
     console.info('[services cache] miss', {
       cacheKey: SERVICES_CACHE_KEY,
       result: 'miss',
       backendCache: response.headers?.['x-cache'] || null,
     });
 
+    // Передаем данные и источник в Redux
     return {
       data,
       cacheInfo: {
@@ -307,6 +332,7 @@ const orderSlice = createSlice({
       .addCase(fetchServices.fulfilled, (state, action) => {
         state.loading = false;
         state.services = action.payload.data;
+        // Сохраняем HIT/MISS, чтобы показать источник данных в интерфейсе.
         state.servicesCacheInfo = {
           ...state.servicesCacheInfo,
           ...action.payload.cacheInfo,
