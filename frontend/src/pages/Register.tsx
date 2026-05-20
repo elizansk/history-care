@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import '../styles/FormStyles.css';
 
 interface RegisterForm {
@@ -18,6 +19,9 @@ interface City {
   id: number;
   name: string;
 }
+interface RegisterResponse {
+  token?: string;
+}
 
 export default function Register() {
     const [form, setForm] = useState<RegisterForm>({
@@ -32,9 +36,8 @@ export default function Register() {
 
 
   useEffect(() => {
-    fetch(`/api/cities`)
-      .then(res => res.json())//сервер вернул ответ - json в строку
-      .then(data => setCities(data))//города в state
+    axios.get<City[]>(`/api/cities`)
+      .then(res => setCities(res.data))//города в state
       .catch(err => console.error('Ошибка загрузки городов:', err));
   }, []);
 
@@ -57,22 +60,12 @@ const handleSubmit = async (e: FormEvent) => {
       cityId: form.cityId || undefined, // если пусто — не отправляем
     };
 
-    const response = await fetch(`/api/auth/register`, {//отправляем запрос на сервер
-      method: 'POST',//создаём нового пользователя
-      headers: {
-        'Content-Type': 'application/json',//говорим серверу “я отправляю JSON”
-      },
-      body: JSON.stringify(payload),//превращаем JS объект в JSON строку
-    });
+    const response = await axios.post<RegisterResponse>(`/api/auth/register`, payload);//отправляем запрос на сервер
     console.log(JSON.stringify(payload));
 
-    const data = await response.json();
+    const data = response.data;
     console.log('Ответ сервера:', data);
 
-    if (!response.ok) {
-      alert('Ошибка регистрации');
-      return;
-    }
     if (data.token) {
         localStorage.setItem("token", data.token);
       }
@@ -82,6 +75,7 @@ const handleSubmit = async (e: FormEvent) => {
    window.location.href = '/';
   } catch (error) {
     console.error('Ошибка:', error);
+    alert('Ошибка регистрации');
   }
 };
 

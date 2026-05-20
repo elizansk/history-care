@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import NavigationBar from '../components/NavigationBar';
 
@@ -19,6 +19,20 @@ interface OrderService {
   quantity: number;
   description: string;
 }
+interface EditableOrder {
+  id: number;
+  building_id: number;
+  total_amount: number;
+  description?: string;
+  services: OrderService[];
+  building: {
+    name: string;
+    description?: string;
+    address: string;
+    category_id: number;
+    city_id: number;
+  };
+}
 
 const statusTranslations: Record<string, string> = {
   draft: 'Черновик',
@@ -34,10 +48,11 @@ const getStatusTranslation = (status: string): string => {
 };
 
 export default function MyOrders() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const token = localStorage.getItem('token');
+  const [loading, setLoading] = useState(Boolean(token));
+  const [error, setError] = useState<string | null>(() => token ? null : 'Токен не найден');
 
   const handleDelete = async (orderId: number) => {
     if (!confirm('Вы уверены, что хотите удалить эту заявку?')) return;
@@ -62,9 +77,11 @@ export default function MyOrders() {
               o.id === orderId ? { ...o, status: 'formed' } : o
           )
       );
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error publishing order:', err);
-      const message = err.response?.data?.error || 'Не удалось опубликовать заявку';
+      const message = axios.isAxiosError<{ error?: string }>(err)
+        ? err.response?.data?.error || 'Не удалось опубликовать заявку'
+        : 'Не удалось опубликовать заявку';
       alert(message);
     }
   };
@@ -72,7 +89,7 @@ export default function MyOrders() {
   const handleEdit = async (orderId: number) => {
     // Загрузить данные заявки и перейти на create-order
     try {
-      const res = await axios.get(`/api/orders/${orderId}`, {
+      const res = await axios.get<EditableOrder>(`/api/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const order = res.data;
@@ -88,7 +105,7 @@ export default function MyOrders() {
       sessionStorage.setItem('orderDescription', order.description || '');
       // Services: нужно загрузить services из order.services
 
-      const selectedServices = order.services.map((s: OrderService) => ({
+      const selectedServices = order.services.map((s) => ({
         id: s.service_id,
         price: s.price,
         quantity: s.quantity,
@@ -97,7 +114,7 @@ export default function MyOrders() {
       sessionStorage.setItem('selectedServices', JSON.stringify(selectedServices));
       sessionStorage.setItem('buildingData', JSON.stringify(order.building));
       // Перейти на create-order
-      window.location.href = '/create-order';
+      navigate('/create-order');
     } catch (err) {
       console.error('Error loading order for edit:', err);
       alert('Не удалось загрузить заявку для редактирования');
@@ -106,13 +123,11 @@ export default function MyOrders() {
 
   useEffect(() => {
     if (!token) {
-      setError('Токен не найден');
-      setLoading(false);
       return;
     }
 
     axios
-      .get('/api/orders', {
+      .get<Order[]>('/api/orders', {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {

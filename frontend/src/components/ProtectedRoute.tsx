@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { getUser } from "../utils/auth";
+import { getUser, getUserRoleName } from "../utils/auth";
 import React from "react";
 interface Props {
   children: React.ReactNode;  // защищаемый компонент
@@ -13,7 +13,7 @@ export default function ProtectedRoute({ children, allowedRoles }: Props) {
     return <Navigate to="/login" />;
   }
   // если роль не подходит
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !allowedRoles.includes(getUserRoleName(user))) {
     return <Navigate to="/" />;
   }
 

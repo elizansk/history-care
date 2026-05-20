@@ -8,7 +8,8 @@ interface User {
   first_name: string;
   last_name: string;
   email: string;
-  role: string;
+  role: string | { id?: number; name?: string };
+  Role?: { id?: number; name?: string };
   city_id?: number;
 }
 

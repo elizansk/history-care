@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 export interface DonationRequest {//Типизация запроса
   order_id: number;
   amount: number;
@@ -24,15 +26,10 @@ export async function submitDonation(donation: DonationRequest): Promise<Donatio
     headers['Authorization'] = `Bearer ${token}`;//если автор добавл
   }
   console.log('Donation request payload:', donation);
-  const response = await fetch('/api/donations', {
-    method: 'POST',
+  const response = await axios.post<DonationResponse>('/api/donations', donation, {
     headers,
-    body: JSON.stringify(donation),
   });
   console.log('Donation request response:', response);
-  if (!response.ok) {
-    throw new Error(`Failed to submit donation: ${response.statusText}`);
-  }
 
-  return response.json();
+  return response.data;
 }

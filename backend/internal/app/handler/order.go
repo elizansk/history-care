@@ -70,6 +70,7 @@ func (h *Handler) GetDonatableOrders(c *gin.Context) {
 
 	if c.Query("to") != "" {
 		t, _ := time.Parse("2006-01-02", c.Query("to"))
+		t = t.AddDate(0, 0, 1)
 		to = &t
 	}
 
@@ -123,6 +124,7 @@ func (h *Handler) GetOrders(c *gin.Context) {
 
 	if c.Query("to") != "" {
 		t, _ := time.Parse("2006-01-02", c.Query("to"))
+		t = t.AddDate(0, 0, 1)
 		to = &t
 	}
 
@@ -394,6 +396,7 @@ func (h *Handler) UpdateOrder(c *gin.Context) {
 func (h *Handler) FormOrder(c *gin.Context) {
 
 	userID := c.GetUint("user_id")
+	role := c.GetString("role")
 
 	id, _ := strconv.Atoi(c.Param("id"))
 
@@ -404,7 +407,7 @@ func (h *Handler) FormOrder(c *gin.Context) {
 	}
 
 	// только владелец
-	if order.CreatorID != userID {
+	if role != "Admin" && order.CreatorID != userID {
 		c.JSON(403, gin.H{"error": "forbidden"})
 		return
 	}
@@ -439,12 +442,12 @@ func (h *Handler) FormOrder(c *gin.Context) {
 	})
 }
 
-// @Summary Finish order (admin)
+// @Summary Moderate order (admin)
 // @Security ApiKeyAuth
-// @Description Завершение или отклонение заявки
+// @Description Смена статуса заявки администратором
 // @Tags orders
 // @Param id path int true "Order ID"
-// @Param status query string true "finish or reject"
+// @Param status query string true "draft or rejected"
 // @Success 200 {object} map[string]string
 // @Router /api/orders/{id}/moderate [put]
 func (h *Handler) ModerateOrder(c *gin.Context) {
@@ -458,10 +461,11 @@ func (h *Handler) ModerateOrder(c *gin.Context) {
 	}
 
 	id, _ := strconv.Atoi(c.Param("id"))
-	status := c.Query("status") // finished / rejected
+	status := c.Query("status") // draft / rejected
 
-	if status != "finished" && status != "rejected" {
+	if status != "rejected" && status != "draft" {
 		c.JSON(400, gin.H{"error": "bad request"})
+		return
 	}
 	order, err := h.repo.GetOrderByID(uint(id))
 	if err != nil {
@@ -469,12 +473,22 @@ func (h *Handler) ModerateOrder(c *gin.Context) {
 		return
 	}
 
-	if order.Status != "formed" {
-		c.JSON(400, gin.H{"error": "must be formed"})
+	allowed := false
+	switch order.Status {
+	case "draft":
+		allowed = status == "rejected"
+	case "formed":
+		allowed = status == "rejected" || status == "draft"
+	case "rejected":
+		allowed = status == "rejected"
+	}
+
+	if !allowed {
+		c.JSON(400, gin.H{"error": "status transition is not allowed"})
 		return
 	}
 
-	err = h.repo.FinishOrder(uint(id), status, userID)
+	err = h.repo.ModerateOrder(uint(id), status, userID)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed"})
 		return
@@ -676,6 +690,7 @@ func (h *Handler) BulkAddServicesToOrder(c *gin.Context) {
 		}
 	}
 
+	// Проверяет ош
 	// Recalculate total
 	if err := h.repo.RecalculateOrderTotal(uint(orderID)); err != nil {
 		log.Println("failed to recalculate total:", err)

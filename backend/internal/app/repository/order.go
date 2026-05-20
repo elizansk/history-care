@@ -13,6 +13,9 @@ func (r *Repository) GetOrders(status string, from, to *time.Time) ([]models.Rec
 
 	query := r.DB.
 		Preload("Creator").
+		Preload("Building").
+		Preload("Building.Category").
+		Preload("Building.City").
 		Preload("Services.Service")
 
 	if status != "" {
@@ -24,7 +27,7 @@ func (r *Repository) GetOrders(status string, from, to *time.Time) ([]models.Rec
 	}
 
 	if to != nil {
-		query = query.Where("created_at <= ?", *to)
+		query = query.Where("created_at < ?", *to)
 	}
 
 	err := query.Find(&orders).Error
@@ -59,7 +62,7 @@ func (r *Repository) GetDonatableOrders(categoryId, cityId uint, from, to *time.
 	}
 
 	if to != nil {
-		query = query.Where("reconstruction_orders.created_at <= ?", *to)
+		query = query.Where("reconstruction_orders.created_at < ?", *to)
 	}
 
 	err := query.Find(&orders).Error
@@ -150,14 +153,22 @@ func (r *Repository) FormOrder(orderID uint, total float64) error {
 		}).Error
 }
 
-func (r *Repository) FinishOrder(orderID uint, status string, adminID uint) error {
+func (r *Repository) ModerateOrder(orderID uint, status string, adminID uint) error {
+	updates := map[string]interface{}{
+		"status": status,
+	}
+
+	if status == "draft" {
+		updates["completed_at"] = nil
+		updates["moderator_id"] = nil
+	} else {
+		updates["completed_at"] = time.Now()
+		updates["moderator_id"] = adminID
+	}
+
 	return r.DB.Model(&models.ReconstructionOrder{}).
 		Where("id = ?", orderID).
-		Updates(map[string]interface{}{
-			"status":       status,
-			"completed_at": time.Now(),
-			"moderator_id": adminID,
-		}).Error
+		Updates(updates).Error
 }
 
 func (r *Repository) DeleteOrder(id uint) error {

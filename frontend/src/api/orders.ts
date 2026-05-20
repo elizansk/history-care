@@ -1,43 +1,31 @@
+import axios from 'axios';
 import { mockOrders } from '../mock/reconstruction.mock';
 import type { MockOrder } from '../mock/reconstruction.mock';
 
 export type { MockOrder };
 
 export async function createDraftOrder(buildingId: number) {//черновик заявки
-    const res = await fetch("/api/orders/draft", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ building_id: buildingId }),//Отправляем backend
-        credentials: "include",//отправка куки
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-        throw new Error(data?.error || "Failed to create draft order");
+    try {
+        const { data } = await axios.post(
+            "/api/orders/draft",
+            { building_id: buildingId },//Отправляем backend
+            { withCredentials: true }//отправка куки
+        );
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError<{ error?: string }>(error)) {
+            throw new Error(error.response?.data?.error || "Failed to create draft order");
+        }
+        throw error;
     }
-
-    return data;
 }
 
 export async function getFormedOrders(categoryId?: number, cityId?: number, from?: string, to?: string): Promise<MockOrder[]> {
     try {
-        const params = new URLSearchParams();//создаём строку запроса
-        if (categoryId) params.append('categoryId', categoryId.toString());
-        if (cityId) params.append('cityId', cityId.toString());
-        if (from) params.append('from', from);
-        if (to) params.append('to', to);
-
-        const res = await fetch(`/api/orders/formed?${params}`, {
-            credentials: "include",
+        const { data } = await axios.get<MockOrder[]>('/api/orders/formed', {
+            params: { categoryId, cityId, from, to },//создаём строку запроса
+            withCredentials: true,
         });
-
-        if (!res.ok) {
-            throw new Error('API not available');
-        }
-        const data = await res.json();
         console.log('Fetched orders:', data);
         return data;
     } catch  {
@@ -61,15 +49,10 @@ export async function getFormedOrders(categoryId?: number, cityId?: number, from
 
 export async function getOrderById(id: number): Promise<MockOrder> {
     try {
-        const res = await fetch(`/api/orders/${id}`, {
-            credentials: "include",
+        const { data } = await axios.get<MockOrder>(`/api/orders/${id}`, {
+            withCredentials: true,
         });
-
-        if (!res.ok) {
-            throw new Error('API not available');
-        }
-
-        return await res.json();
+        return data;
     } catch {
         console.warn('Using mock data for getOrderById');
         const order = mockOrders.find(o => o.id === id);

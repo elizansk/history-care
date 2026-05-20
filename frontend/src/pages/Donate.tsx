@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Alert, Form, Button, ProgressBar, Modal } from 'react-bootstrap';
 import { useParams, Link } from 'react-router-dom';
+import { pipeline } from '@xenova/transformers';
+import type { FeatureExtractionPipelineType } from '@xenova/transformers';
 import NavigationBar from '../components/NavigationBar';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { getFormedOrders, getOrderById } from '../api/orders';
 import { submitDonation } from '../api/donations';
+import type { DonationRequest } from '../api/donations';
 import { getUser } from '../utils/auth';
 import type { MockOrder } from '../api/orders';
 
-let embedderPromise: any = null;//Хранит загруженную AI модель
+let embedderPromise: Promise<FeatureExtractionPipelineType> | null = null;//Хранит загруженную AI модель
 
 const Donate: React.FC = () => {//создаем реакт компонент
   const { id } = useParams<{ id: string }>();//берём id из URL
@@ -17,7 +20,7 @@ const Donate: React.FC = () => {//создаем реакт компонент
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showQR, setShowQR] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<unknown>(null);
   const [similarOrders, setSimilarOrders] = useState<MockOrder[]>([]);
   const [similarLoading, setSimilarLoading] = useState(false);
   const [similarError, setSimilarError] = useState<string | null>(null);
@@ -85,10 +88,10 @@ const Donate: React.FC = () => {//создаем реакт компонент
     return normA === 0 || normB === 0 ? 0 : dot / (normA * normB);
   };
 
-  const flattenEmbedding = (value: any): number[] => {
+  const flattenEmbedding = (value: unknown): number[] => {
     if (!Array.isArray(value)) return [];
     if (typeof value[0] === 'number') return value as number[];
-    return (value as any[]).flat(Infinity).filter((item: any) => typeof item === 'number');
+    return value.flat(Infinity).filter((item): item is number => typeof item === 'number');
   };
 
   const loadSimilarOrders = async () => {
@@ -108,18 +111,19 @@ const Donate: React.FC = () => {//создаем реакт компонент
       }
 
       const texts = [order?.building.description || order?.building.name || '', ...candidates.map(getText)];//текст для сравненния
-      let embedder: any;
       if (!embedderPromise) {
-        embedderPromise = import('@xenova/transformers').then(({ pipeline }) =>//библиотека, которая запускает ML модель прямо в браузере
-          pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2')//готовая NLP модель,которая умеет понимать смысл текста,оптимизирована для поиска похожих предложений
-        );
+        embedderPromise = pipeline(
+          'feature-extraction',
+          'Xenova/all-MiniLM-L6-v2'
+        );//готовая NLP модель,которая умеет понимать смысл текста,оптимизирована для поиска похожих предложений
       }
-       embedder = await embedderPromise;
+      const embedder = await embedderPromise;//библиотека запускает ML модель прямо в браузере
 
-      const rawEmbedding: any = await embedder(texts);//texts = массив описаний
-      const embeddings = Array.isArray(rawEmbedding)
-        ? rawEmbedding.map(flattenEmbedding).filter((vec) => vec.length > 0)//приводим к нормальному виду
-        : [];
+      const rawEmbedding = await embedder(texts);//texts = массив описаний
+      const embeddings = rawEmbedding
+        .tolist()
+        .map(flattenEmbedding)
+        .filter((vec) => vec.length > 0);//приводим к нормальному виду
 
       if (embeddings.length <= 1) {
         throw new Error('Embedding generation failed');
@@ -171,7 +175,7 @@ const Donate: React.FC = () => {//создаем реакт компонент
     setSubmitting(true);
     try {
       const amount = parseInt(formData.amount === 'other' ? formData.customAmount : formData.amount);
-      const donationData: any = {
+      const donationData: DonationRequest = {
         order_id: parseInt(id),
         amount,
       };

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import NavigationBar from "../components/NavigationBar";
 import Footer from "../components/Footer";
-import { getUser } from "../utils/auth";
+import { getUser, getUserRoleName } from "../utils/auth";
 import { Button, Card, Container, Form, ProgressBar, Spinner, Alert } from "react-bootstrap";
 import type { RootState, AppDispatch } from "../store";
 import {//асинхронные операции
@@ -22,6 +22,24 @@ import {//асинхронные операции
 import CreateOrderBuildingStep from "../components/CreateOrderBuildingStep";//разбиваем создание заявки на 3 компонента
 import CreateOrderServicesStep from "../components/CreateOrderServicesStep";
 import CreateOrderSummaryStep from "../components/CreateOrderSummaryStep";
+
+interface CreateOrderUser {
+  role?: string | { name?: string };
+  Role?: { name?: string };
+  city_id?: number;
+}
+
+interface StoredSelectedService {
+  id: number;
+  price: number;
+  description?: string;
+  quantity?: number;
+}
+
+interface DraftOrderResponse {
+  id?: number;
+  order_id?: number;
+}
 
 export default function CreateOrder() {
   const dispatch = useDispatch<AppDispatch>();
@@ -55,7 +73,8 @@ export default function CreateOrder() {
   const totalSteps = 3;
 
   // User
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<CreateOrderUser | null>(null);
+  const userRole = getUserRoleName(user);
 
   // Service descriptions (for step 3)
   const [serviceDescriptions, setServiceDescriptions] = useState<Record<number, string>>({});
@@ -89,8 +108,8 @@ export default function CreateOrder() {
     if (savedTotal) setTotal(Number(savedTotal));
     if (savedOrderDescription) setOrderDescription(savedOrderDescription);
     if (savedSelectedServices) {
-      const parsed = JSON.parse(savedSelectedServices);
-      setSelectedServices(parsed.map((s: any) => ({ ...s, quantity: s.quantity || 1 })));
+      const parsed = JSON.parse(savedSelectedServices) as StoredSelectedService[];
+      setSelectedServices(parsed.map((s) => ({ ...s, description: s.description || "", quantity: s.quantity || 1 })));
     }
   }, []);
 
@@ -101,12 +120,12 @@ export default function CreateOrder() {
 
   useEffect(() => {//фикс города под сити
     if (user) {
-      if (user.role === "City") {
+      if (userRole === "City") {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setCityId(0);
       }
     }
-  }, [user]);
+  }, [user, userRole]);
 
   useEffect(() => {
     if (!token || draftLoaded) {
@@ -147,7 +166,7 @@ export default function CreateOrder() {
   }, [name, description, address, categoryId, cityId, total, orderDescription, selectedServices, buildingId, orderId, building]);
 
   const createOrUpdateBuilding = async (): Promise<number | false> => {//если buildingId есть - update,нет то create
-    if (!name.trim() || !description.trim() || !address.trim() || !categoryId || (user?.role === "Admin" && !cityId)) {
+    if (!name.trim() || !description.trim() || !address.trim() || !categoryId || (userRole === "Admin" && !cityId)) {
       alert("Пожалуйста, заполните все обязательные поля для здания.");
       return false;
     }
@@ -176,11 +195,12 @@ export default function CreateOrder() {
     }
     try {
       const result = await dispatch(createOrderDraft(targetBuildingId)).unwrap();
-      setOrderId((result as any).id || (result as any).order_id);
+      const draftOrder = result as DraftOrderResponse;
+      setOrderId(draftOrder.id || draftOrder.order_id || null);
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      if (err.response?.status === 400) {
+      if (typeof err === 'object' && err !== null && 'response' in err && (err as { response?: { status?: number } }).response?.status === 400) {
         await dispatch(fetchDraftOrder());
         if (order && (order.order_id || order.id)) {
           return true;
@@ -279,7 +299,7 @@ export default function CreateOrder() {
       setDescription("");
       setAddress("");
       setCategoryId("");
-      setCityId(user?.role === "City" ? user.city_id : "");
+      setCityId(userRole === "City" ? user.city_id : "");
       setFiles([]);
       setTotal(0);
       setOrderDescription("");
@@ -316,7 +336,7 @@ export default function CreateOrder() {
             <CreateOrderBuildingStep
               categories={categories}
               cities={cities}
-              userRole={user?.role}
+              userRole={userRole}
               name={name}
               description={description}
               address={address}

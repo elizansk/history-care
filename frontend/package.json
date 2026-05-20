@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "generate-api": "npx @openapitools/openapi-generator-cli generate -i ../backend/docs/swagger.json -g typescript-axios -o src/api/generated",
     "lint": "eslint .",
     "preview": "vite preview"
   },
