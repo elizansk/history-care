@@ -1,0 +1,39 @@
+.create-order-page {
+  width: min(100% - 32px, 1140px);
+}
+
+.create-order-actions {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.create-order-page .card {
+  border-radius: 12px;
+}
+
+.create-order-page textarea {
+  resize: vertical;
+}
+
+@media (width <= 720px) {
+  .create-order-page {
+    width: min(100% - 24px, 1140px);
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+
+  .create-order-page .search-title {
+    font-size: 28px;
+  }
+
+  .create-order-actions {
+    flex-direction: column-reverse;
+  }
+
+  .create-order-actions .btn {
+    width: 100%;
+  }
+}

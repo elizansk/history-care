@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Container, Form, Button, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import NavigationBar from '../components/NavigationBar';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { getFormedOrders } from '../api/orders';
@@ -8,19 +9,20 @@ import type { MockOrder } from '../api/orders';
 import { getCategories, getCities } from '../api/filters';
 import type { Category, City } from '../api/filters';
 import Footer from '../components/Footer';
+import type { AppDispatch, RootState } from '../store';
+import { setBuildingsFilter } from '../store/buildings-filter-slice';
+import type { BuildingsFiltersState } from '../store/buildings-filter-slice';
+import '../resources/css/Orders.css';
 
 const Buildings: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const filters = useSelector((state: RootState) => state.buildingsFilters);
   const [orders, setOrders] = useState<MockOrder[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [cities, setCities] = useState<City[]>([]);
-  const [filters, setFilters] = useState({//значения всех полей формы
-    categoryId: '',
-    cityId: '',
-    from: '',
-    to: '',
-  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedInitialOrders = useRef(false);
 
   useEffect(() => {//вызыв после первого render компонента
     const fetchFilters = async () => {
@@ -34,11 +36,14 @@ const Buildings: React.FC = () => {
     fetchFilters();
   }, []);
 
-  const handleFilterChange = (e: React.ChangeEvent<any>) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
+  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>) => {
+    dispatch(setBuildingsFilter({
+      name: e.target.name as keyof BuildingsFiltersState,
+      value: e.target.value,
+    }));
   };
 
-  const applyFilters = async () => {
+  const applyFilters = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -51,11 +56,13 @@ const Buildings: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
-    applyFilters();
-  }, []);
+    if (hasLoadedInitialOrders.current) return;
+    hasLoadedInitialOrders.current = true;
+    void applyFilters();
+  }, [applyFilters]);
 
   const getImageUrl = (order: MockOrder) => {
     const photo = order.building.resources.find((resource) => resource.resource_type === 'photo');
@@ -73,7 +80,7 @@ const Buildings: React.FC = () => {
   return (
     <>
       <NavigationBar />
-      <Container className="page-container mt-4">
+      <Container className="page-container orders-page mt-4">
         <div className="page-inner">
           <Breadcrumbs items={breadcrumbItems} />
 

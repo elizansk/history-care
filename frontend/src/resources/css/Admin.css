@@ -1,0 +1,143 @@
+.admin-page {
+  padding: 40px 60px;
+}
+
+.admin-loading {
+  text-align: center;
+  margin-top: 100px;
+}
+
+.admin-profile-card {
+  max-width: 500px;
+  margin: 0 auto 40px;
+  padding: 20px;
+}
+
+.admin-section-title {
+  margin-bottom: 20px;
+  color: var(--primary);
+  text-align: center;
+}
+
+.admin-filters-card {
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.admin-filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  align-items: end;
+}
+
+.admin-filter-field {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-filter-field input,
+.admin-filter-field select {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.admin-updated-at {
+  margin-top: 14px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.admin-error {
+  color: red;
+  text-align: center;
+}
+
+.admin-loading-text {
+  text-align: center;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 40px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+}
+
+.admin-table th {
+  text-align: left;
+}
+
+.admin-empty-cell {
+  padding: 16px;
+  text-align: center;
+}
+
+.admin-muted {
+  color: var(--text-muted);
+}
+
+.admin-small-muted {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.admin-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-user-email {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.admin-role-badge {
+  margin-top: 10px;
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: #f4f4f4;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-role-admin {
+  background: #fdd;
+}
+
+.admin-role-city {
+  background: #e6f2ec;
+}
+
+@media (width <= 720px) {
+  .admin-page {
+    padding: 28px 20px;
+  }
+
+  .admin-table {
+    min-width: 920px;
+  }
+}
+
+@media (width <= 520px) {
+  .admin-page {
+    padding: 24px 14px;
+  }
+
+  .admin-profile-card,
+  .admin-filters-card {
+    padding: 18px;
+  }
+}

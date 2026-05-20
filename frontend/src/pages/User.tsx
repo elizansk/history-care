@@ -6,6 +6,7 @@ import type { RootState } from "../store";
 import { setUser } from "../store/auth-slice";
 import { getUserRoleName } from "../utils/auth";
 import NavigationBar from '../components/NavigationBar';
+import '../resources/css/User.css';
 
 export default function User() {
   const dispatch = useDispatch();
@@ -27,7 +28,7 @@ export default function User() {
     setEmail(user.email || "");
   }, [user]);
 
-  if (!user) return <p style={{ textAlign: "center", marginTop: 100 }}>Loading...</p>;
+  if (!user) return <p className="user-loading">Loading...</p>;
 
   const canCreateOrder = roleName === 'City' || roleName === 'Admin';
 
@@ -82,92 +83,88 @@ export default function User() {
   return (
     <div>
       <NavigationBar />
-      <div className="container">
+      <div className="container user-page">
         <h2 className="search-title">Профиль пользователя</h2>
 
-        <div className="card" style={{ maxWidth: 560, margin: "0 auto 24px", padding: 24 }}>
+        <div className="card user-card">
           <h3 className="card-title">{user.first_name || user.name} {user.last_name || ''}</h3>
           <p>Email: {user.email}</p>
           <p>Роль: {roleName}</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+          <div className="user-actions">
             {canCreateOrder ? (
               <Link
                 to="/create-order"
-                style={{ display: 'inline-block', padding: '12px 18px', background: '#0e5a3c', color: '#fff', borderRadius: 12, textDecoration: 'none', textAlign: 'center' }}
+                className="user-action-primary"
               >
                 Перейти к созданию заявки
               </Link>
             ) : (
-              <div style={{ padding: '12px 18px', background: '#f5f5f5', color: '#4a4a4a', borderRadius: 12, textAlign: 'center' }}>
+              <div className="user-action-disabled">
                 Создание заявки доступно только для администратора и городского пользователя.
               </div>
             )}
             <Link
               to="/my-orders"
-              style={{ display: 'inline-block', padding: '12px 18px', background: '#fff', color: '#0e5a3c', border: '1px solid #0e5a3c', borderRadius: 12, textDecoration: 'none', textAlign: 'center' }}
+              className="user-action-secondary"
             >
               Просмотреть созданные заявки
             </Link>
           </div>
         </div>
 
-        <div className="card" style={{ maxWidth: 560, margin: "0 auto 40px", padding: 24 }}>
+        <div className="card user-edit-card">
           <h3 className="card-title">Редактирование профиля</h3>
-          <form onSubmit={handleSave} style={{ display: 'grid', gap: 16 }}>
-            {statusMessage && <div style={{ color: '#0e5a3c' }}>{statusMessage}</div>}
-            {errorMessage && <div style={{ color: 'red' }}>{errorMessage}</div>}
+          <form onSubmit={handleSave} className="user-form">
+            {statusMessage && <div className="user-message-success">{statusMessage}</div>}
+            {errorMessage && <div className="user-message-error">{errorMessage}</div>}
 
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label className="user-field">
               Имя
               <input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 required
-                style={{ padding: 10, borderRadius: 8, border: '1px solid #ccc' }}
               />
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label className="user-field">
               Фамилия
               <input
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 required
-                style={{ padding: 10, borderRadius: 8, border: '1px solid #ccc' }}
               />
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label className="user-field">
               Email
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                style={{ padding: 10, borderRadius: 8, border: '1px solid #ccc' }}
               />
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label className="user-field">
               Новый пароль
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Оставьте пустым, чтобы не менять"
-                style={{ padding: 10, borderRadius: 8, border: '1px solid #ccc' }}
               />
             </label>
             <button
               type="submit"
               disabled={saving}
-              style={{ padding: '12px 18px', background: '#0e5a3c', color: '#fff', border: 'none', borderRadius: 12, cursor: 'pointer' }}
+              className="user-submit"
             >
               {saving ? 'Сохраняем...' : 'Сохранить изменения'}
             </button>
           </form>
         </div>
 
-        <p style={{ maxWidth: 560, margin: '0 auto', lineHeight: 1.6 }}>
+        <p className="user-note">
           Здесь вы можете обновить личные данные и задать новый пароль. Если пароль оставить пустым, текущий останется прежним.
         </p>
       </div>

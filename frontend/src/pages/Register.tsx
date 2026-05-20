@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import '../styles/FormStyles.css';
+import '../resources/css/Register.css';
 
 interface RegisterForm {
   last_name: string;
@@ -80,11 +80,11 @@ const handleSubmit = async (e: FormEvent) => {
 };
 
   return (
-    <div className="form-container">
-      <form className="form-card" onSubmit={handleSubmit}>
+    <div className="register-page">
+      <form className="register-card" onSubmit={handleSubmit}>
         <h2>Регистрация</h2>
 
-        <div className="form-section">
+        <div className="register-form-section">
           <input
             type="text"
             name="first_name"
@@ -126,8 +126,8 @@ const handleSubmit = async (e: FormEvent) => {
 
         {form.role_id === 2 && (
           <>
-            <h3 className="city-title">Данные города</h3>
-            <div className="form-section">
+            <h3 className="register-city-title">Данные города</h3>
+            <div className="register-form-section">
               <select
                 name="cityId"
                 value={form.cityId || ''}
@@ -146,9 +146,9 @@ const handleSubmit = async (e: FormEvent) => {
           </>
         )}
 
-        <button className="form-submit">Зарегистрироваться</button>
+        <button className="register-submit">Зарегистрироваться</button>
 
-        <p className="form-link">
+        <p className="register-link">
           Уже есть аккаунт? <Link to="/login">Войти</Link>
         </p>
       </form>

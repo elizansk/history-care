@@ -22,6 +22,7 @@ import {//асинхронные операции
 import CreateOrderBuildingStep from "../components/CreateOrderBuildingStep";//разбиваем создание заявки на 3 компонента
 import CreateOrderServicesStep from "../components/CreateOrderServicesStep";
 import CreateOrderSummaryStep from "../components/CreateOrderSummaryStep";
+import '../resources/css/CreateOrder.css';
 
 interface CreateOrderUser {
   role?: string | { name?: string };
@@ -299,7 +300,7 @@ export default function CreateOrder() {
       setDescription("");
       setAddress("");
       setCategoryId("");
-      setCityId(userRole === "City" ? user.city_id : "");
+      setCityId(userRole === "City" && user?.city_id !== undefined ? user.city_id : "");
       setFiles([]);
       setTotal(0);
       setOrderDescription("");
@@ -317,7 +318,7 @@ export default function CreateOrder() {
   return (
     <>
       <NavigationBar />
-      <Container className="py-4">
+      <Container className="create-order-page py-4">
         <h1 className="search-title mb-4">Создание заявки</h1>
 
         <Card className="mb-4 shadow-sm">
@@ -399,7 +400,7 @@ export default function CreateOrder() {
             />
           )}
 
-          <div className="d-flex justify-content-between" style={{ maxWidth: 800, margin: "0 auto" }}>
+          <div className="create-order-actions">
             <Button variant="secondary" onClick={prevStep} disabled={currentStep === 1}>
               Назад
             </Button>
