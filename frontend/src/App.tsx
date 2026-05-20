@@ -17,6 +17,10 @@ import Building from './pages/Order.tsx';
 import Donate from './pages/Donate';
 import ProtectedRoute from './components/ProtectedRoute';
 
+const routerBasename = import.meta.env.BASE_URL === './'
+  ? '/'
+  : import.meta.env.BASE_URL.replace(/\/$/, '');
+
 function App() {
   const user = useSelector((state: RootState) => state.auth.user);
   const localToken = localStorage.getItem('token');
@@ -41,7 +45,7 @@ function App() {
   }, [token, user, dispatch]);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
