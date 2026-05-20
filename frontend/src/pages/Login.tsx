@@ -5,15 +5,27 @@ import { useDispatch } from 'react-redux';
 import axios from 'axios';
 import { login } from '../store/auth-slice.ts';
 import { getUserRoleName } from '../utils/auth';
-import '../styles/FormStyles.css';
+import '../resources/css/Login.css';
 
 interface LoginForm {
   email: string;
   password: string;
 }
+
+interface LoginUser {
+  id: number;
+  name: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string | { id?: number; name?: string };
+  Role?: { id?: number; name?: string };
+  city_id?: number;
+}
+
 interface LoginResponse {
   token?: string;
-  user: unknown;
+  user: LoginUser;
 }
 
 export default function Login() {
@@ -35,10 +47,12 @@ export default function Login() {
       const response = await axios.post<LoginResponse>(`/api/auth/login`, form);
       const data = response.data;
 
-      // Сохраняем JWT в localStorage
-      if (data.token) {
-        localStorage.setItem("token", data.token);
+      if (!data.token) {
+        throw new Error('Сервер не вернул токен');
       }
+
+      // Сохраняем JWT в localStorage
+      localStorage.setItem("token", data.token);
 
       // передаем login в Redux
       dispatch(login({
@@ -65,11 +79,11 @@ export default function Login() {
   };
 
   return (
-    <div className="form-container">
-      <form className="form-card" onSubmit={handleSubmit}>
+    <div className="login-page">
+      <form className="login-card" onSubmit={handleSubmit}>
         <h2>Вход</h2>
 
-        <div className="form-section">
+        <div className="login-form-section">
           <input
             type="email"
             name="email"
@@ -88,9 +102,9 @@ export default function Login() {
           />
         </div>
 
-        <button className="form-submit">Войти</button>
+        <button className="login-submit">Войти</button>
 
-        <p className="form-link">
+        <p className="login-link">
           Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
         </p>
       </form>

@@ -1,0 +1,97 @@
+.register-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: 32px 20px;
+}
+
+.register-card {
+  max-width: 500px;
+  width: 100%;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 15px 40px rgb(0 0 0 / 15%);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.register-card h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 28px;
+  color: var(--primary);
+}
+
+.register-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.register-form-section input,
+.register-form-section select {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #cce5d0;
+  font-size: 14px;
+  background: #fefefe;
+  transition: all 0.3s ease;
+}
+
+.register-form-section input:focus,
+.register-form-section select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
+}
+
+.register-submit {
+  padding: 16px;
+  background: var(--primary);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.register-submit:hover {
+  background: var(--primary-light);
+  transform: translateY(-2px) scale(1.02);
+}
+
+.register-link {
+  text-align: center;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.register-city-title {
+  text-align: center;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+@media (width <= 520px) {
+  .register-page {
+    justify-content: flex-start;
+    min-height: auto;
+    padding: 28px 14px;
+  }
+
+  .register-card {
+    padding: 28px 20px;
+    border-radius: 14px;
+  }
+
+  .register-card h2 {
+    font-size: 24px;
+  }
+}

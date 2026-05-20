@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './auth-slice.ts';
 import orderReducer from './order-slice.ts';
+import buildingsFilterReducer from './buildings-filter-slice.ts';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     order: orderReducer,
+    buildingsFilters: buildingsFilterReducer,
   },
 });
 

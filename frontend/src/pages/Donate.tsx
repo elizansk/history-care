@@ -10,6 +10,7 @@ import { submitDonation } from '../api/donations';
 import type { DonationRequest } from '../api/donations';
 import { getUser } from '../utils/auth';
 import type { MockOrder } from '../api/orders';
+import '../resources/css/Donate.css';
 
 let embedderPromise: Promise<FeatureExtractionPipelineType> | null = null;//Хранит загруженную AI модель
 
@@ -202,7 +203,7 @@ const Donate: React.FC = () => {//создаем реакт компонент
   return (
     <>
       <NavigationBar />
-      <Container className="page-container mt-4">
+      <Container className="page-container donate-page mt-4">
         <div className="page-inner">
           <Breadcrumbs items={breadcrumbItems} />
 

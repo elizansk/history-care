@@ -10,10 +10,10 @@ import Register from './pages/Register';
 import Home from './pages/Home';
 import CreateOrder from './pages/CreateOrder';
 import User from './pages/User.tsx';
-import MyOrders from './pages/MyOrders';
+import MyOrders from './pages/CityOrder.tsx';
 import Admin from './pages/Admin.tsx';
-import Buildings from './pages/Buildings';
-import Building from './pages/Building';
+import Buildings from './pages/Orders.tsx';
+import Building from './pages/Order.tsx';
 import Donate from './pages/Donate';
 import ProtectedRoute from './components/ProtectedRoute';
 

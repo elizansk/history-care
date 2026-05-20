@@ -6,6 +6,7 @@ import Breadcrumbs from '../components/Breadcrumbs';
 import { getOrderById } from '../api/orders';
 import type { MockOrder } from '../api/orders';
 import Footer from '../components/Footer';
+import '../resources/css/Order.css';
 const Building: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<MockOrder | null>(null);//Хранит объект заявки
@@ -53,7 +54,7 @@ const Building: React.FC = () => {
   return (
     <>
       <NavigationBar />
-      <Container className="page-container mt-4">
+      <Container className="page-container order-page mt-4">
         <div className="page-inner">
 
           <Breadcrumbs items={breadcrumbItems} />

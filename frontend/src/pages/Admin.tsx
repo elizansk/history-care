@@ -4,6 +4,7 @@ import { Button } from "react-bootstrap";
 import NavigationBar from "../components/NavigationBar.tsx";
 import Footer from "../components/Footer.tsx";
 import { getUserRoleName } from "../utils/auth";
+import '../resources/css/Admin.css';
 
 interface Role {
     id: number;
@@ -319,50 +320,36 @@ export default function Admin() {
             case "collection_started":
             case "deleted":
             default:
-                return <span style={{ color: "var(--text-muted)" }}>Нет действий</span>;
+                return <span className="admin-muted">Нет действий</span>;
         }
     };
 
-    if (!me) return <p style={{textAlign: "center", marginTop: 100}}>Loading...</p>;
+    if (!me) return <p className="admin-loading">Loading...</p>;
 
     return (
         <>
             <NavigationBar/>
-            <div className="container">
+            <div className="container admin-page">
 
                 <h2 className="search-title">Админ панель</h2>
 
-                <div className="card" style={{
-                    maxWidth: 500,
-                    margin: "0 auto 40px",
-                    padding: 20
-                }}>
+                <div className="card admin-profile-card">
                     <h3 className="card-title">{formatUserName(me)}</h3>
                     <p>Email: {me.email}</p>
                     <p>Роль: {getUserRoleName(me)}</p>
                 </div>
 
-                <h3 style={{
-                    marginBottom: 20,
-                    color: "var(--primary)",
-                    textAlign: "center"
-                }}>
+                <h3 className="admin-section-title">
                     Заявки
                 </h3>
 
-                <div className="card" style={{ padding: 20, marginBottom: 24 }}>
-                    <div style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                        gap: 16,
-                        alignItems: "end"
-                    }}>
-                        <label style={{ display: "grid", gap: 8 }}>
+                <div className="card admin-filters-card">
+                    <div className="admin-filters-grid">
+                        <label className="admin-filter-field">
                             Статус
                             <select
                                 value={statusFilter}
                                 onChange={(event) => setStatusFilter(event.target.value)}
-                                style={{ padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
                             >
                                 {statusOptions.map((status) => (
                                     <option key={status.value} value={status.value}>
@@ -371,93 +358,90 @@ export default function Admin() {
                                 ))}
                             </select>
                         </label>
-                        <label style={{ display: "grid", gap: 8 }}>
+                        <label className="admin-filter-field">
                             Дата формирования с
                             <input
                                 type="date"
                                 value={fromDate}
                                 onChange={(event) => setFromDate(event.target.value)}
-                                style={{ padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
                             />
                         </label>
-                        <label style={{ display: "grid", gap: 8 }}>
+                        <label className="admin-filter-field">
                             Дата формирования по
                             <input
                                 type="date"
                                 value={toDate}
                                 onChange={(event) => setToDate(event.target.value)}
-                                style={{ padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
                             />
                         </label>
-                        <label style={{ display: "grid", gap: 8 }}>
+                        <label className="admin-filter-field">
                             Создатель
                             <input
                                 type="search"
                                 value={creatorFilter}
                                 onChange={(event) => setCreatorFilter(event.target.value)}
                                 placeholder="Имя, email или ID"
-                                style={{ padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
                             />
                         </label>
                     </div>
-                    <div style={{ marginTop: 14, color: "var(--text-muted)", fontSize: 14 }}>
+                    <div className="admin-updated-at">
                         {lastUpdatedAt
                             ? `Обновлено: ${lastUpdatedAt.toLocaleTimeString("ru-RU")}`
                             : "Обновление каждые 5 секунд"}
                     </div>
                 </div>
 
-                {ordersError && <p style={{ color: "red", textAlign: "center" }}>{ordersError}</p>}
-                {ordersLoading && <p style={{ textAlign: "center" }}>Загрузка заявок...</p>}
+                {ordersError && <p className="admin-error">{ordersError}</p>}
+                {ordersLoading && <p className="admin-loading-text">Загрузка заявок...</p>}
 
                 {!ordersLoading && (
-                    <div style={{ overflowX: "auto", marginBottom: 40 }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <div className="admin-table-wrap">
+                        <table className="admin-table">
                             <thead>
                             <tr>
-                                <th style={{border: "1px solid #ddd", padding: 10, textAlign: "left"}}>ID</th>
-                                <th style={{border: "1px solid #ddd", padding: 10, textAlign: "left"}}>Здание</th>
-                                <th style={{border: "1px solid #ddd", padding: 10, textAlign: "left"}}>Создатель</th>
-                                <th style={{border: "1px solid #ddd", padding: 10, textAlign: "left"}}>Статус</th>
-                                <th style={{border: "1px solid #ddd", padding: 10, textAlign: "left"}}>Сумма</th>
-                                <th style={{border: "1px solid #ddd", padding: 10, textAlign: "left"}}>Дата формирования</th>
-                                <th style={{border: "1px solid #ddd", padding: 10, textAlign: "left"}}>Действия</th>
+                                <th>ID</th>
+                                <th>Здание</th>
+                                <th>Создатель</th>
+                                <th>Статус</th>
+                                <th>Сумма</th>
+                                <th>Дата формирования</th>
+                                <th>Действия</th>
                             </tr>
                             </thead>
                             <tbody>
                             {filteredOrders.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} style={{border: "1px solid #ddd", padding: 16, textAlign: "center"}}>
+                                    <td colSpan={7} className="admin-empty-cell">
                                         Заявки не найдены
                                     </td>
                                 </tr>
                             )}
                             {filteredOrders.map((order) => (
                                 <tr key={order.id}>
-                                    <td style={{border: "1px solid #ddd", padding: 10}}>{order.id}</td>
-                                    <td style={{border: "1px solid #ddd", padding: 10}}>
+                                    <td>{order.id}</td>
+                                    <td>
                                         <div>{order.building?.name || "Без названия"}</div>
-                                        <div style={{fontSize: 13, color: "var(--text-muted)"}}>
+                                        <div className="admin-small-muted">
                                             {order.building?.address}
                                         </div>
                                     </td>
-                                    <td style={{border: "1px solid #ddd", padding: 10}}>
+                                    <td>
                                         <div>{formatUserName(order.creator)}</div>
-                                        <div style={{fontSize: 13, color: "var(--text-muted)"}}>
+                                        <div className="admin-small-muted">
                                             {order.creator?.email || `ID: ${order.creator_id || "-"}`}
                                         </div>
                                     </td>
-                                    <td style={{border: "1px solid #ddd", padding: 10}}>
+                                    <td>
                                         {getStatusTranslation(order.status)}
                                     </td>
-                                    <td style={{border: "1px solid #ddd", padding: 10}}>
+                                    <td>
                                         {formatAmount(order.total_amount)} ₽
                                     </td>
-                                    <td style={{border: "1px solid #ddd", padding: 10}}>
+                                    <td>
                                         {formatDate(order.created_at)}
                                     </td>
-                                    <td style={{border: "1px solid #ddd", padding: 10}}>
-                                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                    <td>
+                                        <div className="admin-actions">
                                             {renderOrderActions(order)}
                                         </div>
                                     </td>
@@ -468,11 +452,7 @@ export default function Admin() {
                     </div>
                 )}
 
-                <h3 style={{
-                    marginBottom: 20,
-                    color: "var(--primary)",
-                    textAlign: "center"
-                }}>
+                <h3 className="admin-section-title">
                     Все пользователи
                 </h3>
 
@@ -481,24 +461,17 @@ export default function Admin() {
                         <div key={user.id} className="card">
                             <div className="card-content">
                                 <div className="card-title">{formatUserName(user)}</div>
-                                <div style={{fontSize: 14, color: "var(--text-muted)"}}>
+                                <div className="admin-user-email">
                                     {user.email}
                                 </div>
 
-                                <div style={{
-                                    marginTop: 10,
-                                    display: "inline-block",
-                                    padding: "6px 12px",
-                                    borderRadius: "12px",
-                                    background:
-                                        user.Role?.name === "Admin"
-                                            ? "#ffdddd"
-                                            : user.Role?.name === "City"
-                                                ? "#e6f2ec"
-                                                : "#f4f4f4",
-                                    fontSize: 12,
-                                    fontWeight: 600
-                                }}>
+                                <div className={`admin-role-badge ${
+                                    user.Role?.name === "Admin"
+                                        ? "admin-role-admin"
+                                        : user.Role?.name === "City"
+                                            ? "admin-role-city"
+                                            : ""
+                                }`}>
                                     {getUserRoleName(user)}
                                 </div>
                             </div>
