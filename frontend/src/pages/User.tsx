@@ -4,11 +4,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import type { RootState } from "../store";
 import { setUser } from "../store/auth-slice";
+import { getUserRoleName } from "../utils/auth";
 import NavigationBar from '../components/NavigationBar';
 
 export default function User() {
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
+  const roleName = getUserRoleName(user);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -27,7 +29,7 @@ export default function User() {
 
   if (!user) return <p style={{ textAlign: "center", marginTop: 100 }}>Loading...</p>;
 
-  const canCreateOrder = user.role === 'City' || user.role === 'Admin';
+  const canCreateOrder = roleName === 'City' || roleName === 'Admin';
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -61,13 +63,16 @@ export default function User() {
         first_name: payload.first_name,
         last_name: payload.last_name,
         email: payload.email,
+        role: roleName,
       }));
 
       setPassword("");
       setStatusMessage('Профиль успешно обновлён.');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Profile update failed', error);
-      const serverError = error.response?.data?.error || 'Не удалось сохранить изменения. Проверьте данные и попробуйте снова.';
+      const serverError = axios.isAxiosError<{ error?: string }>(error)
+        ? error.response?.data?.error || 'Не удалось сохранить изменения. Проверьте данные и попробуйте снова.'
+        : 'Не удалось сохранить изменения. Проверьте данные и попробуйте снова.';
       setErrorMessage(serverError);
     } finally {
       setSaving(false);
@@ -83,7 +88,7 @@ export default function User() {
         <div className="card" style={{ maxWidth: 560, margin: "0 auto 24px", padding: 24 }}>
           <h3 className="card-title">{user.first_name || user.name} {user.last_name || ''}</h3>
           <p>Email: {user.email}</p>
-          <p>Роль: {user.role}</p>
+          <p>Роль: {roleName}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
             {canCreateOrder ? (
               <Link

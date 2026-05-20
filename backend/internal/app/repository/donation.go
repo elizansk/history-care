@@ -26,7 +26,7 @@ func (r *Repository) AddDonation(orderID uint, userID *uint, amount float64, nam
 
 	newStatus := "collection_started"
 	if newCollected >= order.TotalAmount {
-		newStatus = "finish"
+		newStatus = "finished"
 	}
 
 	return r.DB.Model(&models.ReconstructionOrder{}).

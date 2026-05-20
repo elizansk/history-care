@@ -1,19 +1,20 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
+import axios from 'axios';
 import type { RootState } from '../store';
 import { logout } from '../store/auth-slice.ts';
+import { getUserRoleName } from '../utils/auth';
 
 const NavigationBar: React.FC = () => {
   const { user, isAuthenticated, token } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
+  const roleName = getUserRoleName(user);
 
   const handleLogout = async () => {
 
-    await fetch(`/api/auth/logout`, {
-      method: 'POST',
+    await axios.post(`/api/auth/logout`, {}, {
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + token,
       },
     });
@@ -33,7 +34,7 @@ const NavigationBar: React.FC = () => {
           {isAuthenticated ? (//авториз
             <>
               <span className="header-user">Привет, {user?.first_name || user?.name || user?.email} {user?.last_name || ''}</span>
-              <Link to= {user?.role !== 'Admin' ? '/profile' : '/admin'}>Личный кабинет</Link>
+              <Link to= {roleName !== 'Admin' ? '/profile' : '/admin'}>Личный кабинет</Link>
               <button className="header-logout" onClick={handleLogout}>Выход</button>
             </>
           ) : (//не авт

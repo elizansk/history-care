@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from './store';
 import { setUser } from './store/auth-slice.ts';
+import { getUserRoleName } from './utils/auth';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
@@ -29,7 +30,10 @@ function App() {
       headers: { Authorization: `Bearer ${token}` },
     })
     .then((res) => {
-      dispatch(setUser(res.data));
+      dispatch(setUser({
+        ...res.data,
+        role: getUserRoleName(res.data),
+      }));
     })
     .catch((err) => {
       console.error('Failed to load profile:', err);

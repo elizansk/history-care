@@ -2,12 +2,18 @@ import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
+import axios from 'axios';
 import { login } from '../store/auth-slice.ts';
+import { getUserRoleName } from '../utils/auth';
 import '../styles/FormStyles.css';
 
 interface LoginForm {
   email: string;
   password: string;
+}
+interface LoginResponse {
+  token?: string;
+  user: unknown;
 }
 
 export default function Login() {
@@ -26,21 +32,8 @@ export default function Login() {
     e.preventDefault();
 
     try {
-      const response = await fetch(`/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(form),
-      });
-
-      // Преобразуем ответ сразу в JSON
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert(data.error || 'Ошибка входа');
-        return;
-      }
+      const response = await axios.post<LoginResponse>(`/api/auth/login`, form);
+      const data = response.data;
 
       // Сохраняем JWT в localStorage
       if (data.token) {
@@ -48,7 +41,13 @@ export default function Login() {
       }
 
       // передаем login в Redux
-      dispatch(login({ user: data.user, token: data.token }));
+      dispatch(login({
+        user: {
+          ...data.user,
+          role: getUserRoleName(data.user),
+        },
+        token: data.token,
+      }));
 
       console.log('Ответ сервера:', data);
       alert('Успешный вход!');
@@ -58,7 +57,10 @@ export default function Login() {
 
     } catch (error) {
       console.error('Ошибка:', error);
-      alert('Ошибка при входе');
+      const message = axios.isAxiosError<{ error?: string }>(error)
+        ? error.response?.data?.error || 'Ошибка входа'
+        : 'Ошибка при входе';
+      alert(message);
     }
   };
 
