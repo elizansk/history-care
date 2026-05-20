@@ -1,0 +1,31 @@
+#!/bin/sh
+
+echo "Running pre-commit checks..."
+
+
+if git diff --cached --name-only | xargs ls -lh | awk '{ if ($5+0 > 10485760) print $9 }' | grep .; then
+  echo "Error: Large files detected!"
+  exit 1
+fi
+
+
+if git diff --cached | grep -E '<<<<<<<|=======|>>>>>>>'; then
+  echo "Error: Merge conflict markers found!"
+  exit 1
+fi
+
+
+cd backend || exit
+golangci-lint run ./... || exit 1
+cd ..
+
+
+cd frontend || exit
+
+npx eslint . || exit 1
+npx stylelint "**/*.css" || exit 1
+npx prettier "src/**/*.{ts,tsx,css,js,jsx}" --check || exit 1
+
+cd ..
+
+echo "All checks passed!"
