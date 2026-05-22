@@ -24,6 +24,7 @@ import (
 	"history-care-texnology/internal/storage"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -80,7 +81,16 @@ func StartServer() {
 	r := gin.Default()
 	r.Use(metrics.MetricsMiddleware())
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowOriginFunc: func(origin string) bool {
+			return origin == "" ||
+				strings.HasPrefix(origin, "http://localhost") ||
+				strings.HasPrefix(origin, "http://127.0.0.1") ||
+				strings.HasPrefix(origin, "http://192.168.") ||
+				strings.HasSuffix(origin, ".github.io") ||
+				strings.HasPrefix(origin, "tauri://") ||
+				strings.HasPrefix(origin, "http://tauri.localhost") ||
+				strings.HasPrefix(origin, "https://tauri.localhost")
+		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"X-Cache", "Content-Length"},
@@ -100,6 +110,7 @@ func StartServer() {
 	baseAPI := r.Group("/api")
 	{
 		baseAPI.GET("/orders/formed", h.GetDonatableOrders)
+		baseAPI.GET("/orders/formed/:id", h.GetDonatableOrderByID)
 		baseAPI.GET("/categories", h.GetCategories)
 		baseAPI.POST("/donations", h.PostDonate) // POST donation
 		baseAPI.GET("/cities", h.GetCities)      //вызывает все города

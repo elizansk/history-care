@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import axios from 'axios';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from './store';
 import { setUser } from './store/auth-slice.ts';
@@ -17,9 +17,11 @@ import Building from './pages/Order.tsx';
 import Donate from './pages/Donate';
 import ProtectedRoute from './components/ProtectedRoute';
 
-const routerBasename = import.meta.env.BASE_URL === './'
+const isGithubPages = import.meta.env.MODE === 'github-pages';
+const routerBasename = isGithubPages || import.meta.env.BASE_URL === './'
   ? '/'
   : import.meta.env.BASE_URL.replace(/\/$/, '');
+const Router = isGithubPages ? HashRouter : BrowserRouter;
 
 function App() {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -45,7 +47,7 @@ function App() {
   }, [token, user, dispatch]);
 
   return (
-    <BrowserRouter basename={routerBasename}>
+    <Router basename={routerBasename}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -97,7 +99,7 @@ function App() {
         <Route path="/donate" element={<Donate />} />
 
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 

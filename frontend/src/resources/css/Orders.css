@@ -17,6 +17,8 @@
 
 .orders-page .search-panel {
   display: grid;
+
+  /* Фильтры: каждая колонка минимум 220px, дальше колонки растягиваются на 1fr; при нехватке ширины переносятся на новую строку. */
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
   background: linear-gradient(135deg, #f4fff5, #e6f2ec);
@@ -45,11 +47,14 @@
 
 .orders-page .grid {
   display: grid;
+
+  /* Карточки заявок: минимум 320px на карточку, gap 24px. В контейнере 1140px помещается 3 колонки: 320px + 320px + 320px + два gap по 24px. */
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 24px;
 }
 
 .orders-page .card {
+  /* Размер карточки задается сеткой выше: ширина от 320px до свободной доли 1fr, высота зависит от контента. */
   background: linear-gradient(180deg, rgb(255 255 255 / 95%) 0%, #fff 100%);
   border-radius: var(--radius);
   border: 1px solid rgb(14 90 60 / 12%);
@@ -65,6 +70,7 @@
 }
 
 .orders-page .card img {
+  /* Изображение занимает всю ширину карточки, но не выше 220px. */
   width: 100%;
   max-height: 220px;
   object-fit: contain;
@@ -81,6 +87,7 @@
 }
 
 .orders-page .card-description {
+  /* Описание ограничено 3 строками: 3 * 1.5em = 4.5em. */
   color: #444;
   display: -webkit-box;
   line-clamp: 3;
@@ -133,6 +140,7 @@
   }
 
   .orders-page .grid {
+    /* На экранах до 720px список принудительно становится одной колонкой. */
     grid-template-columns: 1fr;
   }
 

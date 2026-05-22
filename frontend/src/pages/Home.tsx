@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import '../resources/css/Home.css';
 import NavigationBar from '../components/NavigationBar';
 import Footer from '../components/Footer';
+import { getPublicAssetUrl } from '../utils/assets';
 
 const impactStats = [
   { value: '24', label: 'исторических объекта в работе' },
@@ -38,7 +39,7 @@ export default function Home() {
 
       <main>
         <section className="home-hero">
-          <img src="/norilsk.jpg" alt="Историческое деревянное здание" className="home-hero-image" />
+          <img src={getPublicAssetUrl('norilsk.jpg')} alt="Историческое деревянное здание" className="home-hero-image" />
           <div className="home-hero-overlay" />
           <div className="home-hero-content">
             <p className="home-kicker">Фонд реконструкции исторических зданий</p>
@@ -50,9 +51,6 @@ export default function Home() {
             <div className="home-hero-actions">
               <Link to="/buildings" className="btn btn-success btn-lg">
                 Смотреть заявки
-              </Link>
-              <Link to="/donate" className="btn btn-light btn-lg">
-                Сделать пожертвование
               </Link>
             </div>
           </div>
@@ -107,8 +105,8 @@ export default function Home() {
             </Link>
           </div>
           <div className="home-gallery">
-            <img src="/norilsk1.jpg" alt="Интерьер исторического деревянного дома" />
-            <img src="/norilsk2.jpg" alt="Фрагмент старинного интерьера" />
+            <img src={getPublicAssetUrl('norilsk1.jpg')} alt="Интерьер исторического деревянного дома" />
+            <img src={getPublicAssetUrl('norilsk2.jpg')} alt="Фрагмент старинного интерьера" />
           </div>
         </section>
 

@@ -47,9 +47,15 @@ export interface MockOrder {
   }[];
 }
 
-// Placeholder URLs for mock data
-const placeholderImage = '/placeholder-image.svg';
-const placeholderVideo = '/placeholder-video.svg';
+import { getPublicAssetUrl } from '../utils/assets';
+
+const firstBuildingImage = getPublicAssetUrl('norilsk.jpg');
+const secondBuildingImage = getPublicAssetUrl('norilsk1.jpg');
+const thirdBuildingImage = getPublicAssetUrl('norilsk2.jpg');
+const firstServiceImage = getPublicAssetUrl('service1.png');
+const secondServiceImage = getPublicAssetUrl('service2.png');
+const firstVideo = getPublicAssetUrl('video1.mp4');
+const secondVideo = getPublicAssetUrl('video2.mp4');
 
 export const mockOrders: MockOrder[] = [
   {
@@ -76,14 +82,14 @@ export const mockOrders: MockOrder[] = [
           id: 24,
           building_id: 33,
           resource_type: 'photo',
-          url: placeholderImage,
+          url: firstBuildingImage,
           is_main: true,
         },
         {
           id: 25,
           building_id: 33,
           resource_type: 'video',
-          url: placeholderVideo,
+          url: firstVideo,
           is_main: true,
         },
       ],
@@ -96,11 +102,11 @@ export const mockOrders: MockOrder[] = [
         service_id: 2,
         service: {
           id: 2,
-          name: 'Починить крышу',
+          name: 'Починить крышу21344',
           description: 'Починить крышу полностью',
           status: 'active',
-          image_url: placeholderImage,
-          video_url: placeholderVideo,
+          image_url: firstServiceImage,
+          video_url: firstVideo,
           created_at: '2026-04-15T11:05:16.548118+07:00',
         },
         price: 200000,
@@ -115,8 +121,8 @@ export const mockOrders: MockOrder[] = [
           name: 'Починить окно',
           description: 'Починить окна полностью',
           status: 'active',
-          image_url: placeholderImage,
-          video_url: placeholderVideo,
+          image_url: secondServiceImage,
+          video_url: secondVideo,
           created_at: '2026-04-15T11:18:35.732698+07:00',
         },
         price: 50000,
@@ -137,7 +143,7 @@ export const mockOrders: MockOrder[] = [
     moderator_id: null,
     building: {
       id: 37,
-      name: 'Первый дом Норильска',
+      name: 'Первый дом Норильска123432423у4',
       description:
         'Первый дом Норильска построила первая геологоразведочная экспедиция Николая Урванцева летом 1921 года. В этом доме ученый-геолог, первооткрыватель норильских месторождений и один из основателей города Николай Николаевич Урванцев провел первую зимовку. Сегодня в музее представлена экспозиция, рассказывающая о быте геологической экспедиции 1923-1924 годов. Дом-музей находится рядом с основным зданием Музея Норильска. В 2017 году там же, в музейном сквере, открыли памятник Урванцеву.',
       address: 'Ленинский проспект 14',
@@ -150,35 +156,35 @@ export const mockOrders: MockOrder[] = [
           id: 32,
           building_id: 37,
           resource_type: 'photo',
-          url: placeholderImage,
+          url: secondBuildingImage,
           is_main: true,
         },
         {
           id: 33,
           building_id: 37,
           resource_type: 'photo',
-          url: placeholderImage,
+          url: firstBuildingImage,
           is_main: false,
         },
         {
           id: 34,
           building_id: 37,
           resource_type: 'photo',
-          url: placeholderImage,
+          url: thirdBuildingImage,
           is_main: false,
         },
         {
           id: 35,
           building_id: 37,
           resource_type: 'video',
-          url: placeholderVideo,
+          url: firstVideo,
           is_main: true,
         },
         {
           id: 36,
           building_id: 37,
           resource_type: 'video',
-          url: placeholderVideo,
+          url: secondVideo,
           is_main: false,
         },
       ],
@@ -194,8 +200,8 @@ export const mockOrders: MockOrder[] = [
           name: 'Починить крышу',
           description: 'Починить крышу полностью',
           status: 'active',
-          image_url: placeholderImage,
-          video_url: placeholderVideo,
+          image_url: firstServiceImage,
+          video_url: firstVideo,
           created_at: '2026-04-15T11:05:16.548118+07:00',
         },
         price: 100000,
@@ -210,8 +216,8 @@ export const mockOrders: MockOrder[] = [
           name: 'Починить окно',
           description: 'Починить окна полностью',
           status: 'active',
-          image_url: placeholderImage,
-          video_url: placeholderVideo,
+          image_url: secondServiceImage,
+          video_url: secondVideo,
           created_at: '2026-04-15T11:18:35.732698+07:00',
         },
         price: 70000,

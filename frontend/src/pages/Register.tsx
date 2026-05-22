@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { getCities } from '../api/filters';
+import type { City } from '../api/filters';
 import '../resources/css/Register.css';
 
 interface RegisterForm {
@@ -14,11 +16,6 @@ interface RegisterForm {
   cityId?: number;
 }
 
-
-interface City {
-  id: number;
-  name: string;
-}
 interface RegisterResponse {
   token?: string;
 }
@@ -36,8 +33,8 @@ export default function Register() {
 
 
   useEffect(() => {
-    axios.get<City[]>(`/api/cities`)
-      .then(res => setCities(res.data))//города в state
+    getCities()
+      .then(setCities)//города в state
       .catch(err => console.error('Ошибка загрузки городов:', err));
   }, []);
 
@@ -46,7 +43,7 @@ export default function Register() {
 
     setForm({
       ...form,
-      [name]: name === 'cityId' ? Number(value) : value
+      [name]: name === 'cityId' || name === 'role_id' ? Number(value) : value
     });
   };
 
@@ -118,7 +115,7 @@ const handleSubmit = async (e: FormEvent) => {
             required
           />
 
-          <select name="roleId" value={form.role_id} onChange={handleChange}>
+          <select name="role_id" value={form.role_id} onChange={handleChange}>
             <option value={3}>Пользователь</option>
             <option value={2}>Город</option>
           </select>

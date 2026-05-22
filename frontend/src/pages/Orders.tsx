@@ -16,7 +16,7 @@ import '../resources/css/Orders.css';
 
 const Buildings: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const filters = useSelector((state: RootState) => state.buildingsFilters);
+  const filters = useSelector((state: RootState) => state.buildingsFilters);//берем значения их редакс
   const [orders, setOrders] = useState<MockOrder[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -37,14 +37,16 @@ const Buildings: React.FC = () => {
   }, []);
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>) => {
-    dispatch(setBuildingsFilter({
+    dispatch(setBuildingsFilter({//при изменении фильтра новое значение сохраняется в Redux
       name: e.target.name as keyof BuildingsFiltersState,
       value: e.target.value,
     }));
   };
 
-  const applyFilters = useCallback(async () => {
-    setLoading(true);
+  const applyFilters = useCallback(async (showLoader = true) => {
+    if (showLoader) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const categoryId = filters.categoryId ? parseInt(filters.categoryId, 10) : undefined;
@@ -54,7 +56,9 @@ const Buildings: React.FC = () => {
     } catch  {
       setError('Не удалось загрузить заявки.');
     } finally {
-      setLoading(false);
+      if (showLoader) {
+        setLoading(false);
+      }
     }
   }, [filters]);
 
@@ -62,6 +66,14 @@ const Buildings: React.FC = () => {
     if (hasLoadedInitialOrders.current) return;
     hasLoadedInitialOrders.current = true;
     void applyFilters();
+  }, [applyFilters]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void applyFilters(false);
+    }, 15000);
+
+    return () => window.clearInterval(intervalId);
   }, [applyFilters]);
 
   const getImageUrl = (order: MockOrder) => {
@@ -121,7 +133,7 @@ const Buildings: React.FC = () => {
           </div>
 
           <div className="search-group search-action">
-            <Button variant="success" onClick={applyFilters} disabled={loading}>
+            <Button variant="success" onClick={() => void applyFilters()} disabled={loading}>
               {loading ? 'Загрузка...' : 'Показать'}
             </Button>
           </div>

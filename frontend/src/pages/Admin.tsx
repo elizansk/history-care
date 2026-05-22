@@ -45,7 +45,7 @@ interface AdminOrder {
     completed_at?: string | null;
 }
 
-const POLLING_INTERVAL_MS = 5000;
+const POLLING_INTERVAL_MS = 5000;//обновление каждые 5 секунд
 
 const statusTranslations: Record<string, string> = {
     draft: "Черновик",
@@ -92,10 +92,10 @@ export default function Admin() {
     const [me, setMe] = useState<User | null>(null);
     const [users, setUsers] = useState<User[]>([]);
     const [orders, setOrders] = useState<AdminOrder[]>([]);
-    const [statusFilter, setStatusFilter] = useState("");
+    const [statusFilter, setStatusFilter] = useState("");//фильстрация
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
-    const [creatorFilter, setCreatorFilter] = useState("");
+    const [creatorFilter, setCreatorFilter] = useState("");//фильтриция по создателю
     const [ordersLoading, setOrdersLoading] = useState(true);
     const [ordersError, setOrdersError] = useState<string | null>(null);
     const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
@@ -127,7 +127,7 @@ export default function Admin() {
         }
     }, [authHeaders, token]);
 
-    const loadOrders = useCallback(async (showLoading = false) => {
+    const loadOrders = useCallback(async (showLoading = false) => {//запрос на бек
         if (!token) return;
 
         if (showLoading) {
@@ -159,7 +159,7 @@ export default function Admin() {
         void loadUsers();
     }, [loadProfile, loadUsers]);
 
-    useEffect(() => {
+    useEffect(() => {//повторно запрашивает список заявок
         void loadOrders(true);
 
         const intervalId = window.setInterval(() => {
@@ -169,7 +169,7 @@ export default function Admin() {
         return () => window.clearInterval(intervalId);
     }, [loadOrders]);
 
-    const filteredOrders = useMemo(() => {
+    const filteredOrders = useMemo(() => {//филтр по создателю
         const query = creatorFilter.trim().toLowerCase();
         if (!query) return orders;
 
@@ -211,7 +211,7 @@ export default function Admin() {
         }
     };
 
-    const handleFormOrder = async (orderId: number) => {
+    const handleFormOrder = async (orderId: number) => {//формирование заявки
         setUpdatingOrderId(orderId);
         setOrdersError(null);
 
@@ -231,7 +231,7 @@ export default function Admin() {
         }
     };
 
-    const handleDeleteOrder = async (orderId: number) => {
+    const handleDeleteOrder = async (orderId: number) => {//удаление заявки
         if (!confirm("Удалить заявку?")) return;
 
         setUpdatingOrderId(orderId);
@@ -253,7 +253,7 @@ export default function Admin() {
         }
     };
 
-    const renderOrderActions = (order: AdminOrder) => {
+    const renderOrderActions = (order: AdminOrder) => {//кнопки смены статусов
         const isUpdating = updatingOrderId === order.id;
 
         const actions = {
