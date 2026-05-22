@@ -113,11 +113,11 @@ func (h *Handler) GetOrders(c *gin.Context) {
 	role := c.GetString("role")
 	userID := c.GetUint("user_id")
 
-	status := c.Query("status")
+	status := c.Query("status")//параметры
 
 	var from, to *time.Time
 
-	if c.Query("from") != "" {
+	if c.Query("from") != "" {//парсинг дат
 		t, _ := time.Parse("2006-01-02", c.Query("from"))
 		from = &t
 	}
@@ -177,6 +177,31 @@ func (h *Handler) GetOrderByID(c *gin.Context) {
 			c.JSON(403, gin.H{"error": "forbidden"})
 			return
 		}
+	}
+
+	c.JSON(200, order)
+}
+
+// @Summary      Get donatable order by ID
+// @Description  Получение публичной заявки для гостевых страниц и пожертвований
+// @Tags         base_orders
+// @Produce      json
+// @Param        id path int true "Order ID"
+// @Success      200 {object} models.ReconstructionOrder
+// @Failure      404 {object} map[string]string
+// @Router       /api/orders/formed/{id} [get]
+func (h *Handler) GetDonatableOrderByID(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+
+	order, err := h.repo.GetOrderByID(uint(id))
+	if err != nil {
+		c.JSON(404, gin.H{"error": "not found"})
+		return
+	}
+
+	if order.Status != "formed" && order.Status != "collection_started" {
+		c.JSON(404, gin.H{"error": "not found"})
+		return
 	}
 
 	c.JSON(200, order)

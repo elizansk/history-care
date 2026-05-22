@@ -1,17 +1,20 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
-
+import basicSsl from '@vitejs/plugin-basic-ssl'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const isGithubPages = mode === 'github-pages'
+  const isTauri = mode === 'tauri'
+  const isHttpsDev = mode === 'https'
   const base = isGithubPages ? '/history-care/' : './'
 
   return {
     base,
     plugins: [
       react(),
-      VitePWA({
+      isHttpsDev && basicSsl(),
+      !isTauri && VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['icons/icon-192.png', 'icons/icon-512.png'],
         manifest: {
@@ -44,8 +47,14 @@ export default defineConfig(({ mode }) => {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}'],
         },
       }),
-    ],
+    ].filter(Boolean),
     server: {
+      host: 'localhost',
+      hmr: {
+        host: 'localhost',
+        protocol: isHttpsDev ? 'wss' : 'ws',
+        clientPort: 5173,
+      },
       proxy: {
         '/api': {
           target: 'http://localhost:8080',

@@ -11,6 +11,7 @@
 
 .donate-page .building-media,
 .donate-page .donation-image {
+  /* Главное медиа на странице доната: ширина до 900px, высота до 560px. */
   display: block;
   margin: 0 auto 30px;
   width: min(100%, 900px);
@@ -22,6 +23,7 @@
 
 .donate-page .building-image,
 .donate-page .donation-image {
+  /* Пропорция медиа 16:10 сохраняет одинаковый визуальный размер блока. */
   aspect-ratio: 16 / 10;
   max-height: 560px;
 }
@@ -49,6 +51,7 @@
 }
 
 .donate-page .donation-form {
+  /* Форма пожертвования: максимальная ширина 700px, внутри 35px отступов. */
   max-width: 700px;
   margin: 0 auto 60px;
   background: white;
@@ -96,6 +99,8 @@
 
 .donate-page .similar-grid {
   display: grid;
+
+  /* Похожие заявки: минимум 260px на карточку, gap 16px; в модальном окне обычно 2 колонки. */
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 16px;
   margin-top: 24px;
@@ -115,6 +120,7 @@
 }
 
 .donate-page .similar-card-image {
+  /* Картинка похожей заявки занимает всю ширину карточки, но не выше 150px. */
   width: 100%;
   max-height: 150px;
   object-fit: contain;
@@ -131,6 +137,7 @@
 }
 
 .donate-page .similar-card-body p {
+  /* Текст похожей заявки ограничен 3 строками, чтобы все карточки были близкими по высоте. */
   color: #444;
   font-size: 14px;
   line-height: 1.6;
@@ -172,6 +179,7 @@
   }
 
   .donate-page .similar-grid {
+    /* На телефонах похожие заявки показываются одной колонкой. */
     grid-template-columns: 1fr;
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Alert, Modal } from 'react-bootstrap';
 import { useParams, Link } from 'react-router-dom';
 import NavigationBar from '../components/NavigationBar';
@@ -15,20 +15,34 @@ const Building: React.FC = () => {
   const [showModal, setShowModal] = useState(false);//Показывать ли модальное окно
   const [modalImage, setModalImage] = useState<string>('');//URL изображения для modal окна
 
-  useEffect(() => {//загрузка данных
-    const fetchOrder = async () => {
-      if (!id) return;
-      try {
-        const data = await getOrderById(parseInt(id));
-        setOrder(data);
-      } catch  {
-        setError('Не удалось загрузить данные объекта');
-      } finally {
+  const fetchOrder = useCallback(async (showLoader = false) => {
+    if (!id) return;
+    if (showLoader) {
+      setLoading(true);
+    }
+
+    try {
+      const data = await getOrderById(parseInt(id, 10));
+      setOrder(data);
+      setError(null);
+    } catch (error) {
+      console.error('Failed to load order details', error);
+      setError('Не удалось загрузить данные объекта');
+    } finally {
+      if (showLoader) {
         setLoading(false);
       }
-    };
-    fetchOrder();
-  }, [id]);//заново при изменении
+    }
+  }, [id]);
+
+  useEffect(() => {//загрузка данных
+    void fetchOrder(true);
+    const intervalId = window.setInterval(() => {
+      void fetchOrder();
+    }, 10000);
+
+    return () => window.clearInterval(intervalId);
+  }, [fetchOrder]);//заново при изменении
 
 
   if (loading) return <div className="text-center p-5">Загрузка...</div>;
