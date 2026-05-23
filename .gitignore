@@ -40,3 +40,7 @@ frontend/src/templates/*.html   # Go шаблоны, чтобы Prettier не р
 
 .env
 .env.*frontend/src-tauri/target/
+
+frontend/src-tauri/target/
+.env*
+**/.env*
