@@ -10,7 +10,10 @@ interface LoginForm {
 
 export default function Login() {
 
-  const API_URL = import.meta.env.VITE_API_URL;
+  const rawApiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+  const API_URL = rawApiUrl
+    ? rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`
+    : '/api';
   const [form, setForm] = useState<LoginForm>({
     email: '',
     password: ''
@@ -32,8 +35,8 @@ export default function Login() {
         body: JSON.stringify(form),
       });
 
-      // Преобразуем ответ сразу в JSON
-      const data = await response.json();
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
 
       if (!response.ok) {
         alert(data.error || 'Ошибка входа');
