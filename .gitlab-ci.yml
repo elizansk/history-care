@@ -7,13 +7,13 @@ variables:
   BACKEND_IMAGE: history-care-backend
   FRONTEND_IMAGE: history-care-frontend
 
-.only_master:
+.only_main:
   rules:
-    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
 
 build:
   stage: build
-  extends: .only_master
+  extends: .only_main
   tags:
     - shell
   script:
@@ -22,7 +22,7 @@ build:
 
 upload:
   stage: upload
-  extends: .only_master
+  extends: .only_main
   tags:
     - shell
   script:
@@ -31,7 +31,7 @@ upload:
 
 deploy:
   stage: deploy
-  extends: .only_master
+  extends: .only_main
   tags:
     - shell
   environment:
