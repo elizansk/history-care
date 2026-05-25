@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"history-care-texnology/internal/logger"
+	"history-care-texnology/internal/metrics"
 	"history-care-texnology/internal/models"
 	"history-care-texnology/internal/storage"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
-    "log"
+
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
 )
@@ -45,39 +47,49 @@ func (h *Handler) GetAllServices(c *gin.Context) {
 // @Router       /api/services [get]
 func (h *Handler) GetServices(c *gin.Context) {
 	ctx := context.Background()
-	cacheKey := "services:active"
+	// Ключ Redis-кэша для списка активных услуг
+	cacheKey := "services:all"
 
-	//  1. пробуем кэш
+	// Пробуем прочитать список услуг из Redis
 	cached, err := h.redis.Get(ctx, cacheKey).Result()
 	if err == nil {
+		// Redis cache HIT
 		logger.CacheHit(cacheKey)
+		// Отдаем клиенту признак источника данных
 		c.Header("X-Cache", "HIT")
+		// Возвращаем данные из кэша
 		c.Data(http.StatusOK, "application/json", []byte(cached))
 		return
 
 	}
+	// Redis cache MISS
 	logger.CacheMiss(cacheKey)
-	//  2. БД
+	// Если кэша нет, читаем услуги из БД
 	data, err := h.repo.GetServices()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get services"})
 		return
 	}
 
-	//  3. кладём в кэш
+	// Готовим данные для записи в Redis
 	jsonData, err := json.Marshal(data)
 	if err == nil {
-		err := h.redis.Set(ctx, cacheKey, jsonData, time.Minute).Err()
+		// Записываем список услуг в Redis с TTL
+		err := h.redis.Set(ctx, cacheKey, jsonData, time.Minute*2).Err()
 		if err != nil {
+			// Логируем ошибку записи в кэш
 			logger.CacheError(cacheKey, err, "set")
 		} else {
+			// Логируем успешную запись в кэш
 			logger.CacheSet(cacheKey)
 		}
 	}
 	if err != nil && err.Error() != "redis: nil" {
+		// Логируем ошибку чтения/подготовки кэша
 		logger.CacheError(cacheKey, err, "get")
 	}
 
+	// Отдаем клиенту признак, что данные пришли не из Redis
 	c.Header("X-Cache", "MISS")
 	c.JSON(http.StatusOK, data)
 }
@@ -94,18 +106,27 @@ func (h *Handler) GetServiceByID(c *gin.Context) {
 	ctx := context.Background()
 
 	id := c.Param("id")
+	// Ключ Redis-кэша для одной услуги
 	cacheKey := fmt.Sprintf("services:%s", id)
 
-	//  1. кэш
+	// Пробуем прочитать услугу из Redis
 	cached, err := h.redis.Get(ctx, cacheKey).Result()
 	if err == nil {
+		// Redis cache HIT
 		logger.CacheHit(cacheKey)
+		// Увеличиваем счетчик cache hit
+		metrics.CacheHits.Inc()
+		// Отдаем клиенту признак источника данных
 		c.Header("X-Cache", "HIT")
+		// Возвращаем данные из кэша
 		c.Data(http.StatusOK, "application/json", []byte(cached))
 		return
 	}
+	// Redis cache MISS
 	logger.CacheMiss(cacheKey)
-	//  2. БД
+	// Увеличиваем счетчик cache miss
+	metrics.CacheMisses.Inc()
+	// Если кэша нет, читаем услугу из БД
 	idInt, _ := strconv.Atoi(id)
 	service, err := h.repo.GetServiceByID(uint(idInt))
 	if err != nil {
@@ -113,15 +134,19 @@ func (h *Handler) GetServiceByID(c *gin.Context) {
 		return
 	}
 
-	// 3. кэшируем
+	// Готовим услугу для записи в Redis
 	jsonData, err := json.Marshal(service)
 	if err == nil {
+		// Записываем услугу в Redis с TTL
 		h.redis.Set(ctx, cacheKey, jsonData, time.Minute*2)
+		// Логируем успешную запись в кэш
 		logger.CacheSet(cacheKey)
 	}
 	if err != nil && err.Error() != "redis: nil" {
+		// Логируем ошибку чтения/подготовки кэша
 		logger.CacheError(cacheKey, err, "get")
 	}
+	// Отдаем клиенту признак, что данные пришли не из Redis
 	c.Header("X-Cache", "MISS")
 	c.JSON(http.StatusOK, service)
 }
@@ -167,11 +192,11 @@ func (h *Handler) CreateService(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "failed to open image"})
 		return
 	}
-defer func() {
-    if err := imgSrc.Close(); err != nil {
-        log.Println(err)
-    }
-}()
+	defer func() {
+		if err := imgSrc.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	imgName := fmt.Sprintf("service_img_%d_%s", time.Now().UnixNano(), imageFile.Filename)
 
@@ -198,11 +223,11 @@ defer func() {
 
 		videoSrc, err := videoFile.Open()
 		if err == nil {
-		defer func() {
-            if err := videoSrc.Close(); err != nil {
-                log.Println(err)
-            }
-        }()
+			defer func() {
+				if err := videoSrc.Close(); err != nil {
+					log.Println(err)
+				}
+			}()
 
 			videoName := fmt.Sprintf("service_video_%d_%s", time.Now().UnixNano(), videoFile.Filename)
 
@@ -236,11 +261,14 @@ defer func() {
 		c.JSON(500, gin.H{"error": "db error"})
 		return
 	}
-	err = h.redis.Del(context.Background(), "services:active").Err()
+	// После создания услуги удаляем кэш списка услуг
+	err = h.redis.Del(context.Background(), "services:all").Err()
 	if err != nil {
-		logger.CacheError("services:active", err, "delete")
+		// Логируем ошибку инвалидации кэша
+		logger.CacheError("services:all", err, "delete")
 	} else {
-		logger.CacheInvalidate("services:active") // 👈 ДОБАВИТЬ
+		// Логируем успешную инвалидацию кэша
+		logger.CacheInvalidate("services:all")
 	}
 	c.JSON(201, service)
 }
@@ -269,20 +297,27 @@ func (h *Handler) DeleteService(c *gin.Context) {
 	}
 	ctx := context.Background()
 
-	key1 := "services:active"
+	// Ключ кэша списка активных услуг
+	key1 := "services:all"
+	// Удаляем кэш списка услуг
 	err = h.redis.Del(ctx, key1).Err()
 	if err != nil {
+		// Логируем ошибку инвалидации списка
 		logger.CacheError(key1, err, "delete")
 	} else {
+		// Логируем успешную инвалидацию списка
 		logger.CacheInvalidate(key1)
 	}
 
+	// Ключ кэша удаленной услуги
 	key2 := fmt.Sprintf("services:%d", id)
+	// Удаляем кэш конкретной услуги
 	err = h.redis.Del(ctx, key2).Err()
 	if err != nil {
+		// Логируем ошибку инвалидации услуги
 		logger.CacheError(key2, err, "delete")
 	} else {
-		logger.CacheInvalidate(key2)
+		// Логируем успешную инвалидацию услуги		logger.CacheInvalidate(key2)
 	}
 	c.JSON(200, gin.H{
 		"message": "service deleted (soft delete)",
