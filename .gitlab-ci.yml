@@ -1,3 +1,5 @@
 job:
+  tags:
+    - deploy
   script:
     - echo test
