@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import NavigationBar from '../components/NavigationBar';
+import { getMockUserFromToken, isMockAuthAvailable } from '../mock/auth.mock';
+import { mockOrders } from '../mock/reconstruction.mock';
 import '../resources/css/CityOrder.css';
 
 interface Order {
@@ -48,6 +50,49 @@ const getStatusTranslation = (status: string): string => {
   return statusTranslations[status] || status;
 };
 
+const getMockUserOrders = (token: string | null): Order[] => {
+  const mockUser = getMockUserFromToken(token);
+  const isCity = mockUser?.role === 'City';
+
+  return mockOrders
+    .filter((order) => !isCity || order.building.city_id === mockUser.city_id)
+    .map((order) => ({
+      id: order.id,
+      building: {
+        name: order.building.name,
+        address: order.building.address,
+      },
+      status: order.status,
+      total_amount: order.total_amount,
+      created_at: order.created_at,
+    }));
+};
+
+const getMockEditableOrder = (orderId: number): EditableOrder | null => {
+  const order = mockOrders.find((candidate) => candidate.id === orderId);
+  if (!order) return null;
+
+  return {
+    id: order.id,
+    building_id: order.building_id,
+    total_amount: order.total_amount,
+    description: order.building.description,
+    services: order.services.map((service) => ({
+      service_id: service.service_id,
+      price: service.price,
+      quantity: 1,
+      description: service.description,
+    })),
+    building: {
+      name: order.building.name,
+      description: order.building.description,
+      address: order.building.address,
+      category_id: order.building.category_id,
+      city_id: order.building.city_id,
+    },
+  };
+};
+
 export default function MyOrders() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -64,7 +109,11 @@ export default function MyOrders() {
       setOrders(prev => prev.filter(o => o.id !== orderId));
     } catch (err) {
       console.error('Error deleting order:', err);
-      alert('Не удалось удалить заявку');
+      if (isMockAuthAvailable) {
+        setOrders(prev => prev.filter(o => o.id !== orderId));
+      } else {
+        alert('Не удалось удалить заявку');
+      }
     }
   };
 
@@ -80,6 +129,14 @@ export default function MyOrders() {
       );
     } catch (err) {
       console.error('Error publishing order:', err);
+      if (isMockAuthAvailable) {
+        setOrders(prev =>
+            prev.map(o =>
+                o.id === orderId ? { ...o, status: 'formed' } : o
+            )
+        );
+        return;
+      }
       const message = axios.isAxiosError<{ error?: string }>(err)
         ? err.response?.data?.error || 'Не удалось опубликовать заявку'
         : 'Не удалось опубликовать заявку';
@@ -118,6 +175,30 @@ export default function MyOrders() {
       navigate('/create-order');
     } catch (err) {
       console.error('Error loading order for edit:', err);
+      if (isMockAuthAvailable) {
+        const order = getMockEditableOrder(orderId);
+
+        if (order) {
+          sessionStorage.setItem('buildingId', String(order.building_id));
+          sessionStorage.setItem('orderId', String(order.id));
+          sessionStorage.setItem('buildingName', order.building.name);
+          sessionStorage.setItem('buildingDescription', order.building.description || '');
+          sessionStorage.setItem('buildingAddress', order.building.address);
+          sessionStorage.setItem('buildingCategoryId', String(order.building.category_id));
+          sessionStorage.setItem('buildingCityId', String(order.building.city_id));
+          sessionStorage.setItem('orderTotal', String(order.total_amount));
+          sessionStorage.setItem('orderDescription', order.description || '');
+          sessionStorage.setItem('selectedServices', JSON.stringify(order.services.map((s) => ({
+            id: s.service_id,
+            price: s.price,
+            quantity: s.quantity,
+            description: s.description,
+          }))));
+          sessionStorage.setItem('buildingData', JSON.stringify(order.building));
+          navigate('/create-order');
+          return;
+        }
+      }
       alert('Не удалось загрузить заявку для редактирования');
     }
   };
@@ -136,7 +217,12 @@ export default function MyOrders() {
       })
       .catch((err) => {
         console.error('Error loading orders:', err);
-        setError('Не удалось загрузить заявки');
+        if (isMockAuthAvailable) {
+          setOrders(getMockUserOrders(token));
+          setError(null);
+        } else {
+          setError('Не удалось загрузить заявки');
+        }
       })
       .finally(() => setLoading(false));
   }, [token]);

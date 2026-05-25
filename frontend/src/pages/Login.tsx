@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import axios from 'axios';
 import { login } from '../store/auth-slice.ts';
 import { getUserRoleName } from '../utils/auth';
+import { isMockAuthAvailable, mockLogin } from '../mock/auth.mock';
 import '../resources/css/Login.css';
 
 interface LoginForm {
@@ -35,6 +36,7 @@ export default function Login() {
     password: ''
   });
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -43,18 +45,13 @@ export default function Login() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    try {
-      const response = await axios.post<LoginResponse>(`/api/auth/login`, form);
-      const data = response.data;
-
+    const authorize = (data: LoginResponse) => {
       if (!data.token) {
         throw new Error('Сервер не вернул токен');
       }
 
-      // Сохраняем JWT в localStorage
       localStorage.setItem("token", data.token);
 
-      // передаем login в Redux
       dispatch(login({
         user: {
           ...data.user,
@@ -66,11 +63,25 @@ export default function Login() {
       console.log('Ответ сервера:', data);
       alert('Успешный вход!');
 
-      window.location.href = '/';
+      navigate('/');
+    };
 
-
+    try {
+      const response = await axios.post<LoginResponse>(`/api/auth/login`, form);
+      authorize(response.data);
     } catch (error) {
       console.error('Ошибка:', error);
+
+      if (isMockAuthAvailable) {
+        try {
+          authorize(mockLogin(form.email, form.password));
+          return;
+        } catch (mockError) {
+          alert(mockError instanceof Error ? mockError.message : 'Ошибка mock-входа');
+          return;
+        }
+      }
+
       const message = axios.isAxiosError<{ error?: string }>(error)
         ? error.response?.data?.error || 'Ошибка входа'
         : 'Ошибка при входе';

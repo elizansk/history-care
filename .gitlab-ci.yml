@@ -1,0 +1,47 @@
+stages:
+  - build
+  - upload
+  - deploy
+
+variables:
+  BACKEND_IMAGE: history-care-backend
+  FRONTEND_IMAGE: history-care-frontend
+
+.only_master:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+
+build:
+  stage: build
+  extends: .only_master
+  tags:
+    - shell
+  script:
+    - docker build -t $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA -f Dockerfile .
+    - docker build -t $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA frontend
+
+upload:
+  stage: upload
+  extends: .only_master
+  tags:
+    - shell
+  script:
+    - kind load docker-image $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - kind load docker-image $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA
+
+deploy:
+  stage: deploy
+  extends: .only_master
+  tags:
+    - shell
+  environment:
+    name: production
+  script:
+    - kubectl create configmap history-care-conf --from-file=configs/ --namespace=default -o yaml --dry-run=client | kubectl apply -f -
+    - kubectl apply -f manifests/
+    - kubectl set image deployment/history-care-backend history-care-backend=$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - kubectl set image deployment/history-care-backend migrate=$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - kubectl set image deployment/history-care-frontend history-care-frontend=$FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - kubectl rollout status deployment/history-care-backend
+    - kubectl rollout status deployment/history-care-frontend
+    - kubectl get pods

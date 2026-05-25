@@ -1,0 +1,11 @@
+.git
+.gitignore
+node_modules
+package-lock.json
+frontend/node_modules
+frontend/dist
+frontend/src-tauri/target
+frontend/.env*
+compose/data
+**/.DS_Store
+**/*.log

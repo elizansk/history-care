@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import type { RootState } from "../store";
 import { setUser } from "../store/auth-slice";
 import { getUserRoleName } from "../utils/auth";
+import { isMockAuthAvailable } from "../mock/auth.mock";
 import NavigationBar from '../components/NavigationBar';
 import '../resources/css/User.css';
 
@@ -45,16 +46,16 @@ export default function User() {
       return;
     }
 
-    try {
-      const payload: Record<string, string> = {
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        email: email.trim(),
-      };
-      if (trimmedPassword) {
-        payload.password = trimmedPassword;
-      }
+    const payload: Record<string, string> = {
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+      email: email.trim(),
+    };
+    if (trimmedPassword) {
+      payload.password = trimmedPassword;
+    }
 
+    try {
       await axios.put('/api/profile', payload, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
@@ -71,6 +72,18 @@ export default function User() {
       setStatusMessage('Профиль успешно обновлён.');
     } catch (error) {
       console.error('Profile update failed', error);
+      if (isMockAuthAvailable) {
+        dispatch(setUser({
+          ...user,
+          first_name: payload.first_name,
+          last_name: payload.last_name,
+          email: payload.email,
+          role: roleName,
+        }));
+        setPassword("");
+        setStatusMessage('Профиль обновлён в mock-режиме.');
+        return;
+      }
       const serverError = axios.isAxiosError<{ error?: string }>(error)
         ? error.response?.data?.error || 'Не удалось сохранить изменения. Проверьте данные и попробуйте снова.'
         : 'Не удалось сохранить изменения. Проверьте данные и попробуйте снова.';

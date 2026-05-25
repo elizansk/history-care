@@ -1,2 +1,5 @@
 
 src/templates/*.html
+dist
+src-tauri/target
+src/api/generated

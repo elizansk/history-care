@@ -317,7 +317,8 @@ func (h *Handler) DeleteService(c *gin.Context) {
 		// Логируем ошибку инвалидации услуги
 		logger.CacheError(key2, err, "delete")
 	} else {
-		// Логируем успешную инвалидацию услуги		logger.CacheInvalidate(key2)
+		// Логируем успешную инвалидацию услуги
+		logger.CacheInvalidate(key2)
 	}
 	c.JSON(200, gin.H{
 		"message": "service deleted (soft delete)",

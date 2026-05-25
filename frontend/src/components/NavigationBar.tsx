@@ -12,14 +12,16 @@ const NavigationBar: React.FC = () => {
   const roleName = getUserRoleName(user);
 
   const handleLogout = async () => {
+    try {
+      await axios.post(`/api/auth/logout`, {}, {
+        headers: {
+          'Authorization': 'Bearer ' + token,
+        },
+      });
+    } catch (error) {
+      console.warn('Logout request failed, local session will be cleared', error);
+    }
 
-    await axios.post(`/api/auth/logout`, {}, {
-      headers: {
-        'Authorization': 'Bearer ' + token,
-      },
-    });
-
-    // Преобразуем ответ сразу в JSON
     dispatch(logout());
   };
 

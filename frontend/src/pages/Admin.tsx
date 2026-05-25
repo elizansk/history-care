@@ -4,6 +4,8 @@ import { Button } from "react-bootstrap";
 import NavigationBar from "../components/NavigationBar.tsx";
 import Footer from "../components/Footer.tsx";
 import { getUserRoleName } from "../utils/auth";
+import { getMockUserFromToken, isMockAuthAvailable, mockUsers } from "../mock/auth.mock";
+import { mockOrders } from "../mock/reconstruction.mock";
 import '../resources/css/Admin.css';
 
 interface Role {
@@ -82,6 +84,39 @@ const formatDate = (value?: string | null) => {
 
 const formatAmount = (value?: number) => new Intl.NumberFormat("ru-RU").format(value || 0);
 
+const getMockAdminOrders = (status?: string, from?: string, to?: string): AdminOrder[] => {
+    let result = mockOrders.map((order) => ({
+        id: order.id,
+        building: {
+            name: order.building.name,
+            address: order.building.address,
+        },
+        creator: mockUsers.find((user) => user.id === order.creator_id) || mockUsers[1],
+        creator_id: order.creator_id,
+        status: order.status,
+        total_amount: order.total_amount,
+        collected_amount: order.collected_amount,
+        created_at: order.created_at,
+        completed_at: order.completed_at,
+    }));
+
+    if (status) {
+        result = result.filter((order) => order.status === status);
+    }
+
+    if (from) {
+        result = result.filter((order) => new Date(order.created_at || "") >= new Date(from));
+    }
+
+    if (to) {
+        const toDate = new Date(to);
+        toDate.setHours(23, 59, 59, 999);
+        result = result.filter((order) => new Date(order.created_at || "") <= toDate);
+    }
+
+    return result;
+};
+
 export default function Admin() {
     const token = localStorage.getItem("token");
     const authHeaders = useMemo(
@@ -111,6 +146,14 @@ export default function Admin() {
             setMe(data);
         } catch (error) {
             console.error(error);
+
+            if (isMockAuthAvailable) {
+                const mockUser = getMockUserFromToken(token);
+
+                if (mockUser) {
+                    setMe(mockUser);
+                }
+            }
         }
     }, [authHeaders, token]);
 
@@ -124,6 +167,10 @@ export default function Admin() {
             setUsers(data);
         } catch (error) {
             console.error(error);
+
+            if (isMockAuthAvailable) {
+                setUsers(mockUsers);
+            }
         }
     }, [authHeaders, token]);
 
@@ -148,7 +195,14 @@ export default function Admin() {
             setLastUpdatedAt(new Date());
         } catch (error) {
             console.error(error);
-            setOrdersError("Не удалось загрузить заявки");
+
+            if (isMockAuthAvailable) {
+                setOrders(getMockAdminOrders(statusFilter, fromDate, toDate));
+                setOrdersError(null);
+                setLastUpdatedAt(new Date());
+            } else {
+                setOrdersError("Не удалось загрузить заявки");
+            }
         } finally {
             setOrdersLoading(false);
         }
@@ -202,6 +256,16 @@ export default function Admin() {
             await loadOrders();
         } catch (error) {
             console.error(error);
+            if (isMockAuthAvailable) {
+                setOrders((previous) =>
+                    previous.map((order) =>
+                        order.id === orderId ? { ...order, status } : order
+                    )
+                );
+                setLastUpdatedAt(new Date());
+                setUpdatingOrderId(null);
+                return;
+            }
             const message = axios.isAxiosError<{ error?: string }>(error)
                 ? error.response?.data?.error || "Не удалось изменить статус заявки"
                 : "Не удалось изменить статус заявки";
@@ -222,6 +286,16 @@ export default function Admin() {
             await loadOrders();
         } catch (error) {
             console.error(error);
+            if (isMockAuthAvailable) {
+                setOrders((previous) =>
+                    previous.map((order) =>
+                        order.id === orderId ? { ...order, status: "formed" } : order
+                    )
+                );
+                setLastUpdatedAt(new Date());
+                setUpdatingOrderId(null);
+                return;
+            }
             const message = axios.isAxiosError<{ error?: string }>(error)
                 ? error.response?.data?.error || "Не удалось сформировать заявку"
                 : "Не удалось сформировать заявку";
@@ -244,6 +318,12 @@ export default function Admin() {
             await loadOrders();
         } catch (error) {
             console.error(error);
+            if (isMockAuthAvailable) {
+                setOrders((previous) => previous.filter((order) => order.id !== orderId));
+                setLastUpdatedAt(new Date());
+                setUpdatingOrderId(null);
+                return;
+            }
             const message = axios.isAxiosError<{ error?: string }>(error)
                 ? error.response?.data?.error || "Не удалось удалить заявку"
                 : "Не удалось удалить заявку";

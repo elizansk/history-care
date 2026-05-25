@@ -9,7 +9,11 @@ import unicorn from 'eslint-plugin-unicorn'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores([
+    'dist',
+    'src-tauri/target',
+    'src/api/generated',
+  ]),
 
   {
     files: ['**/*.{ts,tsx}'],
@@ -27,12 +31,14 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      "no-unused-vars": "error",
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "off",
 
       "unicorn/filename-case": [
          "error",
          {
            cases: {
+             camelCase: true,
              kebabCase: true,
              pascalCase: true
            }

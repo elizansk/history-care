@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from './store';
 import { setUser } from './store/auth-slice.ts';
 import { getUserRoleName } from './utils/auth';
+import { getMockUserFromToken, isMockAuthAvailable } from './mock/auth.mock';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
@@ -32,6 +33,15 @@ function App() {
   useEffect(() => {
     if (!token || user) return;
 
+    if (isMockAuthAvailable) {
+      const mockUser = getMockUserFromToken(token);
+
+      if (mockUser) {
+        dispatch(setUser(mockUser));
+        return;
+      }
+    }
+
     axios.get('/api/profile', {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -43,6 +53,14 @@ function App() {
     })
     .catch((err) => {
       console.error('Failed to load profile:', err);
+
+      if (isMockAuthAvailable) {
+        const mockUser = getMockUserFromToken(token);
+
+        if (mockUser) {
+          dispatch(setUser(mockUser));
+        }
+      }
     });
   }, [token, user, dispatch]);
 

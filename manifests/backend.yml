@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: history-care-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: history-care-backend
+  template:
+    metadata:
+      labels:
+        app: history-care-backend
+    spec:
+      initContainers:
+        - name: migrate
+          image: history-care-backend:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - until nc -z history-care-postgres 5432; do echo waiting for postgres; sleep 2; done; /app/history-care-migrate
+          env: &backend-env
+            - name: GO_ENV
+              value: production
+            - name: DB_HOST
+              value: history-care-postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: go_user
+            - name: DB_PASSWORD
+              value: password
+            - name: DB_NAME
+              value: historycare
+            - name: REDIS_HOST
+              value: history-care-redis:6379
+            - name: MINIO_HOST
+              value: history-care-minio:9000
+            - name: MINIO_KEY
+              value: admin
+            - name: MINIO_SECRET
+              value: password122
+      containers:
+        - name: history-care-backend
+          image: history-care-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env: *backend-env
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: history-care-backend
+spec:
+  selector:
+    app: history-care-backend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
