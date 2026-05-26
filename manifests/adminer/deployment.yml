@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: history-care-adminer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: history-care-adminer
+  template:
+    metadata:
+      labels:
+        app: history-care-adminer
+    spec:
+      containers:
+        - name: adminer
+          image: adminer:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ADMINER_DEFAULT_SERVER
+              value: history-care-postgres

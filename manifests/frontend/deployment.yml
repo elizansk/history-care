@@ -26,15 +26,3 @@ spec:
         - name: nginx-config
           configMap:
             name: history-care-conf
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: history-care-frontend
-spec:
-  selector:
-    app: history-care-frontend
-  ports:
-    - name: http
-      port: 80
-      targetPort: 80

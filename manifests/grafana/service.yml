@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: history-care-grafana
+spec:
+  selector:
+    app: history-care-grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000

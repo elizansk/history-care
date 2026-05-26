@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: history-care-grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: history-care-grafana
+  template:
+    metadata:
+      labels:
+        app: history-care-grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          ports:
+            - containerPort: 3000

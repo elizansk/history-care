@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: history-care-adminer-ingress
+spec:
+  rules:
+    - host: adminer.history-care.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: history-care-adminer
+                port:
+                  number: 8080

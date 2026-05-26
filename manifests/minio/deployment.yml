@@ -34,18 +34,3 @@ spec:
       volumes:
         - name: minio-data
           emptyDir: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: history-care-minio
-spec:
-  selector:
-    app: history-care-minio
-  ports:
-    - name: api
-      port: 9000
-      targetPort: 9000
-    - name: console
-      port: 9001
-      targetPort: 9001

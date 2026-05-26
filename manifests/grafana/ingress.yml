@@ -1,16 +1,16 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: history-care-ingress
+  name: history-care-grafana-ingress
 spec:
   rules:
-    - host: history-care.local
+    - host: grafana.history-care.local
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: history-care-frontend
+                name: history-care-grafana
                 port:
-                  number: 80
+                  number: 3000

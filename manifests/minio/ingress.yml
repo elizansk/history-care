@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: history-care-minio-ingress
+spec:
+  rules:
+    - host: minio.history-care.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: history-care-minio
+                port:
+                  number: 9000
+    - host: minio-console.history-care.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: history-care-minio
+                port:
+                  number: 9001

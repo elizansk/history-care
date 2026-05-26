@@ -48,15 +48,3 @@ spec:
           ports:
             - containerPort: 8080
           env: *backend-env
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: history-care-backend
-spec:
-  selector:
-    app: history-care-backend
-  ports:
-    - name: http
-      port: 8080
-      targetPort: 8080
