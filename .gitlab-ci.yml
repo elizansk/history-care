@@ -1,7 +1,10 @@
 stages:
   - test
+  #собрать Docker-образы
   - build
+  #загрузить образы в локальный Kubernetes-кластер kind
   - upload
+  #развернуть приложение в Kubernetes
   - deploy
 #Имена Docker-образов
 variables:
@@ -15,6 +18,9 @@ backend-test:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   script:
+  #Запускает временный Docker-контейнер,удалить контейнер после завершения
+  #Папка backend из проекта подключается внутрь контейнера как /src,Рабочая папка внутри контейнера — /src
+  #Используется Docker-образ с Go,Устанавливает git внутри контейнера
     - docker run --rm -v "$CI_PROJECT_DIR/backend:/src" -w /src golang:1.25-alpine sh -c "apk add --no-cache git && go test ./..."
 #Запускаются только для merge request
 frontend-test:
