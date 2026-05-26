@@ -33,6 +33,7 @@ func main() {
 	log.Println("Running migrations...")
 
 	if err := db.AutoMigrate(
+		&models.Role{},
 		&models.User{},
 		&models.City{},
 		&models.BuildingCategory{},
@@ -46,7 +47,52 @@ func main() {
 		log.Fatal("failed to migrate database:", err)
 	}
 
+	if err := seed(db); err != nil {
+		log.Fatal("failed to seed database:", err)
+	}
+
 	log.Println("Migration completed!")
+}
+
+func seed(db *gorm.DB) error {
+	log.Println("Seeding reference data...")
+
+	for _, role := range []models.Role{
+		{Name: "Admin"},
+		{Name: "City"},
+		{Name: "User"},
+	} {
+		if err := db.Where("name = ?", role.Name).FirstOrCreate(&role).Error; err != nil {
+			return err
+		}
+	}
+
+	for _, city := range []models.City{
+		{Name: "Норильск"},
+		{Name: "Красноярск"},
+		{Name: "Дудинка"},
+		{Name: "Талнах"},
+		{Name: "Кайеркан"},
+	} {
+		if err := db.Where("name = ?", city.Name).FirstOrCreate(&city).Error; err != nil {
+			return err
+		}
+	}
+
+	for _, category := range []models.BuildingCategory{
+		{Name: "Памятник архитектуры"},
+		{Name: "Историческое здание"},
+		{Name: "Объект культурного наследия"},
+		{Name: "Промышленное наследие"},
+		{Name: "Культурное учреждение"},
+	} {
+		if err := db.Where("name = ?", category.Name).FirstOrCreate(&category).Error; err != nil {
+			return err
+		}
+	}
+
+	log.Println("Seed data completed!")
+	return nil
 }
 
 func getDSN() string {

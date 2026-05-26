@@ -29,6 +29,7 @@ func NewRepository(dsn string) (*Repository, error) {
 	}
 
 	if err := db.AutoMigrate(
+		&models.Role{},
 		&models.User{},
 		&models.City{},
 		&models.BuildingCategory{},
