@@ -30,7 +30,7 @@ frontend-test:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   script:
-    - docker run --rm -v "$CI_PROJECT_DIR/frontend:/app" -w /app node:20 sh -c "npm install && npm run build"
+    - docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$CI_PROJECT_DIR/frontend:/app" -w /app node:20 sh -c "npm install --cache /tmp/.npm && npm run build"
 #build запускается только на main
 #собирает backend и frontend images с тегом коммита
 build:
