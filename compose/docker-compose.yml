@@ -72,7 +72,7 @@ services:
 
   app:
     build:
-      context: ..
+      context: ../backend
       dockerfile: Dockerfile
     container_name: app
     ports:
