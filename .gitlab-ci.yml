@@ -15,8 +15,7 @@ backend-test:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   script:
-    - cd backend
-    - go test ./...
+    - docker run --rm -v "$CI_PROJECT_DIR/backend:/src" -w /src golang:1.25-alpine sh -c "apk add --no-cache git && go test ./..."
 #Запускаются только для merge request
 frontend-test:
   stage: test
@@ -25,9 +24,7 @@ frontend-test:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   script:
-    - cd frontend
-    - npm install
-    - npm run build 
+    - docker run --rm -v "$CI_PROJECT_DIR/frontend:/app" -w /app node:20 sh -c "npm install && npm run build"
 #build запускается только на main
 #собирает backend и frontend images с тегом коммита
 build:
