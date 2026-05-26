@@ -3,11 +3,11 @@ stages:
   - build
   - upload
   - deploy
-
+#Имена Docker-образов
 variables:
   BACKEND_IMAGE_NAME: history-care-backend
   FRONTEND_IMAGE_NAME: history-care-frontend
-
+#Запускаются только для merge request
 backend-test:
   stage: test
   tags:
@@ -17,7 +17,7 @@ backend-test:
   script:
     - cd backend
     - go test ./...
-
+#Запускаются только для merge request
 frontend-test:
   stage: test
   tags:
@@ -28,7 +28,8 @@ frontend-test:
     - cd frontend
     - npm install
     - npm run build 
-
+#build запускается только на main
+#собирает backend и frontend images с тегом коммита
 build:
   stage: build
   tags:
@@ -38,7 +39,7 @@ build:
   script:
     - docker build -t "$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" backend
     - docker build -t "$FRONTEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" frontend
-
+#upload загружает images в kind
 upload:
   stage: upload
   tags:
@@ -50,7 +51,9 @@ upload:
   script:
     - kind load docker-image "$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
     - kind load docker-image "$FRONTEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
-
+#создает/обновляет ConfigMap, применяет manifests
+#обновляет images в deployments
+#ждет rollout и показывает pods
 deploy:
   stage: deploy
   tags:
