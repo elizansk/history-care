@@ -1,38 +1,57 @@
 apiVersion: apps/v1
+#отвечает за запуск и обновление pod’ов
 kind: Deployment
+#Имя Deployment’а в Kubernetes
 metadata:
   name: history-care-backend
 spec:
   replicas: 1
   selector:
     matchLabels:
+    #ищет pod’ы с label
       app: history-care-backend
+      #какие контейнеры запускать, какие переменные окружения дать, какие порты открыть
   template:
+  #Эти labels будут у pod’а
     metadata:
       labels:
         app: history-care-backend
+        #Описание содержимого pod
     spec:
+    #контейнеры, которые запускаются до основного backend-контейнера
       initContainers:
+      #перед запуском backend сначала выполняется подготовка БД
         - name: migrate
           image: history-care-backend:latest
           imagePullPolicy: IfNotPresent
           command:
+          #Команда запускается через shell
             - /bin/sh
             - -c
+            #Проверять, доступен ли Postgres по адресу history-care-postgres:5432
+#Пока Postgres не готов — писать waiting for postgres и ждать 2 секунды
+#Когда Postgres стал доступен — запустить миграции
             - until nc -z history-care-postgres 5432; do echo waiting for postgres; sleep 2; done; /app/history-care-migrate
+         #список переменных окружения для backend
           env: &backend-env
+          #Приложение запускается в production-режиме
             - name: GO_ENV
               value: production
+              #Адрес базы данных внутри Kubernetes.
+#Backend обращается не к localhost, а к Service history-care-postgres
             - name: DB_HOST
               value: history-care-postgres
+              #Порт Postgres
             - name: DB_PORT
               value: "5432"
+              #Пользователь базы данных
             - name: DB_USER
               value: go_user
             - name: DB_PASSWORD
               value: password
             - name: DB_NAME
               value: historycare
+              #Адрес Redis внутри Kubernetes
             - name: REDIS_HOST
               value: history-care-redis:6379
             - name: MINIO_HOST
@@ -41,8 +60,11 @@ spec:
               value: admin
             - name: MINIO_SECRET
               value: password122
+              #Здесь начинается основной контейнер pod’а
+#Он запустится только после успешного завершения initContainer
       containers:
         - name: history-care-backend
+        #В манифесте стоит latest, но в pipeline он заменяется на тег коммита
           image: history-care-backend:latest
           imagePullPolicy: IfNotPresent
           ports:

@@ -1,11 +1,18 @@
+# Базовая версия API для Service
 apiVersion: v1
+# Service дает стабильный внутренний адрес для backend pod'ов
 kind: Service
 metadata:
+  # Имя сервиса, по нему к backend обращаются другие ресурсы
   name: history-care-backend
 spec:
+  # Service направляет трафик на pod'ы с таким label
   selector:
     app: history-care-backend
   ports:
+    # HTTP-порт backend'а
     - name: http
+      # Порт сервиса внутри кластера
       port: 8080
+      # Порт контейнера backend'а
       targetPort: 8080
