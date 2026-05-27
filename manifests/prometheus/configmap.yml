@@ -1,15 +1,22 @@
+# ConfigMap хранит конфигурацию Prometheus
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  # Имя ConfigMap, которое подключается в Deployment Prometheus
   name: history-care-prometheus-conf
 data:
+  # Основной конфигурационный файл Prometheus
   prometheus.yml: |
     global:
+      # Как часто Prometheus собирает метрики.
       scrape_interval: 5s
 
     scrape_configs:
+      # Набор настроек для сбора метрик backend'а.
       - job_name: "backend"
+        # Endpoint backend'а, где отдаются метрики.
         metrics_path: /metrics
         static_configs:
           - targets:
+              # Kubernetes Service backend'а внутри кластера.
               - "history-care-backend:8080"
