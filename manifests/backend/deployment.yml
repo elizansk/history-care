@@ -60,6 +60,16 @@ spec:
               value: admin
             - name: MINIO_SECRET
               value: password122
+            - name: FRONTEND_URL
+              value: http://history-care.local
+            - name: STRIPE_CURRENCY
+              value: rub
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: history-care-stripe
+                  key: secret-key
+                  optional: true
               #Здесь начинается основной контейнер pod’а
 #Он запустится только после успешного завершения initContainer
       containers:

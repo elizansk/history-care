@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: history-care-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: history-care-ai
+  template:
+    metadata:
+      labels:
+        app: history-care-ai
+    spec:
+      containers:
+        - name: history-care-ai
+          image: history-care-ai:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: docker
+            - name: PORT
+              value: "3000"
+            - name: OLLAMA_BASE_URL
+              value: http://host.docker.internal:11434
+            - name: OLLAMA_MODEL
+              value: gpt-oss:20b-cloud

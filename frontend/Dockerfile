@@ -3,7 +3,9 @@ FROM node:20 AS build
 WORKDIR /app
 #Build-переменная для Vite пустая потому что забросы через nginx
 ARG VITE_API_URL=
+ARG VITE_AI_API_URL=/ai
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_AI_API_URL=$VITE_AI_API_URL
 #Устанавливаем зависимости, копируем frontend, собираем production build
 COPY package*.json ./
 RUN npm install

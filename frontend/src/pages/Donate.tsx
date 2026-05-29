@@ -7,7 +7,7 @@ import NavigationBar from '../components/NavigationBar';
 import Breadcrumbs from '../components/Breadcrumbs';
 import Footer from '../components/Footer';
 import { getFormedOrders, getOrderById } from '../api/orders';
-import { submitDonation } from '../api/donations';
+import { createDonationCheckout, submitDonation } from '../api/donations';
 import type { DonationRequest } from '../api/donations';
 import { getUser } from '../utils/auth';
 import type { MockOrder } from '../api/orders';
@@ -21,7 +21,7 @@ const Donate: React.FC = () => {//создаем реакт компонент
   const [loading, setLoading] = useState(true);//идет ли загрузка
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [showQR, setShowQR] = useState(false);
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [user, setUser] = useState<unknown>(null);
   const [similarOrders, setSimilarOrders] = useState<MockOrder[]>([]);
   const [similarLoading, setSimilarLoading] = useState(false);
@@ -52,6 +52,48 @@ const Donate: React.FC = () => {//создаем реакт компонент
     };
     fetchOrder();
   }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    const storageKey = `history-care:pending-donation:${id}`;
+
+    if (paymentStatus === 'cancel') {
+      sessionStorage.removeItem(storageKey);
+      window.history.replaceState({}, '', window.location.pathname);
+      setError('Оплата была отменена');
+      return;
+    }
+
+    if (paymentStatus !== 'success') return;
+    if (!order) return;
+
+    const rawDonation = sessionStorage.getItem(storageKey);
+    if (!rawDonation) {
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+
+    sessionStorage.removeItem(storageKey);
+    window.history.replaceState({}, '', window.location.pathname);
+
+    const completeDonation = async () => {
+      try {
+        const donationData = JSON.parse(rawDonation) as DonationRequest;
+        await submitDonation(donationData);
+        const updatedOrder = await getOrderById(parseInt(id));
+        setOrder(updatedOrder);
+        setShowPaymentSuccess(true);
+        loadSimilarOrders();
+      } catch (err) {
+        setError('Оплата прошла, но не удалось сохранить пожертвование: ' + (err as Error).message);
+      }
+    };
+
+    completeDonation();
+  }, [id, order]);
 
   if (loading && id) return <div className="text-center p-5">Загрузка...</div>;//если грузится показываем загрузку
   if (error && id) return <Alert variant="danger">{error}</Alert>;//ошибка отображ
@@ -187,11 +229,11 @@ const Donate: React.FC = () => {//создаем реакт компонент
         donationData.email = formData.email;
       }
       console.log('Submitting donation:', donationData);
-      await submitDonation(donationData);
-      setShowQR(true);
-      loadSimilarOrders();
+      const checkout = await createDonationCheckout(donationData);
+      sessionStorage.setItem(`history-care:pending-donation:${id}`, JSON.stringify(donationData));
+      window.location.href = checkout.url;
     } catch (err) {
-      alert('Ошибка при отправке пожертвования: ' + (err as Error).message);
+      alert('Ошибка при переходе к оплате: ' + (err as Error).message);
     } finally {
       setSubmitting(false);
     }
@@ -316,18 +358,12 @@ const Donate: React.FC = () => {//создаем реакт компонент
         </div>
       </Container>
 
-      <Modal show={showQR} onHide={() => setShowQR(false)} size="lg" centered>
+      <Modal show={showPaymentSuccess} onHide={() => setShowPaymentSuccess(false)} size="lg" centered>
         <Modal.Header closeButton>
-          <Modal.Title>QR Код для оплаты</Modal.Title>
+          <Modal.Title>Пожертвование принято</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center">
-          <img 
-            src="http://localhost:9000/data/qr.jpeg" 
-            alt="QR Code" 
-            className="img-fluid"
-            style={{ maxWidth: '400px' }}
-          />
-          <p className="mt-3">Отсканируйте QR код для завершения платежа</p>
+          <p className="mt-3">Спасибо! Платеж прошел, и сумма добавлена к заявке.</p>
 
           <section className="similar-section mt-4 text-start">
             <h5>Похожие заявки</h5>

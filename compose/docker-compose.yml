@@ -89,6 +89,9 @@ services:
       MINIO_HOST: minio
       MINIO_KEY: "admin"
       MINIO_SECRET: "password122"
+      FRONTEND_URL: http://localhost
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_CURRENCY: ${STRIPE_CURRENCY:-rub}
 
     volumes:
       - ../frontend:/app/frontend
@@ -100,6 +103,20 @@ services:
       migrate :
         condition: service_completed_successfully
 
+  backend-ai:
+    build:
+      context: ../backend_ai
+      dockerfile: Dockerfile
+    container_name: historycare_ai
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: docker
+      PORT: 3000
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: gpt-oss:20b-cloud
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   frontend:
     build: ../frontend
@@ -108,6 +125,7 @@ services:
       - "80:80"
     depends_on:
       - app
+      - backend-ai
 
   prometheus:
     image: prom/prometheus

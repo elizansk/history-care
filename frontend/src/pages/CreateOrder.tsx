@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import NavigationBar from "../components/NavigationBar";
 import Footer from "../components/Footer";
@@ -55,6 +56,8 @@ export default function CreateOrder() {
   // форма здания хранится локально
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [isDescriptionGenerating, setIsDescriptionGenerating] = useState(false);
+  const [descriptionGenerationError, setDescriptionGenerationError] = useState<string | null>(null);
   const [address, setAddress] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [cityId, setCityId] = useState<number | "">("");
@@ -186,6 +189,48 @@ export default function CreateOrder() {
       console.error(err);
       alert("Ошибка при создании/обновлении здания");
       return false;
+    }
+  };
+
+  const generateBuildingDescription = async () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setDescriptionGenerationError("Введите название здания");
+      return;
+    }
+
+    const aiApiUrl = import.meta.env.VITE_AI_API_URL || "/ai";
+
+    setIsDescriptionGenerating(true);
+    setDescriptionGenerationError(null);
+
+    try {
+      const { data } = await axios.post<{ description: string; category_id?: number | null }>(
+        `${aiApiUrl}/generate-building-description`,
+        {
+          name: trimmedName,
+          categories: categories.map((category) => ({
+            id: category.id,
+            name: category.name,
+          })),
+        }
+      );
+
+      setDescription(data.description);
+      if (
+        typeof data.category_id === "number" &&
+        categories.some((category) => category.id === data.category_id)
+      ) {
+        setCategoryId(data.category_id);
+      }
+    } catch (err) {
+      console.error(err);
+      const message = axios.isAxiosError<{ error?: string }>(err)
+        ? err.response?.data?.error || "Не удалось сгенерировать описание"
+        : "Не удалось сгенерировать описание";
+      setDescriptionGenerationError(message);
+    } finally {
+      setIsDescriptionGenerating(false);
     }
   };
 
@@ -345,12 +390,15 @@ export default function CreateOrder() {
               categoryId={categoryId}
               cityId={cityId}
               files={files}
+              isDescriptionGenerating={isDescriptionGenerating}
+              descriptionGenerationError={descriptionGenerationError}
               onNameChange={setName}
               onDescriptionChange={setDescription}
               onAddressChange={setAddress}
               onCategoryChange={setCategoryId}
               onCityChange={setCityId}
               onFilesChange={setFiles}
+              onGenerateDescription={generateBuildingDescription}
             />
           )}
 

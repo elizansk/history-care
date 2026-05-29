@@ -10,6 +10,7 @@ stages:
 variables:
   BACKEND_IMAGE_NAME: history-care-backend
   FRONTEND_IMAGE_NAME: history-care-frontend
+  AI_IMAGE_NAME: history-care-ai
 #Запускаются только для merge request
 backend-test:
   stage: test
@@ -42,6 +43,7 @@ build:
   script:
     - docker build -t "$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" backend
     - docker build -t "$FRONTEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" frontend
+    - docker build -t "$AI_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" backend_ai
 #upload загружает images в kind
 upload:
   stage: upload
@@ -54,6 +56,7 @@ upload:
   script:
     - kind load docker-image "$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
     - kind load docker-image "$FRONTEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+    - kind load docker-image "$AI_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
 #создает/обновляет ConfigMap, применяет manifests
 #обновляет images в deployments
 #ждет rollout и показывает pods
@@ -72,6 +75,8 @@ deploy:
     - kubectl apply -R -f manifests/
     - kubectl set image deployment/history-care-backend history-care-backend="$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" migrate="$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
     - kubectl set image deployment/history-care-frontend history-care-frontend="$FRONTEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+    - kubectl set image deployment/history-care-ai history-care-ai="$AI_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
     - kubectl rollout status deployment/history-care-backend
     - kubectl rollout status deployment/history-care-frontend
+    - kubectl rollout status deployment/history-care-ai
     - kubectl get pods

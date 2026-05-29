@@ -24,6 +24,14 @@
   margin-bottom: 24px;
 }
 
+.admin-service-form {
+  display: grid;
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto 40px;
+  padding: 20px;
+}
+
 .admin-filters-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -37,10 +45,20 @@
 }
 
 .admin-filter-field input,
-.admin-filter-field select {
+.admin-filter-field select,
+.admin-filter-field textarea {
   padding: 10px;
   border-radius: 8px;
   border: 1px solid #ccc;
+}
+
+.admin-filter-field textarea {
+  resize: vertical;
+}
+
+.admin-service-form-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .admin-updated-at {
@@ -51,6 +69,11 @@
 
 .admin-error {
   color: red;
+  text-align: center;
+}
+
+.admin-success {
+  color: #1b7f3a;
   text-align: center;
 }
 
@@ -137,7 +160,8 @@
   }
 
   .admin-profile-card,
-  .admin-filters-card {
+  .admin-filters-card,
+  .admin-service-form {
     padding: 18px;
   }
 }

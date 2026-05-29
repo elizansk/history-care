@@ -158,8 +158,7 @@ func (h *Handler) GetServiceByID(c *gin.Context) {
 // @Produce json
 // @Param name formData string true "Service name"
 // @Param description formData string false "Description"
-// @Param image formData file true "Image file"
-// @Param video formData file false "Video file"
+// @Param image formData file true "Service icon file"
 // @Success 201 {object} models.Service
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -182,9 +181,7 @@ func (h *Handler) CreateService(c *gin.Context) {
 		return
 	}
 
-	videoFile, _ := c.FormFile("video") // optional
-
-	var imageURL, videoURL string
+	var imageURL string
 
 	// 3. upload IMAGE
 	imgSrc, err := imageFile.Open()
@@ -218,43 +215,13 @@ func (h *Handler) CreateService(c *gin.Context) {
 
 	imageURL = "http://localhost:9000/services/" + imgName
 
-	// 4. upload VIDEO (optional)
-	if videoFile != nil {
-
-		videoSrc, err := videoFile.Open()
-		if err == nil {
-			defer func() {
-				if err := videoSrc.Close(); err != nil {
-					log.Println(err)
-				}
-			}()
-
-			videoName := fmt.Sprintf("service_video_%d_%s", time.Now().UnixNano(), videoFile.Filename)
-
-			_, err = storage.MinioClient.PutObject(
-				context.Background(),
-				"services",
-				videoName,
-				videoSrc,
-				videoFile.Size,
-				minio.PutObjectOptions{
-					ContentType: videoFile.Header.Get("Content-Type"),
-				},
-			)
-
-			if err == nil {
-				videoURL = "http://localhost:9000/services/" + videoName
-			}
-		}
-	}
-
 	// 5. save to DB
 	service := models.Service{
 		Name:        name,
 		Description: description,
 		Status:      "active",
 		ImageUrl:    imageURL,
-		VideoUrl:    videoURL,
+		VideoUrl:    "",
 	}
 
 	if err := h.repo.CreateService(&service); err != nil {

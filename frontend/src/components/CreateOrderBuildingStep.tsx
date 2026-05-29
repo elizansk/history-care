@@ -1,4 +1,4 @@
-import { Card, Form, Stack, Row, Col } from "react-bootstrap";
+import { Alert, Button, Card, Form, Stack, Row, Col, Spinner } from "react-bootstrap";
 import type { ChangeEvent } from "react";
 
 interface Category {
@@ -21,12 +21,15 @@ interface Props {
   categoryId: number | "";
   cityId: number | "";
   files: File[];
+  isDescriptionGenerating?: boolean;
+  descriptionGenerationError?: string | null;
   onNameChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onAddressChange: (value: string) => void;
   onCategoryChange: (value: number | "") => void;
   onCityChange: (value: number | "") => void;
   onFilesChange: (files: File[]) => void;
+  onGenerateDescription: () => void;
 }
 
 export default function CreateOrderBuildingStep({
@@ -39,12 +42,15 @@ export default function CreateOrderBuildingStep({
   categoryId,
   cityId,
   files,
+  isDescriptionGenerating = false,
+  descriptionGenerationError,
   onNameChange,
   onDescriptionChange,
   onAddressChange,
   onCategoryChange,
   onCityChange,
   onFilesChange,
+  onGenerateDescription,
 }: Props) {
   return (
     <Card className="mb-4 shadow-sm">
@@ -63,7 +69,29 @@ export default function CreateOrderBuildingStep({
           </Form.Group>
 
           <Form.Group controlId="buildingDescription">
-            <Form.Label>Описание здания</Form.Label>
+            <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+              <Form.Label className="mb-0">Описание здания</Form.Label>
+              <Button
+                type="button"
+                variant="outline-success"
+                size="sm"
+                onClick={onGenerateDescription}
+                disabled={isDescriptionGenerating || !name.trim()}
+              >
+                {isDescriptionGenerating ? (
+                  <>
+                    <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> Генерация...
+                  </>
+                ) : (
+                  "Сгенерировать описание и категорию"
+                )}
+              </Button>
+            </div>
+            {descriptionGenerationError && (
+              <Alert variant="danger" className="py-2">
+                {descriptionGenerationError}
+              </Alert>
+            )}
             <Form.Control
               as="textarea"
               rows={4}

@@ -113,7 +113,8 @@ func StartServer() {
 		baseAPI.GET("/orders/formed/:id", h.GetDonatableOrderByID)
 		baseAPI.GET("/categories", h.GetCategories)
 		baseAPI.POST("/donations", h.PostDonate) // POST donation
-		baseAPI.GET("/cities", h.GetCities)      //вызывает все города
+		baseAPI.POST("/donations/checkout", h.PostDonationCheckout)
+		baseAPI.GET("/cities", h.GetCities) //вызывает все города
 	}
 
 	// 3. Protected API для всех авторизованных пользователей

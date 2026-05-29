@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Button } from "react-bootstrap";
 import NavigationBar from "../components/NavigationBar.tsx";
@@ -45,6 +45,12 @@ interface AdminOrder {
     collected_amount?: number;
     created_at?: string;
     completed_at?: string | null;
+}
+
+interface ServiceFormState {
+    name: string;
+    description: string;
+    icon: File | null;
 }
 
 const POLLING_INTERVAL_MS = 5000;//обновление каждые 5 секунд
@@ -135,6 +141,14 @@ export default function Admin() {
     const [ordersError, setOrdersError] = useState<string | null>(null);
     const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
     const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+    const [serviceForm, setServiceForm] = useState<ServiceFormState>({
+        name: "",
+        description: "",
+        icon: null,
+    });
+    const [serviceSubmitting, setServiceSubmitting] = useState(false);
+    const [serviceMessage, setServiceMessage] = useState<string | null>(null);
+    const [serviceError, setServiceError] = useState<string | null>(null);
 
     const loadProfile = useCallback(async () => {
         if (!token) return;
@@ -333,6 +347,53 @@ export default function Admin() {
         }
     };
 
+    const handleCreateService = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        if (!serviceForm.name.trim()) {
+            setServiceError("Введите название услуги");
+            return;
+        }
+
+        if (!serviceForm.icon) {
+            setServiceError("Добавьте иконку услуги");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("name", serviceForm.name.trim());
+        formData.append("description", serviceForm.description.trim());
+        formData.append("image", serviceForm.icon);
+
+        setServiceSubmitting(true);
+        setServiceError(null);
+        setServiceMessage(null);
+
+        try {
+            await axios.post("/api/services", formData, {
+                headers: {
+                    ...authHeaders,
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+            localStorage.removeItem("history-care:services");
+            setServiceForm({
+                name: "",
+                description: "",
+                icon: null,
+            });
+            setServiceMessage("Услуга создана");
+        } catch (error) {
+            console.error(error);
+            const message = axios.isAxiosError<{ error?: string }>(error)
+                ? error.response?.data?.error || "Не удалось создать услугу"
+                : "Не удалось создать услугу";
+            setServiceError(message);
+        } finally {
+            setServiceSubmitting(false);
+        }
+    };
+
     const renderOrderActions = (order: AdminOrder) => {//кнопки смены статусов
         const isUpdating = updatingOrderId === order.id;
 
@@ -418,6 +479,65 @@ export default function Admin() {
                     <p>Email: {me.email}</p>
                     <p>Роль: {getUserRoleName(me)}</p>
                 </div>
+
+                <h3 className="admin-section-title">
+                    Создание услуги
+                </h3>
+
+                <form className="card admin-service-form" onSubmit={handleCreateService}>
+                    <label className="admin-filter-field">
+                        Название
+                        <input
+                            type="text"
+                            value={serviceForm.name}
+                            onChange={(event) =>
+                                setServiceForm((previous) => ({
+                                    ...previous,
+                                    name: event.target.value,
+                                }))
+                            }
+                            placeholder="Например, реставрация фасада"
+                        />
+                    </label>
+                    <label className="admin-filter-field">
+                        Описание
+                        <textarea
+                            value={serviceForm.description}
+                            onChange={(event) =>
+                                setServiceForm((previous) => ({
+                                    ...previous,
+                                    description: event.target.value,
+                                }))
+                            }
+                            placeholder="Краткое описание услуги"
+                            rows={4}
+                        />
+                    </label>
+                    <label className="admin-filter-field">
+                        Иконка
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(event) =>
+                                setServiceForm((previous) => ({
+                                    ...previous,
+                                    icon: event.target.files?.[0] || null,
+                                }))
+                            }
+                        />
+                    </label>
+                    {serviceError && <p className="admin-error">{serviceError}</p>}
+                    {serviceMessage && <p className="admin-success">{serviceMessage}</p>}
+                    <div className="admin-service-form-actions">
+                        <Button
+                            type="submit"
+                            variant="success"
+                            disabled={serviceSubmitting}
+                        >
+                            {serviceSubmitting ? "Создание..." : "Создать услугу"}
+                        </Button>
+                    </div>
+                </form>
 
                 <h3 className="admin-section-title">
                     Заявки

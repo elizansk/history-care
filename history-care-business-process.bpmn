@@ -1,449 +1,576 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_HistoryCare" targetNamespace="https://history-care.local/bpmn">
   <bpmn:collaboration id="Collaboration_HistoryCare">
-    <bpmn:participant id="Participant_HistoryCare" name="Бизнес-процесс фонда реконструкции исторических зданий" processRef="Process_HistoryCare" />
+    <bpmn:participant id="Participant_HistoryCare" name="History Care: работа пользователей, заявок, услуг, пожертвований и модерации" processRef="Process_HistoryCare" />
   </bpmn:collaboration>
 
-  <bpmn:process id="Process_HistoryCare" name="Сбор средств и управление заявками на реконструкцию" isExecutable="false">
+  <bpmn:process id="Process_HistoryCare" name="Полный бизнес-процесс приложения History Care" isExecutable="false">
     <bpmn:laneSet id="LaneSet_HistoryCare">
-      <bpmn:lane id="Lane_Guest" name="Гость">
+      <bpmn:lane id="Lane_Guest" name="Неавторизованный пользователь">
         <bpmn:flowNodeRef>Start_OpenSite</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Task_BrowseBuildings</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Task_OpenBuilding</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Gateway_SelectGoal</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_OpenHome</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_BrowsePublicOrders</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_FilterPublicOrders</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ViewPublicOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_GuestGoal</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_GuestEnterDonation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_GuestOpenAuth</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_GuestCanceledPayment</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_GuestDonationSaved</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_Donor" name="Пользователь / жертвователь">
-        <bpmn:flowNodeRef>Task_UserAuth</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Task_MakeDonation</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>End_DonationSaved</bpmn:flowNodeRef>
+      <bpmn:lane id="Lane_User" name="Авторизованный пользователь">
+        <bpmn:flowNodeRef>Task_UserRegisterOrLogin</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_UserOpenProfile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_UserEditProfile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_UserBrowseOrders</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_UserEnterDonation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_UserProfileUpdated</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_UserDonationSaved</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_City" name="Представитель города">
-        <bpmn:flowNodeRef>Task_CityAuth</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Task_CreateDraft</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Task_AddServices</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Task_FormOrder</bpmn:flowNodeRef>
+      <bpmn:lane id="Lane_City" name="Администрация города (City)">
+        <bpmn:flowNodeRef>Task_CityRegisterOrLogin</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CityOpenProfile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CityCreateBuilding</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CityGenerateDescription</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CityCreateDraft</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CitySelectServices</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CitySubmitOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CityOpenMyOrders</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_CityOrderAction</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CityEditDraft</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CityDeleteDraft</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_CityOrderSent</bpmn:flowNodeRef>
       </bpmn:lane>
-      <bpmn:lane id="Lane_Admin" name="Администратор">
-        <bpmn:flowNodeRef>Task_AdminOpenList</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Task_BackendFilters</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Task_CreatorFilter</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Task_ShortPolling</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Task_ChangeStatus</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Gateway_StatusDecision</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>End_Rejected</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>End_Deleted</bpmn:flowNodeRef>
+      <bpmn:lane id="Lane_Admin" name="Администратор системы">
+        <bpmn:flowNodeRef>Task_AdminLogin</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AdminOpenPanel</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AdminManageServices</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AdminViewUsers</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AdminFilterOrders</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AdminReviewOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_AdminDecision</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AdminReturnDraft</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AdminRejectOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AdminDeleteOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AdminCreateOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_AdminServiceManaged</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_AdminUsersViewed</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_OrderPublished</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_OrderRejected</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_OrderDeleted</bpmn:flowNodeRef>
       </bpmn:lane>
     </bpmn:laneSet>
 
-    <bpmn:dataStoreReference id="DataStore_Users" name="Накопитель: пользователи и роли" />
-    <bpmn:dataStoreReference id="DataStore_Buildings" name="Накопитель: исторические здания" />
-    <bpmn:dataStoreReference id="DataStore_Files" name="Накопитель: медиафайлы / MinIO" />
+    <bpmn:dataStoreReference id="DataStore_Users" name="Накопитель: пользователи, роли, JWT" />
+    <bpmn:dataStoreReference id="DataStore_CitiesCategories" name="Накопитель: города и категории" />
+    <bpmn:dataStoreReference id="DataStore_Buildings" name="Накопитель: здания" />
+    <bpmn:dataStoreReference id="DataStore_Media" name="Накопитель: медиафайлы MinIO" />
     <bpmn:dataStoreReference id="DataStore_Services" name="Накопитель: услуги реконструкции" />
-    <bpmn:dataStoreReference id="DataStore_Orders" name="Накопитель: заявки" />
+    <bpmn:dataStoreReference id="DataStore_Orders" name="Накопитель: заявки, статусы, суммы" />
     <bpmn:dataStoreReference id="DataStore_Donations" name="Накопитель: пожертвования" />
+    <bpmn:dataStoreReference id="DataStore_Stripe" name="Накопитель: Stripe Checkout Sessions" />
+    <bpmn:dataStoreReference id="DataStore_AI" name="Накопитель: AI/Ollama ответы" />
 
-    <bpmn:startEvent id="Start_OpenSite" name="Открытие сайта">
-      <bpmn:outgoing>Flow_Start_Browse</bpmn:outgoing>
+    <bpmn:startEvent id="Start_OpenSite" name="Пользователь открывает сайт">
+      <bpmn:outgoing>Flow_Start_OpenHome</bpmn:outgoing>
     </bpmn:startEvent>
 
-    <bpmn:task id="Task_BrowseBuildings" name="Просмотреть каталог исторических зданий">
-      <bpmn:incoming>Flow_Start_Browse</bpmn:incoming>
-      <bpmn:outgoing>Flow_Browse_Open</bpmn:outgoing>
+    <bpmn:task id="Task_OpenHome" name="Просмотреть главную страницу">
+      <bpmn:incoming>Flow_Start_OpenHome</bpmn:incoming>
+      <bpmn:outgoing>Flow_OpenHome_BrowsePublicOrders</bpmn:outgoing>
     </bpmn:task>
 
-    <bpmn:task id="Task_OpenBuilding" name="Открыть карточку объекта / заявки">
-      <bpmn:incoming>Flow_Browse_Open</bpmn:incoming>
-      <bpmn:incoming>Flow_Status_Public</bpmn:incoming>
-      <bpmn:outgoing>Flow_Open_Goal</bpmn:outgoing>
+    <bpmn:task id="Task_BrowsePublicOrders" name="Открыть каталог опубликованных заявок">
+      <bpmn:incoming>Flow_OpenHome_BrowsePublicOrders</bpmn:incoming>
+      <bpmn:outgoing>Flow_BrowsePublicOrders_Filter</bpmn:outgoing>
     </bpmn:task>
 
-    <bpmn:exclusiveGateway id="Gateway_SelectGoal" name="Что хочет сделать пользователь?">
-      <bpmn:incoming>Flow_Open_Goal</bpmn:incoming>
-      <bpmn:outgoing>Flow_Goal_Donate</bpmn:outgoing>
-      <bpmn:outgoing>Flow_Goal_CreateOrder</bpmn:outgoing>
-      <bpmn:outgoing>Flow_Goal_Admin</bpmn:outgoing>
+    <bpmn:task id="Task_FilterPublicOrders" name="Фильтровать заявки по городу, категории и датам">
+      <bpmn:incoming>Flow_BrowsePublicOrders_Filter</bpmn:incoming>
+      <bpmn:outgoing>Flow_Filter_ViewPublicOrder</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_ViewPublicOrder" name="Открыть карточку здания и список услуг">
+      <bpmn:incoming>Flow_Filter_ViewPublicOrder</bpmn:incoming>
+      <bpmn:outgoing>Flow_ViewPublicOrder_GuestGoal</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_GuestGoal" name="Что сделать дальше?">
+      <bpmn:incoming>Flow_ViewPublicOrder_GuestGoal</bpmn:incoming>
+      <bpmn:outgoing>Flow_GuestGoal_Donate</bpmn:outgoing>
+      <bpmn:outgoing>Flow_GuestGoal_Auth</bpmn:outgoing>
     </bpmn:exclusiveGateway>
 
-    <bpmn:task id="Task_UserAuth" name="Войти или зарегистрироваться">
-      <bpmn:incoming>Flow_Goal_Donate</bpmn:incoming>
-      <bpmn:outgoing>Flow_UserAuth_Donation</bpmn:outgoing>
+    <bpmn:task id="Task_GuestEnterDonation" name="Ввести сумму, имя и email для доната">
+      <bpmn:incoming>Flow_GuestGoal_Donate</bpmn:incoming>
+      <bpmn:outgoing>Flow_GuestDonation_CreateCheckout</bpmn:outgoing>
     </bpmn:task>
 
-    <bpmn:task id="Task_MakeDonation" name="Выбрать сумму и отправить пожертвование">
-      <bpmn:incoming>Flow_UserAuth_Donation</bpmn:incoming>
-      <bpmn:outgoing>Flow_Donation_End</bpmn:outgoing>
+    <bpmn:task id="Task_GuestOpenAuth" name="Перейти к регистрации или входу">
+      <bpmn:incoming>Flow_GuestGoal_Auth</bpmn:incoming>
+      <bpmn:outgoing>Flow_OpenAuth_UserAuth</bpmn:outgoing>
+      <bpmn:outgoing>Flow_OpenAuth_CityAuth</bpmn:outgoing>
+      <bpmn:outgoing>Flow_OpenAuth_AdminAuth</bpmn:outgoing>
     </bpmn:task>
 
-    <bpmn:endEvent id="End_DonationSaved" name="Пожертвование сохранено">
-      <bpmn:incoming>Flow_Donation_End</bpmn:incoming>
+    <bpmn:task id="Task_UserRegisterOrLogin" name="Зарегистрироваться или войти как пользователь">
+      <bpmn:incoming>Flow_OpenAuth_UserAuth</bpmn:incoming>
+      <bpmn:outgoing>Flow_UserAuth_Profile</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_UserOpenProfile" name="Открыть личный кабинет">
+      <bpmn:incoming>Flow_UserAuth_Profile</bpmn:incoming>
+      <bpmn:outgoing>Flow_UserProfile_Edit</bpmn:outgoing>
+      <bpmn:outgoing>Flow_UserProfile_BrowseOrders</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_UserEditProfile" name="Изменить имя, фамилию, email или пароль">
+      <bpmn:incoming>Flow_UserProfile_Edit</bpmn:incoming>
+      <bpmn:outgoing>Flow_UserEdit_End</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="End_UserProfileUpdated" name="Профиль обновлен">
+      <bpmn:incoming>Flow_UserEdit_End</bpmn:incoming>
     </bpmn:endEvent>
 
-    <bpmn:task id="Task_CityAuth" name="Войти как представитель города">
-      <bpmn:incoming>Flow_Goal_CreateOrder</bpmn:incoming>
-      <bpmn:outgoing>Flow_CityAuth_Draft</bpmn:outgoing>
+    <bpmn:task id="Task_UserBrowseOrders" name="Выбрать заявку для помощи">
+      <bpmn:incoming>Flow_UserProfile_BrowseOrders</bpmn:incoming>
+      <bpmn:outgoing>Flow_UserBrowse_UserDonation</bpmn:outgoing>
     </bpmn:task>
 
-    <bpmn:task id="Task_CreateDraft" name="Создать или открыть черновик заявки">
-      <bpmn:incoming>Flow_CityAuth_Draft</bpmn:incoming>
-      <bpmn:incoming>Flow_Status_ReturnDraft</bpmn:incoming>
-      <bpmn:outgoing>Flow_Draft_Services</bpmn:outgoing>
+    <bpmn:task id="Task_UserEnterDonation" name="Выбрать сумму пожертвования">
+      <bpmn:incoming>Flow_UserBrowse_UserDonation</bpmn:incoming>
+      <bpmn:outgoing>Flow_UserDonation_CreateCheckout</bpmn:outgoing>
     </bpmn:task>
 
-    <bpmn:task id="Task_AddServices" name="Добавить услуги, стоимость и описание">
-      <bpmn:incoming>Flow_Draft_Services</bpmn:incoming>
-      <bpmn:outgoing>Flow_Services_Form</bpmn:outgoing>
+    <bpmn:task id="Task_CityRegisterOrLogin" name="Зарегистрироваться или войти как City">
+      <bpmn:incoming>Flow_OpenAuth_CityAuth</bpmn:incoming>
+      <bpmn:outgoing>Flow_CityAuth_Profile</bpmn:outgoing>
     </bpmn:task>
 
-    <bpmn:task id="Task_FormOrder" name="Подтвердить заявку и перевести в formed">
-      <bpmn:incoming>Flow_Services_Form</bpmn:incoming>
-      <bpmn:outgoing>Flow_Form_AdminList</bpmn:outgoing>
+    <bpmn:task id="Task_CityOpenProfile" name="Открыть профиль и перейти к заявкам">
+      <bpmn:incoming>Flow_CityAuth_Profile</bpmn:incoming>
+      <bpmn:outgoing>Flow_CityProfile_CreateBuilding</bpmn:outgoing>
+      <bpmn:outgoing>Flow_CityProfile_MyOrders</bpmn:outgoing>
     </bpmn:task>
 
-    <bpmn:task id="Task_AdminOpenList" name="Открыть кабинет администратора и список заявок">
-      <bpmn:incoming>Flow_Form_AdminList</bpmn:incoming>
-      <bpmn:incoming>Flow_Goal_Admin</bpmn:incoming>
-      <bpmn:outgoing>Flow_AdminList_BackendFilters</bpmn:outgoing>
+    <bpmn:task id="Task_CityCreateBuilding" name="Заполнить здание: название, адрес, город, фото">
+      <bpmn:incoming>Flow_CityProfile_CreateBuilding</bpmn:incoming>
+      <bpmn:incoming>Flow_CityEditDraft_CreateBuilding</bpmn:incoming>
+      <bpmn:outgoing>Flow_CreateBuilding_GenerateDescription</bpmn:outgoing>
     </bpmn:task>
 
-    <bpmn:task id="Task_BackendFilters" name="Применить backend-фильтры: статус, дата с, дата по">
-      <bpmn:incoming>Flow_AdminList_BackendFilters</bpmn:incoming>
-      <bpmn:outgoing>Flow_BackendFilters_CreatorFilter</bpmn:outgoing>
+    <bpmn:serviceTask id="Task_CityGenerateDescription" name="Сгенерировать описание и категорию через AI">
+      <bpmn:incoming>Flow_CreateBuilding_GenerateDescription</bpmn:incoming>
+      <bpmn:outgoing>Flow_GenerateDescription_CreateDraft</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_CityCreateDraft" name="Создать или открыть draft-заявку">
+      <bpmn:incoming>Flow_GenerateDescription_CreateDraft</bpmn:incoming>
+      <bpmn:outgoing>Flow_CreateDraft_SelectServices</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:task id="Task_CitySelectServices" name="Добавить услуги, описания и цены">
+      <bpmn:incoming>Flow_CreateDraft_SelectServices</bpmn:incoming>
+      <bpmn:outgoing>Flow_SelectServices_SubmitOrder</bpmn:outgoing>
     </bpmn:task>
 
-    <bpmn:task id="Task_CreatorFilter" name="Отфильтровать создателя заявки на frontend">
-      <bpmn:incoming>Flow_BackendFilters_CreatorFilter</bpmn:incoming>
-      <bpmn:outgoing>Flow_CreatorFilter_Polling</bpmn:outgoing>
+    <bpmn:task id="Task_CitySubmitOrder" name="Сформировать заявку и отправить на публикацию">
+      <bpmn:incoming>Flow_SelectServices_SubmitOrder</bpmn:incoming>
+      <bpmn:outgoing>Flow_SubmitOrder_AdminPanel</bpmn:outgoing>
+      <bpmn:outgoing>Flow_SubmitOrder_CityEnd</bpmn:outgoing>
     </bpmn:task>
 
-    <bpmn:task id="Task_ShortPolling" name="Short polling: обновлять статусы каждые 5 секунд">
-      <bpmn:incoming>Flow_CreatorFilter_Polling</bpmn:incoming>
-      <bpmn:outgoing>Flow_Polling_ChangeStatus</bpmn:outgoing>
+    <bpmn:task id="Task_CityOpenMyOrders" name="Открыть список своих заявок">
+      <bpmn:incoming>Flow_CityProfile_MyOrders</bpmn:incoming>
+      <bpmn:outgoing>Flow_MyOrders_CityAction</bpmn:outgoing>
     </bpmn:task>
 
-    <bpmn:task id="Task_ChangeStatus" name="Сменить статус заявки">
-      <bpmn:incoming>Flow_Polling_ChangeStatus</bpmn:incoming>
-      <bpmn:outgoing>Flow_ChangeStatus_Decision</bpmn:outgoing>
-    </bpmn:task>
-
-    <bpmn:exclusiveGateway id="Gateway_StatusDecision" name="Результат модерации">
-      <bpmn:incoming>Flow_ChangeStatus_Decision</bpmn:incoming>
-      <bpmn:outgoing>Flow_Status_ReturnDraft</bpmn:outgoing>
-      <bpmn:outgoing>Flow_Status_Public</bpmn:outgoing>
-      <bpmn:outgoing>Flow_Status_Rejected</bpmn:outgoing>
-      <bpmn:outgoing>Flow_Status_Deleted</bpmn:outgoing>
+    <bpmn:exclusiveGateway id="Gateway_CityOrderAction" name="Действие с draft-заявкой">
+      <bpmn:incoming>Flow_MyOrders_CityAction</bpmn:incoming>
+      <bpmn:outgoing>Flow_CityAction_EditDraft</bpmn:outgoing>
+      <bpmn:outgoing>Flow_CityAction_DeleteDraft</bpmn:outgoing>
+      <bpmn:outgoing>Flow_CityAction_PublishDraft</bpmn:outgoing>
     </bpmn:exclusiveGateway>
 
-    <bpmn:endEvent id="End_Rejected" name="Заявка отклонена">
-      <bpmn:incoming>Flow_Status_Rejected</bpmn:incoming>
+    <bpmn:task id="Task_CityEditDraft" name="Редактировать черновик">
+      <bpmn:incoming>Flow_CityAction_EditDraft</bpmn:incoming>
+      <bpmn:outgoing>Flow_CityEditDraft_CreateBuilding</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_CityDeleteDraft" name="Удалить черновик">
+      <bpmn:incoming>Flow_CityAction_DeleteDraft</bpmn:incoming>
+      <bpmn:outgoing>Flow_CityDeleteDraft_End</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="End_CityOrderSent" name="Заявка сформирована">
+      <bpmn:incoming>Flow_SubmitOrder_CityEnd</bpmn:incoming>
+      <bpmn:incoming>Flow_CityAction_PublishDraft</bpmn:incoming>
+      <bpmn:incoming>Flow_CityDeleteDraft_End</bpmn:incoming>
     </bpmn:endEvent>
 
-    <bpmn:endEvent id="End_Deleted" name="Заявка удалена">
-      <bpmn:incoming>Flow_Status_Deleted</bpmn:incoming>
+    <bpmn:task id="Task_AdminLogin" name="Войти как администратор системы">
+      <bpmn:incoming>Flow_OpenAuth_AdminAuth</bpmn:incoming>
+      <bpmn:incoming>Flow_SubmitOrder_AdminPanel</bpmn:incoming>
+      <bpmn:outgoing>Flow_AdminLogin_OpenPanel</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_AdminOpenPanel" name="Открыть админ-панель">
+      <bpmn:incoming>Flow_AdminLogin_OpenPanel</bpmn:incoming>
+      <bpmn:outgoing>Flow_AdminPanel_ManageServices</bpmn:outgoing>
+      <bpmn:outgoing>Flow_AdminPanel_ViewUsers</bpmn:outgoing>
+      <bpmn:outgoing>Flow_AdminPanel_FilterOrders</bpmn:outgoing>
+      <bpmn:outgoing>Flow_AdminPanel_CreateOrder</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_AdminManageServices" name="Создать услугу с иконкой или удалить услугу">
+      <bpmn:incoming>Flow_AdminPanel_ManageServices</bpmn:incoming>
+      <bpmn:outgoing>Flow_ManageServices_End</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="End_AdminServiceManaged" name="Справочник услуг обновлен">
+      <bpmn:incoming>Flow_ManageServices_End</bpmn:incoming>
     </bpmn:endEvent>
 
-    <bpmn:sequenceFlow id="Flow_Start_Browse" sourceRef="Start_OpenSite" targetRef="Task_BrowseBuildings" />
-    <bpmn:sequenceFlow id="Flow_Browse_Open" sourceRef="Task_BrowseBuildings" targetRef="Task_OpenBuilding" />
-    <bpmn:sequenceFlow id="Flow_Open_Goal" sourceRef="Task_OpenBuilding" targetRef="Gateway_SelectGoal" />
-    <bpmn:sequenceFlow id="Flow_Goal_Donate" name="Сделать пожертвование" sourceRef="Gateway_SelectGoal" targetRef="Task_UserAuth" />
-    <bpmn:sequenceFlow id="Flow_UserAuth_Donation" sourceRef="Task_UserAuth" targetRef="Task_MakeDonation" />
-    <bpmn:sequenceFlow id="Flow_Donation_End" sourceRef="Task_MakeDonation" targetRef="End_DonationSaved" />
-    <bpmn:sequenceFlow id="Flow_Goal_CreateOrder" name="Создать заявку" sourceRef="Gateway_SelectGoal" targetRef="Task_CityAuth" />
-    <bpmn:sequenceFlow id="Flow_CityAuth_Draft" sourceRef="Task_CityAuth" targetRef="Task_CreateDraft" />
-    <bpmn:sequenceFlow id="Flow_Draft_Services" sourceRef="Task_CreateDraft" targetRef="Task_AddServices" />
-    <bpmn:sequenceFlow id="Flow_Services_Form" sourceRef="Task_AddServices" targetRef="Task_FormOrder" />
-    <bpmn:sequenceFlow id="Flow_Form_AdminList" sourceRef="Task_FormOrder" targetRef="Task_AdminOpenList" />
-    <bpmn:sequenceFlow id="Flow_Goal_Admin" name="Администрировать заявки" sourceRef="Gateway_SelectGoal" targetRef="Task_AdminOpenList" />
-    <bpmn:sequenceFlow id="Flow_AdminList_BackendFilters" sourceRef="Task_AdminOpenList" targetRef="Task_BackendFilters" />
-    <bpmn:sequenceFlow id="Flow_BackendFilters_CreatorFilter" sourceRef="Task_BackendFilters" targetRef="Task_CreatorFilter" />
-    <bpmn:sequenceFlow id="Flow_CreatorFilter_Polling" sourceRef="Task_CreatorFilter" targetRef="Task_ShortPolling" />
-    <bpmn:sequenceFlow id="Flow_Polling_ChangeStatus" sourceRef="Task_ShortPolling" targetRef="Task_ChangeStatus" />
-    <bpmn:sequenceFlow id="Flow_ChangeStatus_Decision" sourceRef="Task_ChangeStatus" targetRef="Gateway_StatusDecision" />
-    <bpmn:sequenceFlow id="Flow_Status_ReturnDraft" name="Вернуть в draft" sourceRef="Gateway_StatusDecision" targetRef="Task_CreateDraft" />
-    <bpmn:sequenceFlow id="Flow_Status_Public" name="formed / сбор открыт" sourceRef="Gateway_StatusDecision" targetRef="Task_OpenBuilding" />
-    <bpmn:sequenceFlow id="Flow_Status_Rejected" name="rejected" sourceRef="Gateway_StatusDecision" targetRef="End_Rejected" />
-    <bpmn:sequenceFlow id="Flow_Status_Deleted" name="deleted" sourceRef="Gateway_StatusDecision" targetRef="End_Deleted" />
+    <bpmn:task id="Task_AdminViewUsers" name="Просмотреть пользователей и роли">
+      <bpmn:incoming>Flow_AdminPanel_ViewUsers</bpmn:incoming>
+      <bpmn:outgoing>Flow_ViewUsers_End</bpmn:outgoing>
+    </bpmn:task>
 
-    <bpmn:association id="Assoc_Buildings_Browse" sourceRef="DataStore_Buildings" targetRef="Task_BrowseBuildings" associationDirection="One" />
-    <bpmn:association id="Assoc_Files_Open" sourceRef="DataStore_Files" targetRef="Task_OpenBuilding" associationDirection="One" />
-    <bpmn:association id="Assoc_Orders_Open" sourceRef="DataStore_Orders" targetRef="Task_OpenBuilding" associationDirection="One" />
-    <bpmn:association id="Assoc_Users_UserAuth" sourceRef="Task_UserAuth" targetRef="DataStore_Users" associationDirection="One" />
-    <bpmn:association id="Assoc_Donation_Donations" sourceRef="Task_MakeDonation" targetRef="DataStore_Donations" associationDirection="One" />
-    <bpmn:association id="Assoc_Donation_Orders" sourceRef="Task_MakeDonation" targetRef="DataStore_Orders" associationDirection="One" />
-    <bpmn:association id="Assoc_Users_CityAuth" sourceRef="DataStore_Users" targetRef="Task_CityAuth" associationDirection="One" />
-    <bpmn:association id="Assoc_Draft_Buildings" sourceRef="Task_CreateDraft" targetRef="DataStore_Buildings" associationDirection="One" />
-    <bpmn:association id="Assoc_Draft_Files" sourceRef="Task_CreateDraft" targetRef="DataStore_Files" associationDirection="One" />
-    <bpmn:association id="Assoc_Draft_Orders" sourceRef="Task_CreateDraft" targetRef="DataStore_Orders" associationDirection="One" />
-    <bpmn:association id="Assoc_Services_Read" sourceRef="DataStore_Services" targetRef="Task_AddServices" associationDirection="One" />
-    <bpmn:association id="Assoc_Services_Orders" sourceRef="Task_AddServices" targetRef="DataStore_Orders" associationDirection="One" />
-    <bpmn:association id="Assoc_Form_Orders" sourceRef="Task_FormOrder" targetRef="DataStore_Orders" associationDirection="One" />
-    <bpmn:association id="Assoc_Admin_Orders" sourceRef="DataStore_Orders" targetRef="Task_AdminOpenList" associationDirection="One" />
-    <bpmn:association id="Assoc_Filter_Orders" sourceRef="DataStore_Orders" targetRef="Task_BackendFilters" associationDirection="One" />
-    <bpmn:association id="Assoc_Creator_Users" sourceRef="DataStore_Users" targetRef="Task_CreatorFilter" associationDirection="One" />
-    <bpmn:association id="Assoc_Status_Orders" sourceRef="Task_ChangeStatus" targetRef="DataStore_Orders" associationDirection="One" />
+    <bpmn:endEvent id="End_AdminUsersViewed" name="Пользователи просмотрены">
+      <bpmn:incoming>Flow_ViewUsers_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:task id="Task_AdminFilterOrders" name="Фильтровать заявки по статусу, датам и создателю">
+      <bpmn:incoming>Flow_AdminPanel_FilterOrders</bpmn:incoming>
+      <bpmn:outgoing>Flow_FilterOrders_Review</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_AdminReviewOrder" name="Проверить заявку и действия по статусу">
+      <bpmn:incoming>Flow_FilterOrders_Review</bpmn:incoming>
+      <bpmn:outgoing>Flow_Review_AdminDecision</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_AdminDecision" name="Решение администратора">
+      <bpmn:incoming>Flow_Review_AdminDecision</bpmn:incoming>
+      <bpmn:outgoing>Flow_AdminDecision_Publish</bpmn:outgoing>
+      <bpmn:outgoing>Flow_AdminDecision_ReturnDraft</bpmn:outgoing>
+      <bpmn:outgoing>Flow_AdminDecision_Reject</bpmn:outgoing>
+      <bpmn:outgoing>Flow_AdminDecision_Delete</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_AdminReturnDraft" name="Вернуть заявку в черновик">
+      <bpmn:incoming>Flow_AdminDecision_ReturnDraft</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReturnDraft_CityMyOrders</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_AdminRejectOrder" name="Отклонить заявку">
+      <bpmn:incoming>Flow_AdminDecision_Reject</bpmn:incoming>
+      <bpmn:outgoing>Flow_Reject_End</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_AdminDeleteOrder" name="Удалить заявку">
+      <bpmn:incoming>Flow_AdminDecision_Delete</bpmn:incoming>
+      <bpmn:outgoing>Flow_Delete_End</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_AdminCreateOrder" name="Создать заявку от имени администратора">
+      <bpmn:incoming>Flow_AdminPanel_CreateOrder</bpmn:incoming>
+      <bpmn:outgoing>Flow_AdminCreate_CityCreateBuilding</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="End_OrderPublished" name="Заявка опубликована и доступна для пожертвований">
+      <bpmn:incoming>Flow_AdminDecision_Publish</bpmn:incoming>
+      <bpmn:incoming>Flow_ManageServices_End</bpmn:incoming>
+      <bpmn:incoming>Flow_ViewUsers_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="End_OrderRejected" name="Заявка отклонена">
+      <bpmn:incoming>Flow_Reject_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="End_OrderDeleted" name="Заявка удалена">
+      <bpmn:incoming>Flow_Delete_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:serviceTask id="Service_CreateStripeCheckout" name="Backend создает Stripe Checkout Session">
+      <bpmn:incoming>Flow_GuestDonation_CreateCheckout</bpmn:incoming>
+      <bpmn:incoming>Flow_UserDonation_CreateCheckout</bpmn:incoming>
+      <bpmn:outgoing>Flow_CreateCheckout_PaymentResult</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_PaymentResult" name="Stripe вернул успех?">
+      <bpmn:incoming>Flow_CreateCheckout_PaymentResult</bpmn:incoming>
+      <bpmn:outgoing>Flow_Payment_Canceled</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Payment_SaveDonation</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="End_GuestCanceledPayment" name="Оплата отменена">
+      <bpmn:incoming>Flow_Payment_Canceled</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:serviceTask id="Service_SaveDonation" name="Сохранить донат и увеличить collected_amount">
+      <bpmn:incoming>Flow_Payment_SaveDonation</bpmn:incoming>
+      <bpmn:outgoing>Flow_SaveDonation_TargetCheck</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_TargetCheck" name="Целевая сумма собрана?">
+      <bpmn:incoming>Flow_SaveDonation_TargetCheck</bpmn:incoming>
+      <bpmn:outgoing>Flow_Target_No</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Target_Yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="End_GuestDonationSaved" name="Донат сохранен, сбор продолжается">
+      <bpmn:incoming>Flow_Target_No</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="End_UserDonationSaved" name="Донат сохранен, заявка завершена">
+      <bpmn:incoming>Flow_Target_Yes</bpmn:incoming>
+      <bpmn:incoming>Flow_UserEdit_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_Start_OpenHome" sourceRef="Start_OpenSite" targetRef="Task_OpenHome" />
+    <bpmn:sequenceFlow id="Flow_OpenHome_BrowsePublicOrders" sourceRef="Task_OpenHome" targetRef="Task_BrowsePublicOrders" />
+    <bpmn:sequenceFlow id="Flow_BrowsePublicOrders_Filter" sourceRef="Task_BrowsePublicOrders" targetRef="Task_FilterPublicOrders" />
+    <bpmn:sequenceFlow id="Flow_Filter_ViewPublicOrder" sourceRef="Task_FilterPublicOrders" targetRef="Task_ViewPublicOrder" />
+    <bpmn:sequenceFlow id="Flow_ViewPublicOrder_GuestGoal" sourceRef="Task_ViewPublicOrder" targetRef="Gateway_GuestGoal" />
+    <bpmn:sequenceFlow id="Flow_GuestGoal_Donate" name="Помочь объекту" sourceRef="Gateway_GuestGoal" targetRef="Task_GuestEnterDonation" />
+    <bpmn:sequenceFlow id="Flow_GuestGoal_Auth" name="Войти или зарегистрироваться" sourceRef="Gateway_GuestGoal" targetRef="Task_GuestOpenAuth" />
+    <bpmn:sequenceFlow id="Flow_GuestDonation_CreateCheckout" sourceRef="Task_GuestEnterDonation" targetRef="Service_CreateStripeCheckout" />
+    <bpmn:sequenceFlow id="Flow_OpenAuth_UserAuth" name="Роль User" sourceRef="Task_GuestOpenAuth" targetRef="Task_UserRegisterOrLogin" />
+    <bpmn:sequenceFlow id="Flow_OpenAuth_CityAuth" name="Роль City" sourceRef="Task_GuestOpenAuth" targetRef="Task_CityRegisterOrLogin" />
+    <bpmn:sequenceFlow id="Flow_OpenAuth_AdminAuth" name="Роль Admin" sourceRef="Task_GuestOpenAuth" targetRef="Task_AdminLogin" />
+    <bpmn:sequenceFlow id="Flow_UserAuth_Profile" sourceRef="Task_UserRegisterOrLogin" targetRef="Task_UserOpenProfile" />
+    <bpmn:sequenceFlow id="Flow_UserProfile_Edit" name="Редактировать профиль" sourceRef="Task_UserOpenProfile" targetRef="Task_UserEditProfile" />
+    <bpmn:sequenceFlow id="Flow_UserEdit_End" sourceRef="Task_UserEditProfile" targetRef="End_UserProfileUpdated" />
+    <bpmn:sequenceFlow id="Flow_UserProfile_BrowseOrders" name="Сделать донат" sourceRef="Task_UserOpenProfile" targetRef="Task_UserBrowseOrders" />
+    <bpmn:sequenceFlow id="Flow_UserBrowse_UserDonation" sourceRef="Task_UserBrowseOrders" targetRef="Task_UserEnterDonation" />
+    <bpmn:sequenceFlow id="Flow_UserDonation_CreateCheckout" sourceRef="Task_UserEnterDonation" targetRef="Service_CreateStripeCheckout" />
+    <bpmn:sequenceFlow id="Flow_CityAuth_Profile" sourceRef="Task_CityRegisterOrLogin" targetRef="Task_CityOpenProfile" />
+    <bpmn:sequenceFlow id="Flow_CityProfile_CreateBuilding" name="Создать заявку" sourceRef="Task_CityOpenProfile" targetRef="Task_CityCreateBuilding" />
+    <bpmn:sequenceFlow id="Flow_CityProfile_MyOrders" name="Мои заявки" sourceRef="Task_CityOpenProfile" targetRef="Task_CityOpenMyOrders" />
+    <bpmn:sequenceFlow id="Flow_CreateBuilding_GenerateDescription" sourceRef="Task_CityCreateBuilding" targetRef="Task_CityGenerateDescription" />
+    <bpmn:sequenceFlow id="Flow_GenerateDescription_CreateDraft" sourceRef="Task_CityGenerateDescription" targetRef="Task_CityCreateDraft" />
+    <bpmn:sequenceFlow id="Flow_CreateDraft_SelectServices" sourceRef="Task_CityCreateDraft" targetRef="Task_CitySelectServices" />
+    <bpmn:sequenceFlow id="Flow_SelectServices_SubmitOrder" sourceRef="Task_CitySelectServices" targetRef="Task_CitySubmitOrder" />
+    <bpmn:sequenceFlow id="Flow_SubmitOrder_AdminPanel" sourceRef="Task_CitySubmitOrder" targetRef="Task_AdminLogin" />
+    <bpmn:sequenceFlow id="Flow_SubmitOrder_CityEnd" sourceRef="Task_CitySubmitOrder" targetRef="End_CityOrderSent" />
+    <bpmn:sequenceFlow id="Flow_MyOrders_CityAction" sourceRef="Task_CityOpenMyOrders" targetRef="Gateway_CityOrderAction" />
+    <bpmn:sequenceFlow id="Flow_CityAction_EditDraft" name="Редактировать" sourceRef="Gateway_CityOrderAction" targetRef="Task_CityEditDraft" />
+    <bpmn:sequenceFlow id="Flow_CityEditDraft_CreateBuilding" sourceRef="Task_CityEditDraft" targetRef="Task_CityCreateBuilding" />
+    <bpmn:sequenceFlow id="Flow_CityAction_DeleteDraft" name="Удалить" sourceRef="Gateway_CityOrderAction" targetRef="Task_CityDeleteDraft" />
+    <bpmn:sequenceFlow id="Flow_CityDeleteDraft_End" sourceRef="Task_CityDeleteDraft" targetRef="End_CityOrderSent" />
+    <bpmn:sequenceFlow id="Flow_CityAction_PublishDraft" name="Опубликовать" sourceRef="Gateway_CityOrderAction" targetRef="End_CityOrderSent" />
+    <bpmn:sequenceFlow id="Flow_AdminLogin_OpenPanel" sourceRef="Task_AdminLogin" targetRef="Task_AdminOpenPanel" />
+    <bpmn:sequenceFlow id="Flow_AdminPanel_ManageServices" name="Услуги" sourceRef="Task_AdminOpenPanel" targetRef="Task_AdminManageServices" />
+    <bpmn:sequenceFlow id="Flow_AdminPanel_ViewUsers" name="Пользователи" sourceRef="Task_AdminOpenPanel" targetRef="Task_AdminViewUsers" />
+    <bpmn:sequenceFlow id="Flow_AdminPanel_FilterOrders" name="Заявки" sourceRef="Task_AdminOpenPanel" targetRef="Task_AdminFilterOrders" />
+    <bpmn:sequenceFlow id="Flow_AdminPanel_CreateOrder" name="Создать заявку" sourceRef="Task_AdminOpenPanel" targetRef="Task_AdminCreateOrder" />
+    <bpmn:sequenceFlow id="Flow_AdminCreate_CityCreateBuilding" sourceRef="Task_AdminCreateOrder" targetRef="Task_CityCreateBuilding" />
+    <bpmn:sequenceFlow id="Flow_ManageServices_End" sourceRef="Task_AdminManageServices" targetRef="End_AdminServiceManaged" />
+    <bpmn:sequenceFlow id="Flow_ViewUsers_End" sourceRef="Task_AdminViewUsers" targetRef="End_AdminUsersViewed" />
+    <bpmn:sequenceFlow id="Flow_FilterOrders_Review" sourceRef="Task_AdminFilterOrders" targetRef="Task_AdminReviewOrder" />
+    <bpmn:sequenceFlow id="Flow_Review_AdminDecision" sourceRef="Task_AdminReviewOrder" targetRef="Gateway_AdminDecision" />
+    <bpmn:sequenceFlow id="Flow_AdminDecision_Publish" name="Сформировать/оставить formed" sourceRef="Gateway_AdminDecision" targetRef="End_OrderPublished" />
+    <bpmn:sequenceFlow id="Flow_AdminDecision_ReturnDraft" name="Вернуть в draft" sourceRef="Gateway_AdminDecision" targetRef="Task_AdminReturnDraft" />
+    <bpmn:sequenceFlow id="Flow_ReturnDraft_CityMyOrders" sourceRef="Task_AdminReturnDraft" targetRef="Task_CityOpenMyOrders" />
+    <bpmn:sequenceFlow id="Flow_AdminDecision_Reject" name="Отклонить" sourceRef="Gateway_AdminDecision" targetRef="Task_AdminRejectOrder" />
+    <bpmn:sequenceFlow id="Flow_Reject_End" sourceRef="Task_AdminRejectOrder" targetRef="End_OrderRejected" />
+    <bpmn:sequenceFlow id="Flow_AdminDecision_Delete" name="Удалить" sourceRef="Gateway_AdminDecision" targetRef="Task_AdminDeleteOrder" />
+    <bpmn:sequenceFlow id="Flow_Delete_End" sourceRef="Task_AdminDeleteOrder" targetRef="End_OrderDeleted" />
+    <bpmn:sequenceFlow id="Flow_CreateCheckout_PaymentResult" sourceRef="Service_CreateStripeCheckout" targetRef="Gateway_PaymentResult" />
+    <bpmn:sequenceFlow id="Flow_Payment_Canceled" name="Нет" sourceRef="Gateway_PaymentResult" targetRef="End_GuestCanceledPayment" />
+    <bpmn:sequenceFlow id="Flow_Payment_SaveDonation" name="Да" sourceRef="Gateway_PaymentResult" targetRef="Service_SaveDonation" />
+    <bpmn:sequenceFlow id="Flow_SaveDonation_TargetCheck" sourceRef="Service_SaveDonation" targetRef="Gateway_TargetCheck" />
+    <bpmn:sequenceFlow id="Flow_Target_No" name="Нет" sourceRef="Gateway_TargetCheck" targetRef="End_GuestDonationSaved" />
+    <bpmn:sequenceFlow id="Flow_Target_Yes" name="Да" sourceRef="Gateway_TargetCheck" targetRef="End_UserDonationSaved" />
+
+    <bpmn:association id="Assoc_Auth_Users" sourceRef="Task_UserRegisterOrLogin" targetRef="DataStore_Users" associationDirection="One" />
+    <bpmn:association id="Assoc_UserProfile_Users" sourceRef="Task_UserEditProfile" targetRef="DataStore_Users" associationDirection="One" />
+    <bpmn:association id="Assoc_CityAuth_Users" sourceRef="Task_CityRegisterOrLogin" targetRef="DataStore_Users" associationDirection="One" />
+    <bpmn:association id="Assoc_AdminAuth_Users" sourceRef="Task_AdminLogin" targetRef="DataStore_Users" associationDirection="One" />
+    <bpmn:association id="Assoc_PublicFilters_CitiesCategories" sourceRef="DataStore_CitiesCategories" targetRef="Task_FilterPublicOrders" associationDirection="One" />
+    <bpmn:association id="Assoc_PublicOrders_Orders" sourceRef="DataStore_Orders" targetRef="Task_BrowsePublicOrders" associationDirection="One" />
+    <bpmn:association id="Assoc_PublicOrder_Buildings" sourceRef="DataStore_Buildings" targetRef="Task_ViewPublicOrder" associationDirection="One" />
+    <bpmn:association id="Assoc_PublicOrder_Media" sourceRef="DataStore_Media" targetRef="Task_ViewPublicOrder" associationDirection="One" />
+    <bpmn:association id="Assoc_CreateBuilding_Buildings" sourceRef="Task_CityCreateBuilding" targetRef="DataStore_Buildings" associationDirection="One" />
+    <bpmn:association id="Assoc_CreateBuilding_Media" sourceRef="Task_CityCreateBuilding" targetRef="DataStore_Media" associationDirection="One" />
+    <bpmn:association id="Assoc_AI_Buildings" sourceRef="Task_CityGenerateDescription" targetRef="DataStore_AI" associationDirection="One" />
+    <bpmn:association id="Assoc_Draft_Orders" sourceRef="Task_CityCreateDraft" targetRef="DataStore_Orders" associationDirection="One" />
+    <bpmn:association id="Assoc_CityMyOrders" sourceRef="DataStore_Orders" targetRef="Task_CityOpenMyOrders" associationDirection="One" />
+    <bpmn:association id="Assoc_CitySubmit_Orders" sourceRef="Task_CitySubmitOrder" targetRef="DataStore_Orders" associationDirection="One" />
+    <bpmn:association id="Assoc_Services_Read" sourceRef="DataStore_Services" targetRef="Task_CitySelectServices" associationDirection="One" />
+    <bpmn:association id="Assoc_OrderServices_Orders" sourceRef="Task_CitySelectServices" targetRef="DataStore_Orders" associationDirection="One" />
+    <bpmn:association id="Assoc_AdminServices" sourceRef="Task_AdminManageServices" targetRef="DataStore_Services" associationDirection="One" />
+    <bpmn:association id="Assoc_AdminOrders" sourceRef="DataStore_Orders" targetRef="Task_AdminFilterOrders" associationDirection="One" />
+    <bpmn:association id="Assoc_AdminDecisionOrders" sourceRef="Gateway_AdminDecision" targetRef="DataStore_Orders" associationDirection="One" />
+    <bpmn:association id="Assoc_AdminUsers" sourceRef="DataStore_Users" targetRef="Task_AdminViewUsers" associationDirection="One" />
+    <bpmn:association id="Assoc_Stripe" sourceRef="Service_CreateStripeCheckout" targetRef="DataStore_Stripe" associationDirection="One" />
+    <bpmn:association id="Assoc_Donation" sourceRef="Service_SaveDonation" targetRef="DataStore_Donations" associationDirection="One" />
+    <bpmn:association id="Assoc_Donation_Order" sourceRef="Service_SaveDonation" targetRef="DataStore_Orders" associationDirection="One" />
   </bpmn:process>
 
   <bpmndi:BPMNDiagram id="BPMNDiagram_HistoryCare">
     <bpmndi:BPMNPlane id="BPMNPlane_HistoryCare" bpmnElement="Collaboration_HistoryCare">
       <bpmndi:BPMNShape id="Participant_HistoryCare_di" bpmnElement="Participant_HistoryCare" isHorizontal="true">
-        <dc:Bounds x="80" y="70" width="2460" height="780" />
+        <dc:Bounds x="40" y="40" width="3600" height="1260" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Lane_Guest_di" bpmnElement="Lane_Guest" isHorizontal="true">
-        <dc:Bounds x="110" y="70" width="2430" height="170" />
+        <dc:Bounds x="70" y="40" width="3570" height="250" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_Donor_di" bpmnElement="Lane_Donor" isHorizontal="true">
-        <dc:Bounds x="110" y="240" width="2430" height="170" />
+      <bpmndi:BPMNShape id="Lane_User_di" bpmnElement="Lane_User" isHorizontal="true">
+        <dc:Bounds x="70" y="290" width="3570" height="210" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Lane_City_di" bpmnElement="Lane_City" isHorizontal="true">
-        <dc:Bounds x="110" y="410" width="2430" height="220" />
+        <dc:Bounds x="70" y="500" width="3570" height="270" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Lane_Admin_di" bpmnElement="Lane_Admin" isHorizontal="true">
-        <dc:Bounds x="110" y="630" width="2430" height="220" />
+        <dc:Bounds x="70" y="770" width="3570" height="390" />
       </bpmndi:BPMNShape>
 
-      <bpmndi:BPMNShape id="Start_OpenSite_di" bpmnElement="Start_OpenSite">
-        <dc:Bounds x="170" y="135" width="36" height="36" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_BrowseBuildings_di" bpmnElement="Task_BrowseBuildings">
-        <dc:Bounds x="260" y="118" width="140" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_OpenBuilding_di" bpmnElement="Task_OpenBuilding">
-        <dc:Bounds x="450" y="118" width="140" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_SelectGoal_di" bpmnElement="Gateway_SelectGoal" isMarkerVisible="true">
-        <dc:Bounds x="650" y="128" width="50" height="50" />
-      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_OpenSite_di" bpmnElement="Start_OpenSite"><dc:Bounds x="130" y="142" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_OpenHome_di" bpmnElement="Task_OpenHome"><dc:Bounds x="210" y="125" width="150" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_BrowsePublicOrders_di" bpmnElement="Task_BrowsePublicOrders"><dc:Bounds x="400" y="125" width="170" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_FilterPublicOrders_di" bpmnElement="Task_FilterPublicOrders"><dc:Bounds x="610" y="125" width="185" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ViewPublicOrder_di" bpmnElement="Task_ViewPublicOrder"><dc:Bounds x="840" y="125" width="180" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_GuestGoal_di" bpmnElement="Gateway_GuestGoal" isMarkerVisible="true"><dc:Bounds x="1070" y="135" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GuestEnterDonation_di" bpmnElement="Task_GuestEnterDonation"><dc:Bounds x="1175" y="85" width="180" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GuestOpenAuth_di" bpmnElement="Task_GuestOpenAuth"><dc:Bounds x="1175" y="185" width="180" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_GuestCanceledPayment_di" bpmnElement="End_GuestCanceledPayment"><dc:Bounds x="2070" y="102" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_GuestDonationSaved_di" bpmnElement="End_GuestDonationSaved"><dc:Bounds x="2440" y="102" width="36" height="36" /></bpmndi:BPMNShape>
 
-      <bpmndi:BPMNShape id="Task_UserAuth_di" bpmnElement="Task_UserAuth">
-        <dc:Bounds x="760" y="288" width="140" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_MakeDonation_di" bpmnElement="Task_MakeDonation">
-        <dc:Bounds x="950" y="288" width="140" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="End_DonationSaved_di" bpmnElement="End_DonationSaved">
-        <dc:Bounds x="1140" y="305" width="36" height="36" />
-      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UserRegisterOrLogin_di" bpmnElement="Task_UserRegisterOrLogin"><dc:Bounds x="1420" y="355" width="185" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UserOpenProfile_di" bpmnElement="Task_UserOpenProfile"><dc:Bounds x="1650" y="355" width="160" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UserEditProfile_di" bpmnElement="Task_UserEditProfile"><dc:Bounds x="1855" y="315" width="180" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_UserProfileUpdated_di" bpmnElement="End_UserProfileUpdated"><dc:Bounds x="2085" y="332" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UserBrowseOrders_di" bpmnElement="Task_UserBrowseOrders"><dc:Bounds x="1855" y="405" width="175" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UserEnterDonation_di" bpmnElement="Task_UserEnterDonation"><dc:Bounds x="2070" y="405" width="175" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_UserDonationSaved_di" bpmnElement="End_UserDonationSaved"><dc:Bounds x="2600" y="372" width="36" height="36" /></bpmndi:BPMNShape>
 
-      <bpmndi:BPMNShape id="Task_CityAuth_di" bpmnElement="Task_CityAuth">
-        <dc:Bounds x="760" y="465" width="140" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_CreateDraft_di" bpmnElement="Task_CreateDraft">
-        <dc:Bounds x="950" y="465" width="140" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_AddServices_di" bpmnElement="Task_AddServices">
-        <dc:Bounds x="1140" y="465" width="140" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_FormOrder_di" bpmnElement="Task_FormOrder">
-        <dc:Bounds x="1330" y="465" width="140" height="70" />
-      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CityRegisterOrLogin_di" bpmnElement="Task_CityRegisterOrLogin"><dc:Bounds x="1420" y="585" width="185" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CityOpenProfile_di" bpmnElement="Task_CityOpenProfile"><dc:Bounds x="1650" y="585" width="170" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CityCreateBuilding_di" bpmnElement="Task_CityCreateBuilding"><dc:Bounds x="1865" y="540" width="185" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CityGenerateDescription_di" bpmnElement="Task_CityGenerateDescription"><dc:Bounds x="2095" y="540" width="190" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CityCreateDraft_di" bpmnElement="Task_CityCreateDraft"><dc:Bounds x="2330" y="540" width="175" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CitySelectServices_di" bpmnElement="Task_CitySelectServices"><dc:Bounds x="2550" y="540" width="190" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CitySubmitOrder_di" bpmnElement="Task_CitySubmitOrder"><dc:Bounds x="2785" y="540" width="190" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CityOpenMyOrders_di" bpmnElement="Task_CityOpenMyOrders"><dc:Bounds x="1865" y="660" width="170" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CityOrderAction_di" bpmnElement="Gateway_CityOrderAction" isMarkerVisible="true"><dc:Bounds x="2095" y="670" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CityEditDraft_di" bpmnElement="Task_CityEditDraft"><dc:Bounds x="2200" y="650" width="150" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CityDeleteDraft_di" bpmnElement="Task_CityDeleteDraft"><dc:Bounds x="2395" y="650" width="150" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_CityOrderSent_di" bpmnElement="End_CityOrderSent"><dc:Bounds x="3025" y="557" width="36" height="36" /></bpmndi:BPMNShape>
 
-      <bpmndi:BPMNShape id="Task_AdminOpenList_di" bpmnElement="Task_AdminOpenList">
-        <dc:Bounds x="1330" y="690" width="140" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_BackendFilters_di" bpmnElement="Task_BackendFilters">
-        <dc:Bounds x="1520" y="690" width="140" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_CreatorFilter_di" bpmnElement="Task_CreatorFilter">
-        <dc:Bounds x="1710" y="690" width="140" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_ShortPolling_di" bpmnElement="Task_ShortPolling">
-        <dc:Bounds x="1900" y="690" width="140" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_ChangeStatus_di" bpmnElement="Task_ChangeStatus">
-        <dc:Bounds x="2090" y="690" width="140" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_StatusDecision_di" bpmnElement="Gateway_StatusDecision" isMarkerVisible="true">
-        <dc:Bounds x="2280" y="700" width="50" height="50" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="End_Rejected_di" bpmnElement="End_Rejected">
-        <dc:Bounds x="2420" y="662" width="36" height="36" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="End_Deleted_di" bpmnElement="End_Deleted">
-        <dc:Bounds x="2420" y="762" width="36" height="36" />
-      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AdminLogin_di" bpmnElement="Task_AdminLogin"><dc:Bounds x="1420" y="835" width="185" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AdminOpenPanel_di" bpmnElement="Task_AdminOpenPanel"><dc:Bounds x="1650" y="835" width="160" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AdminManageServices_di" bpmnElement="Task_AdminManageServices"><dc:Bounds x="1855" y="805" width="190" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_AdminServiceManaged_di" bpmnElement="End_AdminServiceManaged"><dc:Bounds x="2090" y="822" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AdminViewUsers_di" bpmnElement="Task_AdminViewUsers"><dc:Bounds x="1855" y="895" width="180" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_AdminUsersViewed_di" bpmnElement="End_AdminUsersViewed"><dc:Bounds x="2090" y="912" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AdminFilterOrders_di" bpmnElement="Task_AdminFilterOrders"><dc:Bounds x="2075" y="985" width="190" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AdminReviewOrder_di" bpmnElement="Task_AdminReviewOrder"><dc:Bounds x="2310" y="985" width="180" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_AdminDecision_di" bpmnElement="Gateway_AdminDecision" isMarkerVisible="true"><dc:Bounds x="2535" y="995" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AdminReturnDraft_di" bpmnElement="Task_AdminReturnDraft"><dc:Bounds x="2640" y="930" width="170" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AdminRejectOrder_di" bpmnElement="Task_AdminRejectOrder"><dc:Bounds x="2640" y="1020" width="150" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AdminDeleteOrder_di" bpmnElement="Task_AdminDeleteOrder"><dc:Bounds x="2850" y="1020" width="150" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AdminCreateOrder_di" bpmnElement="Task_AdminCreateOrder"><dc:Bounds x="2075" y="805" width="180" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_OrderPublished_di" bpmnElement="End_OrderPublished"><dc:Bounds x="2645" y="822" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_OrderRejected_di" bpmnElement="End_OrderRejected"><dc:Bounds x="3025" y="1037" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_OrderDeleted_di" bpmnElement="End_OrderDeleted"><dc:Bounds x="3095" y="1037" width="36" height="36" /></bpmndi:BPMNShape>
 
-      <bpmndi:BPMNShape id="DataStore_Users_di" bpmnElement="DataStore_Users">
-        <dc:Bounds x="650" y="900" width="110" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="DataStore_Buildings_di" bpmnElement="DataStore_Buildings">
-        <dc:Bounds x="820" y="900" width="110" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="DataStore_Files_di" bpmnElement="DataStore_Files">
-        <dc:Bounds x="990" y="900" width="110" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="DataStore_Services_di" bpmnElement="DataStore_Services">
-        <dc:Bounds x="1160" y="900" width="110" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="DataStore_Orders_di" bpmnElement="DataStore_Orders">
-        <dc:Bounds x="1330" y="900" width="110" height="70" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="DataStore_Donations_di" bpmnElement="DataStore_Donations">
-        <dc:Bounds x="1500" y="900" width="110" height="70" />
-      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Service_CreateStripeCheckout_di" bpmnElement="Service_CreateStripeCheckout"><dc:Bounds x="1615" y="85" width="190" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_PaymentResult_di" bpmnElement="Gateway_PaymentResult" isMarkerVisible="true"><dc:Bounds x="1870" y="95" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Service_SaveDonation_di" bpmnElement="Service_SaveDonation"><dc:Bounds x="2170" y="85" width="190" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_TargetCheck_di" bpmnElement="Gateway_TargetCheck" isMarkerVisible="true"><dc:Bounds x="2400" y="95" width="50" height="50" /></bpmndi:BPMNShape>
 
-      <bpmndi:BPMNEdge id="Flow_Start_Browse_di" bpmnElement="Flow_Start_Browse">
-        <di:waypoint x="206" y="153" />
-        <di:waypoint x="260" y="153" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Browse_Open_di" bpmnElement="Flow_Browse_Open">
-        <di:waypoint x="400" y="153" />
-        <di:waypoint x="450" y="153" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Open_Goal_di" bpmnElement="Flow_Open_Goal">
-        <di:waypoint x="590" y="153" />
-        <di:waypoint x="650" y="153" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Goal_Donate_di" bpmnElement="Flow_Goal_Donate">
-        <di:waypoint x="675" y="178" />
-        <di:waypoint x="675" y="323" />
-        <di:waypoint x="760" y="323" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_UserAuth_Donation_di" bpmnElement="Flow_UserAuth_Donation">
-        <di:waypoint x="900" y="323" />
-        <di:waypoint x="950" y="323" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Donation_End_di" bpmnElement="Flow_Donation_End">
-        <di:waypoint x="1090" y="323" />
-        <di:waypoint x="1140" y="323" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Goal_CreateOrder_di" bpmnElement="Flow_Goal_CreateOrder">
-        <di:waypoint x="675" y="178" />
-        <di:waypoint x="675" y="500" />
-        <di:waypoint x="760" y="500" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_CityAuth_Draft_di" bpmnElement="Flow_CityAuth_Draft">
-        <di:waypoint x="900" y="500" />
-        <di:waypoint x="950" y="500" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Draft_Services_di" bpmnElement="Flow_Draft_Services">
-        <di:waypoint x="1090" y="500" />
-        <di:waypoint x="1140" y="500" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Services_Form_di" bpmnElement="Flow_Services_Form">
-        <di:waypoint x="1280" y="500" />
-        <di:waypoint x="1330" y="500" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Form_AdminList_di" bpmnElement="Flow_Form_AdminList">
-        <di:waypoint x="1400" y="535" />
-        <di:waypoint x="1400" y="690" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Goal_Admin_di" bpmnElement="Flow_Goal_Admin">
-        <di:waypoint x="700" y="153" />
-        <di:waypoint x="1400" y="153" />
-        <di:waypoint x="1400" y="690" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_AdminList_BackendFilters_di" bpmnElement="Flow_AdminList_BackendFilters">
-        <di:waypoint x="1470" y="725" />
-        <di:waypoint x="1520" y="725" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_BackendFilters_CreatorFilter_di" bpmnElement="Flow_BackendFilters_CreatorFilter">
-        <di:waypoint x="1660" y="725" />
-        <di:waypoint x="1710" y="725" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_CreatorFilter_Polling_di" bpmnElement="Flow_CreatorFilter_Polling">
-        <di:waypoint x="1850" y="725" />
-        <di:waypoint x="1900" y="725" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Polling_ChangeStatus_di" bpmnElement="Flow_Polling_ChangeStatus">
-        <di:waypoint x="2040" y="725" />
-        <di:waypoint x="2090" y="725" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_ChangeStatus_Decision_di" bpmnElement="Flow_ChangeStatus_Decision">
-        <di:waypoint x="2230" y="725" />
-        <di:waypoint x="2280" y="725" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Status_ReturnDraft_di" bpmnElement="Flow_Status_ReturnDraft">
-        <di:waypoint x="2305" y="750" />
-        <di:waypoint x="2305" y="820" />
-        <di:waypoint x="1020" y="820" />
-        <di:waypoint x="1020" y="535" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Status_Public_di" bpmnElement="Flow_Status_Public">
-        <di:waypoint x="2305" y="700" />
-        <di:waypoint x="2305" y="100" />
-        <di:waypoint x="520" y="100" />
-        <di:waypoint x="520" y="118" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Status_Rejected_di" bpmnElement="Flow_Status_Rejected">
-        <di:waypoint x="2330" y="725" />
-        <di:waypoint x="2380" y="725" />
-        <di:waypoint x="2380" y="680" />
-        <di:waypoint x="2420" y="680" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Status_Deleted_di" bpmnElement="Flow_Status_Deleted">
-        <di:waypoint x="2330" y="725" />
-        <di:waypoint x="2380" y="725" />
-        <di:waypoint x="2380" y="780" />
-        <di:waypoint x="2420" y="780" />
-      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataStore_Users_di" bpmnElement="DataStore_Users"><dc:Bounds x="160" y="1200" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStore_CitiesCategories_di" bpmnElement="DataStore_CitiesCategories"><dc:Bounds x="330" y="1200" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStore_Buildings_di" bpmnElement="DataStore_Buildings"><dc:Bounds x="500" y="1200" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStore_Media_di" bpmnElement="DataStore_Media"><dc:Bounds x="670" y="1200" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStore_Services_di" bpmnElement="DataStore_Services"><dc:Bounds x="840" y="1200" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStore_Orders_di" bpmnElement="DataStore_Orders"><dc:Bounds x="1010" y="1200" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStore_Donations_di" bpmnElement="DataStore_Donations"><dc:Bounds x="1180" y="1200" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStore_Stripe_di" bpmnElement="DataStore_Stripe"><dc:Bounds x="1350" y="1200" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStore_AI_di" bpmnElement="DataStore_AI"><dc:Bounds x="1520" y="1200" width="130" height="70" /></bpmndi:BPMNShape>
 
-      <bpmndi:BPMNEdge id="Assoc_Buildings_Browse_di" bpmnElement="Assoc_Buildings_Browse">
-        <di:waypoint x="875" y="900" />
-        <di:waypoint x="330" y="188" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Files_Open_di" bpmnElement="Assoc_Files_Open">
-        <di:waypoint x="1045" y="900" />
-        <di:waypoint x="520" y="188" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Orders_Open_di" bpmnElement="Assoc_Orders_Open">
-        <di:waypoint x="1385" y="900" />
-        <di:waypoint x="560" y="188" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Users_UserAuth_di" bpmnElement="Assoc_Users_UserAuth">
-        <di:waypoint x="830" y="358" />
-        <di:waypoint x="705" y="900" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Donation_Donations_di" bpmnElement="Assoc_Donation_Donations">
-        <di:waypoint x="1020" y="358" />
-        <di:waypoint x="1555" y="900" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Donation_Orders_di" bpmnElement="Assoc_Donation_Orders">
-        <di:waypoint x="1090" y="358" />
-        <di:waypoint x="1385" y="900" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Users_CityAuth_di" bpmnElement="Assoc_Users_CityAuth">
-        <di:waypoint x="705" y="900" />
-        <di:waypoint x="830" y="535" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Draft_Buildings_di" bpmnElement="Assoc_Draft_Buildings">
-        <di:waypoint x="1020" y="535" />
-        <di:waypoint x="875" y="900" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Draft_Files_di" bpmnElement="Assoc_Draft_Files">
-        <di:waypoint x="1060" y="535" />
-        <di:waypoint x="1045" y="900" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Draft_Orders_di" bpmnElement="Assoc_Draft_Orders">
-        <di:waypoint x="1090" y="535" />
-        <di:waypoint x="1385" y="900" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Services_Read_di" bpmnElement="Assoc_Services_Read">
-        <di:waypoint x="1215" y="900" />
-        <di:waypoint x="1210" y="535" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Services_Orders_di" bpmnElement="Assoc_Services_Orders">
-        <di:waypoint x="1280" y="535" />
-        <di:waypoint x="1385" y="900" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Form_Orders_di" bpmnElement="Assoc_Form_Orders">
-        <di:waypoint x="1400" y="535" />
-        <di:waypoint x="1385" y="900" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Admin_Orders_di" bpmnElement="Assoc_Admin_Orders">
-        <di:waypoint x="1385" y="900" />
-        <di:waypoint x="1400" y="760" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Filter_Orders_di" bpmnElement="Assoc_Filter_Orders">
-        <di:waypoint x="1385" y="900" />
-        <di:waypoint x="1590" y="760" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Creator_Users_di" bpmnElement="Assoc_Creator_Users">
-        <di:waypoint x="705" y="900" />
-        <di:waypoint x="1780" y="760" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_Status_Orders_di" bpmnElement="Assoc_Status_Orders">
-        <di:waypoint x="2160" y="760" />
-        <di:waypoint x="1385" y="900" />
-      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Start_OpenHome_di" bpmnElement="Flow_Start_OpenHome"><di:waypoint x="166" y="160" /><di:waypoint x="210" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OpenHome_BrowsePublicOrders_di" bpmnElement="Flow_OpenHome_BrowsePublicOrders"><di:waypoint x="360" y="160" /><di:waypoint x="400" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BrowsePublicOrders_Filter_di" bpmnElement="Flow_BrowsePublicOrders_Filter"><di:waypoint x="570" y="160" /><di:waypoint x="610" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Filter_ViewPublicOrder_di" bpmnElement="Flow_Filter_ViewPublicOrder"><di:waypoint x="795" y="160" /><di:waypoint x="840" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ViewPublicOrder_GuestGoal_di" bpmnElement="Flow_ViewPublicOrder_GuestGoal"><di:waypoint x="1020" y="160" /><di:waypoint x="1070" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GuestGoal_Donate_di" bpmnElement="Flow_GuestGoal_Donate"><di:waypoint x="1120" y="160" /><di:waypoint x="1145" y="160" /><di:waypoint x="1145" y="120" /><di:waypoint x="1175" y="120" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GuestGoal_Auth_di" bpmnElement="Flow_GuestGoal_Auth"><di:waypoint x="1095" y="185" /><di:waypoint x="1095" y="220" /><di:waypoint x="1175" y="220" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GuestDonation_CreateCheckout_di" bpmnElement="Flow_GuestDonation_CreateCheckout"><di:waypoint x="1355" y="120" /><di:waypoint x="1615" y="120" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OpenAuth_UserAuth_di" bpmnElement="Flow_OpenAuth_UserAuth"><di:waypoint x="1355" y="220" /><di:waypoint x="1512" y="220" /><di:waypoint x="1512" y="355" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OpenAuth_CityAuth_di" bpmnElement="Flow_OpenAuth_CityAuth"><di:waypoint x="1355" y="220" /><di:waypoint x="1512" y="220" /><di:waypoint x="1512" y="585" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OpenAuth_AdminAuth_di" bpmnElement="Flow_OpenAuth_AdminAuth"><di:waypoint x="1355" y="220" /><di:waypoint x="1512" y="220" /><di:waypoint x="1512" y="835" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_UserAuth_Profile_di" bpmnElement="Flow_UserAuth_Profile"><di:waypoint x="1605" y="390" /><di:waypoint x="1650" y="390" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_UserProfile_Edit_di" bpmnElement="Flow_UserProfile_Edit"><di:waypoint x="1810" y="390" /><di:waypoint x="1832" y="390" /><di:waypoint x="1832" y="350" /><di:waypoint x="1855" y="350" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_UserEdit_End_di" bpmnElement="Flow_UserEdit_End"><di:waypoint x="2035" y="350" /><di:waypoint x="2085" y="350" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_UserProfile_BrowseOrders_di" bpmnElement="Flow_UserProfile_BrowseOrders"><di:waypoint x="1810" y="390" /><di:waypoint x="1832" y="390" /><di:waypoint x="1832" y="440" /><di:waypoint x="1855" y="440" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_UserBrowse_UserDonation_di" bpmnElement="Flow_UserBrowse_UserDonation"><di:waypoint x="2030" y="440" /><di:waypoint x="2070" y="440" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_UserDonation_CreateCheckout_di" bpmnElement="Flow_UserDonation_CreateCheckout"><di:waypoint x="2245" y="440" /><di:waypoint x="2260" y="440" /><di:waypoint x="2260" y="250" /><di:waypoint x="1710" y="250" /><di:waypoint x="1710" y="155" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CityAuth_Profile_di" bpmnElement="Flow_CityAuth_Profile"><di:waypoint x="1605" y="620" /><di:waypoint x="1650" y="620" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CityProfile_CreateBuilding_di" bpmnElement="Flow_CityProfile_CreateBuilding"><di:waypoint x="1820" y="620" /><di:waypoint x="1842" y="620" /><di:waypoint x="1842" y="575" /><di:waypoint x="1865" y="575" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CityProfile_MyOrders_di" bpmnElement="Flow_CityProfile_MyOrders"><di:waypoint x="1820" y="620" /><di:waypoint x="1842" y="620" /><di:waypoint x="1842" y="695" /><di:waypoint x="1865" y="695" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CreateBuilding_GenerateDescription_di" bpmnElement="Flow_CreateBuilding_GenerateDescription"><di:waypoint x="2050" y="575" /><di:waypoint x="2095" y="575" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GenerateDescription_CreateDraft_di" bpmnElement="Flow_GenerateDescription_CreateDraft"><di:waypoint x="2285" y="575" /><di:waypoint x="2330" y="575" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CreateDraft_SelectServices_di" bpmnElement="Flow_CreateDraft_SelectServices"><di:waypoint x="2505" y="575" /><di:waypoint x="2550" y="575" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SelectServices_SubmitOrder_di" bpmnElement="Flow_SelectServices_SubmitOrder"><di:waypoint x="2740" y="575" /><di:waypoint x="2785" y="575" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SubmitOrder_CityEnd_di" bpmnElement="Flow_SubmitOrder_CityEnd"><di:waypoint x="2975" y="575" /><di:waypoint x="3025" y="575" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SubmitOrder_AdminPanel_di" bpmnElement="Flow_SubmitOrder_AdminPanel"><di:waypoint x="2880" y="610" /><di:waypoint x="2880" y="750" /><di:waypoint x="1512" y="750" /><di:waypoint x="1512" y="835" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MyOrders_CityAction_di" bpmnElement="Flow_MyOrders_CityAction"><di:waypoint x="2035" y="695" /><di:waypoint x="2095" y="695" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CityAction_EditDraft_di" bpmnElement="Flow_CityAction_EditDraft"><di:waypoint x="2145" y="695" /><di:waypoint x="2200" y="695" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CityEditDraft_CreateBuilding_di" bpmnElement="Flow_CityEditDraft_CreateBuilding"><di:waypoint x="2275" y="650" /><di:waypoint x="2275" y="515" /><di:waypoint x="1958" y="515" /><di:waypoint x="1958" y="540" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CityAction_DeleteDraft_di" bpmnElement="Flow_CityAction_DeleteDraft"><di:waypoint x="2145" y="695" /><di:waypoint x="2395" y="695" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CityDeleteDraft_End_di" bpmnElement="Flow_CityDeleteDraft_End"><di:waypoint x="2545" y="685" /><di:waypoint x="3025" y="575" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CityAction_PublishDraft_di" bpmnElement="Flow_CityAction_PublishDraft"><di:waypoint x="2120" y="670" /><di:waypoint x="2120" y="635" /><di:waypoint x="3025" y="575" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AdminLogin_OpenPanel_di" bpmnElement="Flow_AdminLogin_OpenPanel"><di:waypoint x="1605" y="870" /><di:waypoint x="1650" y="870" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AdminPanel_ManageServices_di" bpmnElement="Flow_AdminPanel_ManageServices"><di:waypoint x="1810" y="870" /><di:waypoint x="1832" y="870" /><di:waypoint x="1832" y="840" /><di:waypoint x="1855" y="840" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ManageServices_End_di" bpmnElement="Flow_ManageServices_End"><di:waypoint x="2045" y="840" /><di:waypoint x="2090" y="840" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AdminPanel_ViewUsers_di" bpmnElement="Flow_AdminPanel_ViewUsers"><di:waypoint x="1810" y="870" /><di:waypoint x="1832" y="870" /><di:waypoint x="1832" y="930" /><di:waypoint x="1855" y="930" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ViewUsers_End_di" bpmnElement="Flow_ViewUsers_End"><di:waypoint x="2035" y="930" /><di:waypoint x="2090" y="930" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AdminPanel_FilterOrders_di" bpmnElement="Flow_AdminPanel_FilterOrders"><di:waypoint x="1730" y="905" /><di:waypoint x="1730" y="1020" /><di:waypoint x="2075" y="1020" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_FilterOrders_Review_di" bpmnElement="Flow_FilterOrders_Review"><di:waypoint x="2265" y="1020" /><di:waypoint x="2310" y="1020" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Review_AdminDecision_di" bpmnElement="Flow_Review_AdminDecision"><di:waypoint x="2490" y="1020" /><di:waypoint x="2535" y="1020" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AdminDecision_Publish_di" bpmnElement="Flow_AdminDecision_Publish"><di:waypoint x="2560" y="995" /><di:waypoint x="2560" y="840" /><di:waypoint x="2645" y="840" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AdminDecision_ReturnDraft_di" bpmnElement="Flow_AdminDecision_ReturnDraft"><di:waypoint x="2585" y="1020" /><di:waypoint x="2608" y="1020" /><di:waypoint x="2608" y="965" /><di:waypoint x="2640" y="965" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ReturnDraft_CityMyOrders_di" bpmnElement="Flow_ReturnDraft_CityMyOrders"><di:waypoint x="2725" y="930" /><di:waypoint x="2725" y="730" /><di:waypoint x="1950" y="730" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AdminDecision_Reject_di" bpmnElement="Flow_AdminDecision_Reject"><di:waypoint x="2560" y="1045" /><di:waypoint x="2560" y="1055" /><di:waypoint x="2640" y="1055" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Reject_End_di" bpmnElement="Flow_Reject_End"><di:waypoint x="2790" y="1055" /><di:waypoint x="3025" y="1055" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AdminDecision_Delete_di" bpmnElement="Flow_AdminDecision_Delete"><di:waypoint x="2585" y="1020" /><di:waypoint x="2810" y="1020" /><di:waypoint x="2810" y="1055" /><di:waypoint x="2850" y="1055" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Delete_End_di" bpmnElement="Flow_Delete_End"><di:waypoint x="3000" y="1055" /><di:waypoint x="3095" y="1055" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AdminPanel_CreateOrder_di" bpmnElement="Flow_AdminPanel_CreateOrder"><di:waypoint x="1810" y="870" /><di:waypoint x="1940" y="870" /><di:waypoint x="1940" y="875" /><di:waypoint x="2075" y="840" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AdminCreate_CityCreateBuilding_di" bpmnElement="Flow_AdminCreate_CityCreateBuilding"><di:waypoint x="2165" y="805" /><di:waypoint x="2165" y="780" /><di:waypoint x="1958" y="780" /><di:waypoint x="1958" y="610" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CreateCheckout_PaymentResult_di" bpmnElement="Flow_CreateCheckout_PaymentResult"><di:waypoint x="1805" y="120" /><di:waypoint x="1870" y="120" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Payment_Canceled_di" bpmnElement="Flow_Payment_Canceled"><di:waypoint x="1920" y="120" /><di:waypoint x="2070" y="120" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Payment_SaveDonation_di" bpmnElement="Flow_Payment_SaveDonation"><di:waypoint x="1895" y="145" /><di:waypoint x="1895" y="180" /><di:waypoint x="2170" y="180" /><di:waypoint x="2170" y="120" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SaveDonation_TargetCheck_di" bpmnElement="Flow_SaveDonation_TargetCheck"><di:waypoint x="2360" y="120" /><di:waypoint x="2400" y="120" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Target_No_di" bpmnElement="Flow_Target_No"><di:waypoint x="2450" y="120" /><di:waypoint x="2440" y="120" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Target_Yes_di" bpmnElement="Flow_Target_Yes"><di:waypoint x="2425" y="145" /><di:waypoint x="2425" y="390" /><di:waypoint x="2600" y="390" /></bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Assoc_Auth_Users_di" bpmnElement="Assoc_Auth_Users"><di:waypoint x="1512" y="425" /><di:waypoint x="225" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_UserProfile_Users_di" bpmnElement="Assoc_UserProfile_Users"><di:waypoint x="1945" y="385" /><di:waypoint x="225" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_CityAuth_Users_di" bpmnElement="Assoc_CityAuth_Users"><di:waypoint x="1512" y="655" /><di:waypoint x="225" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_AdminAuth_Users_di" bpmnElement="Assoc_AdminAuth_Users"><di:waypoint x="1512" y="905" /><di:waypoint x="225" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_PublicFilters_CitiesCategories_di" bpmnElement="Assoc_PublicFilters_CitiesCategories"><di:waypoint x="395" y="1200" /><di:waypoint x="702" y="195" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_PublicOrders_Orders_di" bpmnElement="Assoc_PublicOrders_Orders"><di:waypoint x="1075" y="1200" /><di:waypoint x="485" y="195" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_PublicOrder_Buildings_di" bpmnElement="Assoc_PublicOrder_Buildings"><di:waypoint x="565" y="1200" /><di:waypoint x="930" y="195" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_PublicOrder_Media_di" bpmnElement="Assoc_PublicOrder_Media"><di:waypoint x="735" y="1200" /><di:waypoint x="965" y="195" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_CreateBuilding_Buildings_di" bpmnElement="Assoc_CreateBuilding_Buildings"><di:waypoint x="1958" y="610" /><di:waypoint x="565" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_CreateBuilding_Media_di" bpmnElement="Assoc_CreateBuilding_Media"><di:waypoint x="2005" y="610" /><di:waypoint x="735" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_AI_Buildings_di" bpmnElement="Assoc_AI_Buildings"><di:waypoint x="2190" y="610" /><di:waypoint x="1585" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_Draft_Orders_di" bpmnElement="Assoc_Draft_Orders"><di:waypoint x="2418" y="610" /><di:waypoint x="1075" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_CityMyOrders_di" bpmnElement="Assoc_CityMyOrders"><di:waypoint x="1075" y="1200" /><di:waypoint x="1950" y="730" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_CitySubmit_Orders_di" bpmnElement="Assoc_CitySubmit_Orders"><di:waypoint x="2880" y="610" /><di:waypoint x="1075" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_Services_Read_di" bpmnElement="Assoc_Services_Read"><di:waypoint x="905" y="1200" /><di:waypoint x="2645" y="610" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_OrderServices_Orders_di" bpmnElement="Assoc_OrderServices_Orders"><di:waypoint x="2645" y="610" /><di:waypoint x="1075" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_AdminServices_di" bpmnElement="Assoc_AdminServices"><di:waypoint x="1950" y="875" /><di:waypoint x="905" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_AdminOrders_di" bpmnElement="Assoc_AdminOrders"><di:waypoint x="1075" y="1200" /><di:waypoint x="2170" y="1055" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_AdminDecisionOrders_di" bpmnElement="Assoc_AdminDecisionOrders"><di:waypoint x="2560" y="1045" /><di:waypoint x="1075" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_AdminUsers_di" bpmnElement="Assoc_AdminUsers"><di:waypoint x="225" y="1200" /><di:waypoint x="1945" y="965" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_Stripe_di" bpmnElement="Assoc_Stripe"><di:waypoint x="1710" y="155" /><di:waypoint x="1415" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_Donation_di" bpmnElement="Assoc_Donation"><di:waypoint x="2265" y="155" /><di:waypoint x="1245" y="1200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_Donation_Order_di" bpmnElement="Assoc_Donation_Order"><di:waypoint x="2265" y="155" /><di:waypoint x="1075" y="1200" /></bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>

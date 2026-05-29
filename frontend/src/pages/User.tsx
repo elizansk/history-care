@@ -32,6 +32,7 @@ export default function User() {
   if (!user) return <p className="user-loading">Loading...</p>;
 
   const canCreateOrder = roleName === 'City' || roleName === 'Admin';
+  const canViewCreatedOrders = roleName === 'City' || roleName === 'Admin';
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -104,24 +105,22 @@ export default function User() {
           <p>Email: {user.email}</p>
           <p>Роль: {roleName}</p>
           <div className="user-actions">
-            {canCreateOrder ? (
+            {canCreateOrder && (
               <Link
                 to="/create-order"
                 className="user-action-primary"
               >
                 Перейти к созданию заявки
               </Link>
-            ) : (
-              <div className="user-action-disabled">
-                Создание заявки доступно только для администратора и городского пользователя.
-              </div>
             )}
-            <Link
-              to="/my-orders"
-              className="user-action-secondary"
-            >
-              Просмотреть созданные заявки
-            </Link>
+            {canViewCreatedOrders && (
+              <Link
+                to="/my-orders"
+                className="user-action-secondary"
+              >
+                Просмотреть созданные заявки
+              </Link>
+            )}
           </div>
         </div>
 
