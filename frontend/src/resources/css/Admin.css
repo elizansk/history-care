@@ -222,6 +222,14 @@
   background: #f6faf7;
 }
 
+.admin-empty-panel {
+  padding: 22px;
+  border: 1px dashed #c9d6cf;
+  border-radius: 8px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 .admin-error,
 .admin-success {
   margin: 12px 0;
@@ -280,6 +288,11 @@
   background: #fbfdfb;
 }
 
+.admin-detail-row td {
+  padding: 0 12px 16px;
+  background: #fbfdfb;
+}
+
 .admin-id-cell,
 .admin-amount-cell,
 .admin-table-title {
@@ -312,6 +325,128 @@
 .admin-actions .btn {
   border-radius: 7px;
   font-weight: 700;
+}
+
+.admin-collapse-toggle {
+  min-width: 86px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid #bed0c5;
+  border-radius: 7px;
+  background: #fff;
+  color: #0e5a3c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-collapse-toggle:hover {
+  border-color: #0e5a3c;
+  background: #f0f8f3;
+}
+
+.admin-order-details {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #dfe9e3;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.admin-order-details div {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-order-details span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-order-details strong {
+  color: #17251d;
+  font-size: 14px;
+}
+
+.admin-service-list {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-service-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid #e3ebe5;
+  border-radius: 8px;
+  background: #fbfdfb;
+}
+
+.admin-service-item-deleted {
+  background: #f8f8f8;
+  opacity: 0.8;
+}
+
+.admin-service-toggle {
+  min-width: 100px;
+}
+
+.admin-service-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.admin-service-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  border: 1px solid #d8e3dc;
+  border-radius: 8px;
+  background: #eef5f0;
+  object-fit: cover;
+}
+
+.admin-service-icon-empty::before {
+  display: block;
+  color: #8ca098;
+  content: "Нет";
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 48px;
+  text-align: center;
+}
+
+.admin-service-details {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border-top: 1px solid #e1e9e3;
+}
+
+.admin-service-details p {
+  margin: 0;
+  color: #2e4036;
+  line-height: 1.45;
+}
+
+.admin-service-details a {
+  color: #0e5a3c;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.admin-service-details a:hover {
+  text-decoration: underline;
 }
 
 .admin-status-badge,
@@ -423,6 +558,10 @@
   .admin-filters-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .admin-order-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (width <= 720px) {
@@ -455,5 +594,15 @@
   .admin-section-block,
   .admin-profile-card {
     padding: 18px;
+  }
+
+  .admin-service-item,
+  .admin-service-details,
+  .admin-order-details {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-service-toggle {
+    width: 100%;
   }
 }

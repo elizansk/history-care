@@ -76,11 +76,11 @@ deploy:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
   script:
-    - kubectl apply -R -f manifests/
-    - kubectl set image deployment/history-care-backend history-care-backend="$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" migrate="$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
-    - kubectl set image deployment/history-care-frontend history-care-frontend="$FRONTEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
-    - kubectl set image deployment/history-care-ai history-care-ai="$AI_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
-    - kubectl rollout status deployment/history-care-backend
-    - kubectl rollout status deployment/history-care-frontend
-    - kubectl rollout status deployment/history-care-ai
-    - kubectl get pods
+    - sudo k3s kubectl apply -R -f manifests/
+    - sudo k3s kubectl set image deployment/history-care-backend history-care-backend="$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" migrate="$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+    - sudo k3s kubectl set image deployment/history-care-frontend history-care-frontend="$FRONTEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+    - sudo k3s kubectl set image deployment/history-care-ai history-care-ai="$AI_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+    - sudo k3s kubectl rollout status deployment/history-care-backend
+    - sudo k3s kubectl rollout status deployment/history-care-frontend
+    - sudo k3s kubectl rollout status deployment/history-care-ai
+    - sudo k3s kubectl get pods
