@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
@@ -53,6 +53,15 @@ interface AdminOrder {
     collected_amount?: number;
     created_at?: string;
     completed_at?: string | null;
+}
+
+interface AdminService {
+    id: number;
+    name: string;
+    description?: string;
+    status?: string;
+    image_url?: string;
+    created_at?: string;
 }
 
 interface ServiceFormState {
@@ -174,7 +183,13 @@ export default function Admin() {
     const [ordersLoading, setOrdersLoading] = useState(true);
     const [ordersError, setOrdersError] = useState<string | null>(null);
     const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
+    const [expandedOrderIds, setExpandedOrderIds] = useState<number[]>([]);
     const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+    const [services, setServices] = useState<AdminService[]>([]);
+    const [servicesLoading, setServicesLoading] = useState(false);
+    const [servicesError, setServicesError] = useState<string | null>(null);
+    const [expandedServiceIds, setExpandedServiceIds] = useState<number[]>([]);
+    const [deletingServiceId, setDeletingServiceId] = useState<number | null>(null);
     const [serviceForm, setServiceForm] = useState<ServiceFormState>({
         name: "",
         description: "",
@@ -260,10 +275,30 @@ export default function Admin() {
         }
     }, [authHeaders, fromDate, statusFilter, toDate, token]);
 
+    const loadServices = useCallback(async () => {
+        if (!token) return;
+
+        setServicesLoading(true);
+
+        try {
+            const { data } = await axios.post<AdminService[]>(`/api/services/all`, {}, {
+                headers: authHeaders,
+            });
+            setServices(data);
+            setServicesError(null);
+        } catch (error) {
+            console.error(error);
+            setServicesError("Не удалось загрузить услуги");
+        } finally {
+            setServicesLoading(false);
+        }
+    }, [authHeaders, token]);
+
     useEffect(() => {
         void loadProfile();
         void loadUsers();
-    }, [loadProfile, loadUsers]);
+        void loadServices();
+    }, [loadProfile, loadServices, loadUsers]);
 
     useEffect(() => {//повторно запрашивает список заявок
         void loadOrders(true);
@@ -304,15 +339,33 @@ export default function Admin() {
         const waitingCityUsers = users.filter((user) =>
             getUserRoleName(user) === "City" && user.city_approved !== true
         ).length;
+        const activeServices = services.filter((service) => service.status !== "deleted").length;
         const totalCollected = orders.reduce((sum, order) => sum + (order.collected_amount || 0), 0);
 
         return {
             pendingOrders,
             publishedOrders,
             waitingCityUsers,
+            activeServices,
             totalCollected,
         };
-    }, [orders, users]);
+    }, [orders, services, users]);
+
+    const toggleOrderExpanded = (orderId: number) => {
+        setExpandedOrderIds((previous) =>
+            previous.includes(orderId)
+                ? previous.filter((id) => id !== orderId)
+                : [...previous, orderId]
+        );
+    };
+
+    const toggleServiceExpanded = (serviceId: number) => {
+        setExpandedServiceIds((previous) =>
+            previous.includes(serviceId)
+                ? previous.filter((id) => id !== serviceId)
+                : [...previous, serviceId]
+        );
+    };
 
     const handleStatusChange = async (orderId: number, status: "formed" | "draft" | "rejected") => {
         setUpdatingOrderId(orderId);
@@ -468,6 +521,7 @@ export default function Admin() {
                 icon: null,
             });
             setServiceMessage("Услуга создана");
+            await loadServices();
         } catch (error) {
             console.error(error);
             const message = axios.isAxiosError<{ error?: string }>(error)
@@ -476,6 +530,29 @@ export default function Admin() {
             setServiceError(message);
         } finally {
             setServiceSubmitting(false);
+        }
+    };
+
+    const handleDeleteService = async (serviceId: number) => {
+        if (!confirm("Удалить услугу? Она перестанет показываться пользователям.")) return;
+
+        setDeletingServiceId(serviceId);
+        setServicesError(null);
+
+        try {
+            await axios.delete(`/api/services/${serviceId}`, {
+                headers: authHeaders,
+            });
+            localStorage.removeItem("history-care:services");
+            await loadServices();
+        } catch (error) {
+            console.error(error);
+            const message = axios.isAxiosError<{ error?: string }>(error)
+                ? error.response?.data?.error || "Не удалось удалить услугу"
+                : "Не удалось удалить услугу";
+            setServicesError(message);
+        } finally {
+            setDeletingServiceId(null);
         }
     };
 
@@ -597,8 +674,8 @@ export default function Admin() {
                         <strong>{adminStats.publishedOrders}</strong>
                     </div>
                     <div className="admin-stat-card">
-                        <span>City ждут подтверждения</span>
-                        <strong>{adminStats.waitingCityUsers}</strong>
+                        <span>Активных услуг</span>
+                        <strong>{adminStats.activeServices}</strong>
                     </div>
                     <div className="admin-stat-card">
                         <span>Собрано всего</span>
@@ -689,6 +766,89 @@ export default function Admin() {
                 <section className="admin-section-block">
                     <div className="admin-section-heading">
                         <div>
+                            <span className="admin-card-kicker">Справочник</span>
+                            <h2>Услуги</h2>
+                        </div>
+                        <span>{services.length} записей</span>
+                    </div>
+
+                    {servicesError && <p className="admin-error">{servicesError}</p>}
+                    {servicesLoading && <p className="admin-loading-text">Загрузка услуг...</p>}
+
+                    {!servicesLoading && (
+                        <div className="admin-service-list">
+                            {services.length === 0 && (
+                                <div className="admin-empty-panel">Услуги пока не созданы</div>
+                            )}
+                            {services.map((service) => {
+                                const isExpanded = expandedServiceIds.includes(service.id);
+                                const isDeleted = service.status === "deleted";
+
+                                return (
+                                    <article
+                                        key={service.id}
+                                        className={`admin-service-item ${isDeleted ? "admin-service-item-deleted" : ""}`}
+                                    >
+                                        <button
+                                            type="button"
+                                            className="admin-collapse-toggle admin-service-toggle"
+                                            onClick={() => toggleServiceExpanded(service.id)}
+                                            aria-expanded={isExpanded}
+                                        >
+                                            <span>{isExpanded ? "Свернуть" : "Развернуть"}</span>
+                                        </button>
+                                        <div className="admin-service-main">
+                                            {service.image_url ? (
+                                                <img
+                                                    src={service.image_url}
+                                                    alt=""
+                                                    className="admin-service-icon"
+                                                />
+                                            ) : (
+                                                <div className="admin-service-icon admin-service-icon-empty" />
+                                            )}
+                                            <div>
+                                                <div className="admin-table-title">{service.name}</div>
+                                                <div className="admin-small-muted">
+                                                    Создана: {formatDate(service.created_at)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span className={isDeleted ? "admin-status-badge admin-status-deleted" : "admin-status-badge admin-status-published"}>
+                                            {isDeleted ? "Удалена" : "Активна"}
+                                        </span>
+
+                                        {isExpanded && (
+                                            <div className="admin-service-details">
+                                                <p>{service.description || "Описание не указано"}</p>
+                                                {service.image_url && (
+                                                    <a href={service.image_url} target="_blank" rel="noreferrer">
+                                                        Открыть иконку
+                                                    </a>
+                                                )}
+                                                {!isDeleted && (
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="outline-danger"
+                                                        disabled={deletingServiceId === service.id}
+                                                        onClick={() => handleDeleteService(service.id)}
+                                                    >
+                                                        {deletingServiceId === service.id ? "Удаление..." : "Удалить услугу"}
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </article>
+                                );
+                            })}
+                        </div>
+                    )}
+                </section>
+
+                <section className="admin-section-block">
+                    <div className="admin-section-heading">
+                        <div>
                             <span className="admin-card-kicker">Модерация</span>
                             <h2>Заявки</h2>
                         </div>
@@ -750,6 +910,7 @@ export default function Admin() {
                             <table className="admin-table">
                                 <thead>
                                 <tr>
+                                    <th>Детали</th>
                                     <th>ID</th>
                                     <th>Здание</th>
                                     <th>Создатель</th>
@@ -762,44 +923,84 @@ export default function Admin() {
                                 <tbody>
                                 {filteredOrders.length === 0 && (
                                     <tr>
-                                        <td colSpan={7} className="admin-empty-cell">
+                                        <td colSpan={8} className="admin-empty-cell">
                                             Заявки не найдены
                                         </td>
                                     </tr>
                                 )}
-                                {filteredOrders.map((order) => (
-                                    <tr key={order.id}>
-                                        <td className="admin-id-cell">#{order.id}</td>
-                                        <td>
-                                            <div className="admin-table-title">{order.building?.name || "Без названия"}</div>
-                                            <div className="admin-small-muted">
-                                                {order.building?.address || "Адрес не указан"}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div className="admin-table-title">{formatUserName(order.creator)}</div>
-                                            <div className="admin-small-muted">
-                                                {order.creator?.email || `ID: ${order.creator_id || "-"}`}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span className={getStatusClassName(order.status)}>
-                                                {getStatusTranslation(order.status)}
-                                            </span>
-                                        </td>
-                                        <td className="admin-amount-cell">
-                                            {formatAmount(order.total_amount)} ₽
-                                        </td>
-                                        <td>
-                                            {formatDate(order.created_at)}
-                                        </td>
-                                        <td>
-                                            <div className="admin-actions">
-                                                {renderOrderActions(order)}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {filteredOrders.map((order) => {
+                                    const isExpanded = expandedOrderIds.includes(order.id);
+
+                                    return (
+                                        <Fragment key={order.id}>
+                                            <tr>
+                                                <td>
+                                                    <button
+                                                        type="button"
+                                                        className="admin-collapse-toggle"
+                                                        onClick={() => toggleOrderExpanded(order.id)}
+                                                        aria-expanded={isExpanded}
+                                                    >
+                                                        {isExpanded ? "Свернуть" : "Открыть"}
+                                                    </button>
+                                                </td>
+                                                <td className="admin-id-cell">#{order.id}</td>
+                                                <td>
+                                                    <div className="admin-table-title">{order.building?.name || "Без названия"}</div>
+                                                    <div className="admin-small-muted">
+                                                        {order.building?.address || "Адрес не указан"}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="admin-table-title">{formatUserName(order.creator)}</div>
+                                                    <div className="admin-small-muted">
+                                                        {order.creator?.email || `ID: ${order.creator_id || "-"}`}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className={getStatusClassName(order.status)}>
+                                                        {getStatusTranslation(order.status)}
+                                                    </span>
+                                                </td>
+                                                <td className="admin-amount-cell">
+                                                    {formatAmount(order.total_amount)} ₽
+                                                </td>
+                                                <td>
+                                                    {formatDate(order.created_at)}
+                                                </td>
+                                                <td>
+                                                    <div className="admin-actions">
+                                                        {renderOrderActions(order)}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {isExpanded && (
+                                                <tr className="admin-detail-row">
+                                                    <td colSpan={8}>
+                                                        <div className="admin-order-details">
+                                                            <div>
+                                                                <span>Собрано</span>
+                                                                <strong>{formatAmount(order.collected_amount)} ₽</strong>
+                                                            </div>
+                                                            <div>
+                                                                <span>Завершена</span>
+                                                                <strong>{formatDate(order.completed_at)}</strong>
+                                                            </div>
+                                                            <div>
+                                                                <span>Создатель</span>
+                                                                <strong>{formatUserName(order.creator)}</strong>
+                                                            </div>
+                                                            <div>
+                                                                <span>Адрес здания</span>
+                                                                <strong>{order.building?.address || "Не указан"}</strong>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </Fragment>
+                                    );
+                                })}
                                 </tbody>
                             </table>
                         </div>

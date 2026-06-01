@@ -58,9 +58,9 @@ upload:
     - docker save "$FRONTEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" -o frontend.tar
     - docker save "$AI_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" -o ai.tar
 
-    - k3s ctr images import backend.tar
-    - k3s ctr images import frontend.tar
-    - k3s ctr images import ai.tar
+    - sudo k3s ctr images import backend.tar
+    - sudo k3s ctr images import frontend.tar
+    - sudo k3s ctr images import ai.tar
     - rm -f backend.tar frontend.tar ai.tar
 #создает/обновляет ConfigMap, применяет manifests
 #обновляет images в deployments
