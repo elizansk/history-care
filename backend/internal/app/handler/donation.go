@@ -144,6 +144,10 @@ func (h *Handler) PostDonationCheckout(ctx *gin.Context) {
 func createStripeCheckoutSession(req DonationRequest) (*stripeCheckoutSession, error) {
 	secretKey := os.Getenv("STRIPE_SECRET_KEY")
 	if secretKey == "" {
+		if isStripeDemoMode() {
+			return createDemoCheckoutSession(req)
+		}
+
 		return nil, fmt.Errorf("Stripe is not configured: set STRIPE_SECRET_KEY")
 	}
 
@@ -207,4 +211,21 @@ func createStripeCheckoutSession(req DonationRequest) (*stripeCheckoutSession, e
 	}
 
 	return &session, nil
+}
+
+func isStripeDemoMode() bool {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv("STRIPE_DEMO_MODE")))
+	return value == "" || value == "true" || value == "1" || value == "yes"
+}
+
+func createDemoCheckoutSession(req DonationRequest) (*stripeCheckoutSession, error) {
+	frontendURL := strings.TrimRight(os.Getenv("FRONTEND_URL"), "/")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173"
+	}
+
+	return &stripeCheckoutSession{
+		ID:  fmt.Sprintf("demo-donation-%d", req.OrderID),
+		URL: fmt.Sprintf("%s/donate/%d?payment=success&session_id=demo-donation-%d", frontendURL, req.OrderID, req.OrderID),
+	}, nil
 }

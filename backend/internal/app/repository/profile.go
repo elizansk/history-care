@@ -9,6 +9,7 @@ func (r *Repository) GetUserByID(id uint) (models.User, error) {
 
 	err := r.DB.
 		Preload("Role").
+		Preload("City").
 		First(&user, id).Error
 	return user, err
 }

@@ -24,6 +24,6 @@ spec:
             - name: PORT
               value: "3000"
             - name: OLLAMA_BASE_URL
-              value: http://host.docker.internal:11434
+              value: http://ollama:11434
             - name: OLLAMA_MODEL
               value: gpt-oss:20b-cloud

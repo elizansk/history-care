@@ -43,7 +43,7 @@ export default function Home() {
           <div className="home-hero-overlay" />
           <div className="home-hero-content">
             <p className="home-kicker">Фонд реконструкции исторических зданий</p>
-            <h1>Наследие Нации</h1>
+            <h1>Национальное наследие</h1>
             <p className="home-hero-text">
               Платформа для сохранения архитектурной памяти: здесь города публикуют заявки на восстановление,
               а неравнодушные люди помогают объектам дождаться ремонта.

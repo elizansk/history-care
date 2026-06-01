@@ -22,6 +22,7 @@ interface LoginUser {
   role: string | { id?: number; name?: string };
   Role?: { id?: number; name?: string };
   city_id?: number;
+  city_approved?: boolean;
 }
 
 interface LoginResponse {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -57,6 +58,12 @@ func main() {
 func seed(db *gorm.DB) error {
 	log.Println("Seeding reference data...")
 
+	for _, table := range []string{"roles", "cities", "building_categories"} {
+		if err := syncSequence(db, table); err != nil {
+			return err
+		}
+	}
+
 	for _, role := range []models.Role{
 		{Name: "Admin"},
 		{Name: "City"},
@@ -93,6 +100,14 @@ func seed(db *gorm.DB) error {
 
 	log.Println("Seed data completed!")
 	return nil
+}
+
+func syncSequence(db *gorm.DB, table string) error {
+	return db.Exec(fmt.Sprintf(
+		"SELECT setval(pg_get_serial_sequence('%s', 'id'), COALESCE((SELECT MAX(id) FROM %s), 0) + 1, false)",
+		table,
+		table,
+	)).Error
 }
 
 func getDSN() string {

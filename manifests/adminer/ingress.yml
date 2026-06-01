@@ -4,7 +4,7 @@ metadata:
   name: history-care-adminer-ingress
 spec:
   rules:
-    - host: adminer.history-care.local
+    - host: adminer.history-care.ru
       http:
         paths:
           - path: /

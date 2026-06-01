@@ -4,7 +4,7 @@ metadata:
   name: history-care-prometheus-ingress
 spec:
   rules:
-    - host: prometheus.history-care.local
+    - host: prometheus.history-care.ru
       http:
         paths:
           - path: /

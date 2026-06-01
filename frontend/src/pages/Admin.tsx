@@ -1,9 +1,11 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Button } from "react-bootstrap";
+import { Link } from "react-router-dom";
 import NavigationBar from "../components/NavigationBar.tsx";
 import Footer from "../components/Footer.tsx";
 import { getUserRoleName } from "../utils/auth";
+import { clearCreateOrderSession } from "../utils/session";
 import { getMockUserFromToken, isMockAuthAvailable, mockUsers } from "../mock/auth.mock";
 import { mockOrders } from "../mock/reconstruction.mock";
 import '../resources/css/Admin.css';
@@ -19,9 +21,15 @@ interface User {
     first_name?: string;
     last_name?: string;
     email: string;
-    role?: string;
+    role?: string | Role;
     roleId?: number;
     Role?: Role;
+    city_id?: number;
+    city?: {
+        id: number;
+        name: string;
+    };
+    city_approved?: boolean;
 }
 
 interface OrderUser {
@@ -57,7 +65,8 @@ const POLLING_INTERVAL_MS = 5000;//обновление каждые 5 секу�
 
 const statusTranslations: Record<string, string> = {
     draft: "Черновик",
-    formed: "Сформирована",
+    pending_review: "На проверке",
+    formed: "Опубликована",
     collection_started: "Сбор начат",
     finished: "Завершена",
     rejected: "Отклонена",
@@ -68,7 +77,8 @@ const statusTranslations: Record<string, string> = {
 const statusOptions = [
     { value: "", label: "Все статусы" },
     { value: "draft", label: "Черновик" },
-    { value: "formed", label: "Сформирована" },
+    { value: "pending_review", label: "На проверке" },
+    { value: "formed", label: "Опубликована" },
     { value: "collection_started", label: "Сбор начат" },
     { value: "finished", label: "Завершена" },
     { value: "rejected", label: "Отклонена" },
@@ -76,6 +86,27 @@ const statusOptions = [
 ];
 
 const getStatusTranslation = (status: string) => statusTranslations[status] || status;
+
+const getStatusClassName = (status: string) => {
+    switch (status) {
+        case "pending_review":
+            return "admin-status-badge admin-status-review";
+        case "formed":
+        case "collection_started":
+            return "admin-status-badge admin-status-published";
+        case "rejected":
+        case "reject":
+            return "admin-status-badge admin-status-rejected";
+        case "draft":
+            return "admin-status-badge admin-status-draft";
+        case "finished":
+            return "admin-status-badge admin-status-finished";
+        case "deleted":
+            return "admin-status-badge admin-status-deleted";
+        default:
+            return "admin-status-badge";
+    }
+};
 
 const formatUserName = (user?: OrderUser | User) => {
     if (!user) return "Не указан";
@@ -132,6 +163,9 @@ export default function Admin() {
 
     const [me, setMe] = useState<User | null>(null);
     const [users, setUsers] = useState<User[]>([]);
+    const [usersError, setUsersError] = useState<string | null>(null);
+    const [usersMessage, setUsersMessage] = useState<string | null>(null);
+    const [approvingCityUserId, setApprovingCityUserId] = useState<number | null>(null);
     const [orders, setOrders] = useState<AdminOrder[]>([]);
     const [statusFilter, setStatusFilter] = useState("");//фильстрация
     const [fromDate, setFromDate] = useState("");
@@ -179,11 +213,15 @@ export default function Admin() {
                 headers: authHeaders,
             });
             setUsers(data);
+            setUsersError(null);
         } catch (error) {
             console.error(error);
 
             if (isMockAuthAvailable) {
                 setUsers(mockUsers);
+                setUsersError(null);
+            } else {
+                setUsersError("Не удалось загрузить пользователей");
             }
         }
     }, [authHeaders, token]);
@@ -258,7 +296,25 @@ export default function Admin() {
         });
     }, [creatorFilter, orders]);
 
-    const handleStatusChange = async (orderId: number, status: "draft" | "rejected") => {
+    const adminStats = useMemo(() => {
+        const pendingOrders = orders.filter((order) => order.status === "pending_review").length;
+        const publishedOrders = orders.filter((order) =>
+            order.status === "formed" || order.status === "collection_started"
+        ).length;
+        const waitingCityUsers = users.filter((user) =>
+            getUserRoleName(user) === "City" && user.city_approved !== true
+        ).length;
+        const totalCollected = orders.reduce((sum, order) => sum + (order.collected_amount || 0), 0);
+
+        return {
+            pendingOrders,
+            publishedOrders,
+            waitingCityUsers,
+            totalCollected,
+        };
+    }, [orders, users]);
+
+    const handleStatusChange = async (orderId: number, status: "formed" | "draft" | "rejected") => {
         setUpdatingOrderId(orderId);
         setOrdersError(null);
 
@@ -303,7 +359,7 @@ export default function Admin() {
             if (isMockAuthAvailable) {
                 setOrders((previous) =>
                     previous.map((order) =>
-                        order.id === orderId ? { ...order, status: "formed" } : order
+                        order.id === orderId ? { ...order, status: "pending_review" } : order
                     )
                 );
                 setLastUpdatedAt(new Date());
@@ -344,6 +400,35 @@ export default function Admin() {
             setOrdersError(message);
         } finally {
             setUpdatingOrderId(null);
+        }
+    };
+
+    const handleCityApprovalChange = async (userId: number, cityApproved: boolean) => {
+        setApprovingCityUserId(userId);
+        setUsersError(null);
+        setUsersMessage(null);
+
+        try {
+            await axios.put(`/api/users/${userId}/city-approval`, {
+                city_approved: cityApproved,
+            }, {
+                headers: authHeaders,
+            });
+
+            setUsers((previous) =>
+                previous.map((user) =>
+                    user.id === userId ? { ...user, city_approved: cityApproved } : user
+                )
+            );
+            setUsersMessage(cityApproved ? "City-пользователь подтвержден" : "Подтверждение City-пользователя снято");
+        } catch (error) {
+            console.error(error);
+            const message = axios.isAxiosError<{ error?: string }>(error)
+                ? error.response?.data?.error || "Не удалось обновить подтверждение пользователя"
+                : "Не удалось обновить подтверждение пользователя";
+            setUsersError(message);
+        } finally {
+            setApprovingCityUserId(null);
         }
     };
 
@@ -407,7 +492,19 @@ export default function Admin() {
                     disabled={isUpdating}
                     onClick={() => handleFormOrder(order.id)}
                 >
-                    Сформировать
+                    Отправить на проверку
+                </Button>
+            ),
+            approve: (
+                <Button
+                    key="approve"
+                    type="button"
+                    size="sm"
+                    variant="success"
+                    disabled={isUpdating}
+                    onClick={() => handleStatusChange(order.id, "formed")}
+                >
+                    Опубликовать
                 </Button>
             ),
             delete: (
@@ -451,13 +548,15 @@ export default function Admin() {
         switch (order.status) {
             case "draft":
                 return [actions.form, actions.delete, actions.reject];
+            case "pending_review":
+                return [actions.approve, actions.reject, actions.draft];
             case "formed":
-                return [actions.delete, actions.reject, actions.draft];
+                return [actions.reject, actions.draft];
             case "finished":
-                return [actions.delete];
+                return <span className="admin-muted">Нет действий</span>;
             case "rejected":
             case "reject":
-                return [actions.reject, actions.delete];
+                return [actions.draft];
             case "collection_started":
             case "deleted":
             default:
@@ -470,214 +569,309 @@ export default function Admin() {
     return (
         <>
             <NavigationBar/>
-            <div className="container admin-page">
+            <div className="admin-page">
 
-                <h2 className="search-title">Админ панель</h2>
-
-                <div className="card admin-profile-card">
-                    <h3 className="card-title">{formatUserName(me)}</h3>
-                    <p>Email: {me.email}</p>
-                    <p>Роль: {getUserRoleName(me)}</p>
-                </div>
-
-                <h3 className="admin-section-title">
-                    Создание услуги
-                </h3>
-
-                <form className="card admin-service-form" onSubmit={handleCreateService}>
-                    <label className="admin-filter-field">
-                        Название
-                        <input
-                            type="text"
-                            value={serviceForm.name}
-                            onChange={(event) =>
-                                setServiceForm((previous) => ({
-                                    ...previous,
-                                    name: event.target.value,
-                                }))
-                            }
-                            placeholder="Например, реставрация фасада"
-                        />
-                    </label>
-                    <label className="admin-filter-field">
-                        Описание
-                        <textarea
-                            value={serviceForm.description}
-                            onChange={(event) =>
-                                setServiceForm((previous) => ({
-                                    ...previous,
-                                    description: event.target.value,
-                                }))
-                            }
-                            placeholder="Краткое описание услуги"
-                            rows={4}
-                        />
-                    </label>
-                    <label className="admin-filter-field">
-                        Иконка
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(event) =>
-                                setServiceForm((previous) => ({
-                                    ...previous,
-                                    icon: event.target.files?.[0] || null,
-                                }))
-                            }
-                        />
-                    </label>
-                    {serviceError && <p className="admin-error">{serviceError}</p>}
-                    {serviceMessage && <p className="admin-success">{serviceMessage}</p>}
-                    <div className="admin-service-form-actions">
-                        <Button
-                            type="submit"
-                            variant="success"
-                            disabled={serviceSubmitting}
-                        >
-                            {serviceSubmitting ? "Создание..." : "Создать услугу"}
-                        </Button>
+                <section className="admin-hero">
+                    <div>
+                        <span className="admin-eyebrow">Панель управления</span>
+                        <h1>Администрирование системы</h1>
+                        <p>
+                            Проверяйте заявки, подтверждайте городских администраторов и управляйте услугами восстановления.
+                        </p>
                     </div>
-                </form>
-
-                <h3 className="admin-section-title">
-                    Заявки
-                </h3>
-
-                <div className="card admin-filters-card">
-                    <div className="admin-filters-grid">
-                        <label className="admin-filter-field">
-                            Статус
-                            <select
-                                value={statusFilter}
-                                onChange={(event) => setStatusFilter(event.target.value)}
-                            >
-                                {statusOptions.map((status) => (
-                                    <option key={status.value} value={status.value}>
-                                        {status.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        <label className="admin-filter-field">
-                            Дата формирования с
-                            <input
-                                type="date"
-                                value={fromDate}
-                                onChange={(event) => setFromDate(event.target.value)}
-                            />
-                        </label>
-                        <label className="admin-filter-field">
-                            Дата формирования по
-                            <input
-                                type="date"
-                                value={toDate}
-                                onChange={(event) => setToDate(event.target.value)}
-                            />
-                        </label>
-                        <label className="admin-filter-field">
-                            Создатель
-                            <input
-                                type="search"
-                                value={creatorFilter}
-                                onChange={(event) => setCreatorFilter(event.target.value)}
-                                placeholder="Имя, email или ID"
-                            />
-                        </label>
+                    <div className="admin-profile-card">
+                        <span className="admin-profile-label">Вы вошли как</span>
+                        <strong>{formatUserName(me)}</strong>
+                        <span>{me.email}</span>
+                        <span className="admin-role-badge admin-role-admin">{getUserRoleName(me)}</span>
                     </div>
-                    <div className="admin-updated-at">
-                        {lastUpdatedAt
-                            ? `Обновлено: ${lastUpdatedAt.toLocaleTimeString("ru-RU")}`
-                            : "Обновление каждые 5 секунд"}
+                </section>
+
+                <section className="admin-stats-grid" aria-label="Сводка">
+                    <div className="admin-stat-card">
+                        <span>На проверке</span>
+                        <strong>{adminStats.pendingOrders}</strong>
                     </div>
-                </div>
-
-                {ordersError && <p className="admin-error">{ordersError}</p>}
-                {ordersLoading && <p className="admin-loading-text">Загрузка заявок...</p>}
-
-                {!ordersLoading && (
-                    <div className="admin-table-wrap">
-                        <table className="admin-table">
-                            <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Здание</th>
-                                <th>Создатель</th>
-                                <th>Статус</th>
-                                <th>Сумма</th>
-                                <th>Дата формирования</th>
-                                <th>Действия</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {filteredOrders.length === 0 && (
-                                <tr>
-                                    <td colSpan={7} className="admin-empty-cell">
-                                        Заявки не найдены
-                                    </td>
-                                </tr>
-                            )}
-                            {filteredOrders.map((order) => (
-                                <tr key={order.id}>
-                                    <td>{order.id}</td>
-                                    <td>
-                                        <div>{order.building?.name || "Без названия"}</div>
-                                        <div className="admin-small-muted">
-                                            {order.building?.address}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div>{formatUserName(order.creator)}</div>
-                                        <div className="admin-small-muted">
-                                            {order.creator?.email || `ID: ${order.creator_id || "-"}`}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {getStatusTranslation(order.status)}
-                                    </td>
-                                    <td>
-                                        {formatAmount(order.total_amount)} ₽
-                                    </td>
-                                    <td>
-                                        {formatDate(order.created_at)}
-                                    </td>
-                                    <td>
-                                        <div className="admin-actions">
-                                            {renderOrderActions(order)}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
+                    <div className="admin-stat-card">
+                        <span>Опубликовано</span>
+                        <strong>{adminStats.publishedOrders}</strong>
                     </div>
-                )}
+                    <div className="admin-stat-card">
+                        <span>City ждут подтверждения</span>
+                        <strong>{adminStats.waitingCityUsers}</strong>
+                    </div>
+                    <div className="admin-stat-card">
+                        <span>Собрано всего</span>
+                        <strong>{formatAmount(adminStats.totalCollected)} ₽</strong>
+                    </div>
+                </section>
 
-                <h3 className="admin-section-title">
-                    Все пользователи
-                </h3>
-
-                <div className="grid">
-                    {users.map(user => (
-                        <div key={user.id} className="card">
-                            <div className="card-content">
-                                <div className="card-title">{formatUserName(user)}</div>
-                                <div className="admin-user-email">
-                                    {user.email}
-                                </div>
-
-                                <div className={`admin-role-badge ${
-                                    user.Role?.name === "Admin"
-                                        ? "admin-role-admin"
-                                        : user.Role?.name === "City"
-                                            ? "admin-role-city"
-                                            : ""
-                                }`}>
-                                    {getUserRoleName(user)}
-                                </div>
-                            </div>
+                <section className="admin-workspace-grid">
+                    <div className="admin-panel-card admin-create-order-card">
+                        <div>
+                            <span className="admin-card-kicker">Заявки</span>
+                            <h2>Создать заявку от имени города</h2>
+                            <p>
+                                Администратор может выбрать город в форме и создать черновик, если заявку нужно внести вручную.
+                            </p>
                         </div>
-                    ))}
-                </div>
+                        <Link
+                            to="/create-order"
+                            className="admin-create-order-link"
+                            onClick={clearCreateOrderSession}
+                        >
+                            Создать заявку
+                        </Link>
+                    </div>
+
+                    <form className="admin-panel-card admin-service-form" onSubmit={handleCreateService}>
+                        <div>
+                            <span className="admin-card-kicker">Услуги</span>
+                            <h2>Создать услугу</h2>
+                        </div>
+                        <div className="admin-service-grid">
+                            <label className="admin-filter-field">
+                                Название
+                                <input
+                                    type="text"
+                                    value={serviceForm.name}
+                                    onChange={(event) =>
+                                        setServiceForm((previous) => ({
+                                            ...previous,
+                                            name: event.target.value,
+                                        }))
+                                    }
+                                    placeholder="Например, реставрация фасада"
+                                />
+                            </label>
+                            <label className="admin-filter-field">
+                                Иконка
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(event) =>
+                                        setServiceForm((previous) => ({
+                                            ...previous,
+                                            icon: event.target.files?.[0] || null,
+                                        }))
+                                    }
+                                />
+                            </label>
+                        </div>
+                        <label className="admin-filter-field">
+                            Описание
+                            <textarea
+                                value={serviceForm.description}
+                                onChange={(event) =>
+                                    setServiceForm((previous) => ({
+                                        ...previous,
+                                        description: event.target.value,
+                                    }))
+                                }
+                                placeholder="Краткое описание услуги"
+                                rows={3}
+                            />
+                        </label>
+                        {serviceError && <p className="admin-error">{serviceError}</p>}
+                        {serviceMessage && <p className="admin-success">{serviceMessage}</p>}
+                        <div className="admin-service-form-actions">
+                            <Button
+                                type="submit"
+                                variant="success"
+                                disabled={serviceSubmitting}
+                            >
+                                {serviceSubmitting ? "Создание..." : "Создать услугу"}
+                            </Button>
+                        </div>
+                    </form>
+                </section>
+
+                <section className="admin-section-block">
+                    <div className="admin-section-heading">
+                        <div>
+                            <span className="admin-card-kicker">Модерация</span>
+                            <h2>Заявки</h2>
+                        </div>
+                        <span>
+                            {lastUpdatedAt
+                                ? `Обновлено: ${lastUpdatedAt.toLocaleTimeString("ru-RU")}`
+                                : "Автообновление каждые 5 секунд"}
+                        </span>
+                    </div>
+
+                    <div className="admin-filters-card">
+                        <div className="admin-filters-grid">
+                            <label className="admin-filter-field">
+                                Статус
+                                <select
+                                    value={statusFilter}
+                                    onChange={(event) => setStatusFilter(event.target.value)}
+                                >
+                                    {statusOptions.map((status) => (
+                                        <option key={status.value} value={status.value}>
+                                            {status.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="admin-filter-field">
+                                Дата формирования с
+                                <input
+                                    type="date"
+                                    value={fromDate}
+                                    onChange={(event) => setFromDate(event.target.value)}
+                                />
+                            </label>
+                            <label className="admin-filter-field">
+                                Дата формирования по
+                                <input
+                                    type="date"
+                                    value={toDate}
+                                    onChange={(event) => setToDate(event.target.value)}
+                                />
+                            </label>
+                            <label className="admin-filter-field">
+                                Создатель
+                                <input
+                                    type="search"
+                                    value={creatorFilter}
+                                    onChange={(event) => setCreatorFilter(event.target.value)}
+                                    placeholder="Имя, email или ID"
+                                />
+                            </label>
+                        </div>
+                    </div>
+
+                    {ordersError && <p className="admin-error">{ordersError}</p>}
+                    {ordersLoading && <p className="admin-loading-text">Загрузка заявок...</p>}
+
+                    {!ordersLoading && (
+                        <div className="admin-table-wrap">
+                            <table className="admin-table">
+                                <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Здание</th>
+                                    <th>Создатель</th>
+                                    <th>Статус</th>
+                                    <th>Сумма</th>
+                                    <th>Дата</th>
+                                    <th>Действия</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {filteredOrders.length === 0 && (
+                                    <tr>
+                                        <td colSpan={7} className="admin-empty-cell">
+                                            Заявки не найдены
+                                        </td>
+                                    </tr>
+                                )}
+                                {filteredOrders.map((order) => (
+                                    <tr key={order.id}>
+                                        <td className="admin-id-cell">#{order.id}</td>
+                                        <td>
+                                            <div className="admin-table-title">{order.building?.name || "Без названия"}</div>
+                                            <div className="admin-small-muted">
+                                                {order.building?.address || "Адрес не указан"}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div className="admin-table-title">{formatUserName(order.creator)}</div>
+                                            <div className="admin-small-muted">
+                                                {order.creator?.email || `ID: ${order.creator_id || "-"}`}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span className={getStatusClassName(order.status)}>
+                                                {getStatusTranslation(order.status)}
+                                            </span>
+                                        </td>
+                                        <td className="admin-amount-cell">
+                                            {formatAmount(order.total_amount)} ₽
+                                        </td>
+                                        <td>
+                                            {formatDate(order.created_at)}
+                                        </td>
+                                        <td>
+                                            <div className="admin-actions">
+                                                {renderOrderActions(order)}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </section>
+
+                <section className="admin-section-block">
+                    <div className="admin-section-heading">
+                        <div>
+                            <span className="admin-card-kicker">Доступы</span>
+                            <h2>Пользователи</h2>
+                        </div>
+                        <span>{users.length} аккаунтов</span>
+                    </div>
+
+                    {usersError && <p className="admin-error">{usersError}</p>}
+                    {usersMessage && <p className="admin-success">{usersMessage}</p>}
+
+                    <div className="admin-users-grid">
+                        {users.map(user => {
+                            const roleName = getUserRoleName(user);
+                            const isCity = roleName === "City";
+
+                            return (
+                                <div key={user.id} className="admin-user-card">
+                                    <div>
+                                        <div className="admin-table-title">{formatUserName(user)}</div>
+                                        <div className="admin-user-email">
+                                            {user.email}
+                                        </div>
+                                    </div>
+
+                                    <div className="admin-user-meta">
+                                        <span className={`admin-role-badge ${
+                                            roleName === "Admin"
+                                                ? "admin-role-admin"
+                                                : roleName === "City"
+                                                    ? "admin-role-city"
+                                                    : ""
+                                        }`}>
+                                            {roleName}
+                                        </span>
+
+                                        {user.city?.name && (
+                                            <span className="admin-small-muted">
+                                                {user.city.name}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {isCity && (
+                                        <label className="admin-city-approval">
+                                            <input
+                                                type="checkbox"
+                                                checked={user.city_approved === true}
+                                                disabled={approvingCityUserId === user.id}
+                                                onChange={(event) =>
+                                                    handleCityApprovalChange(user.id, event.target.checked)
+                                                }
+                                            />
+                                            <span>
+                                                {user.city_approved === true
+                                                    ? "City подтвержден"
+                                                    : "Разрешить создание заявок"}
+                                            </span>
+                                        </label>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
             </div>
             <Footer/>
         </>

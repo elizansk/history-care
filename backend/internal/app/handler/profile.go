@@ -48,13 +48,16 @@ func (h *Handler) GetProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":         user.ID,
-		"name":       user.Name,
-		"first_name": user.FirstName,
-		"last_name":  user.LastName,
-		"email":      user.Email,
-		"role_id":    user.RoleID,
-		"role":       user.Role.Name,
+		"id":            user.ID,
+		"name":          user.Name,
+		"first_name":    user.FirstName,
+		"last_name":     user.LastName,
+		"email":         user.Email,
+		"role_id":       user.RoleID,
+		"role":          user.Role.Name,
+		"city_id":       user.CityID,
+		"city":          user.City,
+		"city_approved": user.CityApproved,
 	})
 }
 

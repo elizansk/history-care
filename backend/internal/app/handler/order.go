@@ -113,11 +113,11 @@ func (h *Handler) GetOrders(c *gin.Context) {
 	role := c.GetString("role")
 	userID := c.GetUint("user_id")
 
-	status := c.Query("status")//параметры
+	status := c.Query("status") //параметры
 
 	var from, to *time.Time
 
-	if c.Query("from") != "" {//парсинг дат
+	if c.Query("from") != "" { //парсинг дат
 		t, _ := time.Parse("2006-01-02", c.Query("from"))
 		from = &t
 	}
@@ -288,7 +288,7 @@ func (h *Handler) CreateDraftOrder(c *gin.Context) {
 
 // @Summary      Delete order
 // @Security     ApiKeyAuth
-// @Description  Логическое удаление заявки (только владелец)
+// @Description  Логическое удаление заявки (только черновик)
 // @Tags         orders
 // @Produce      json
 // @Param        id path int true "Order ID"
@@ -318,6 +318,11 @@ func (h *Handler) DeleteOrder(c *gin.Context) {
 			c.JSON(403, gin.H{"error": "forbidden"})
 			return
 		}
+	}
+
+	if order.Status != "draft" {
+		c.JSON(400, gin.H{"error": "only draft orders can be deleted"})
+		return
 	}
 
 	if err := h.repo.DeleteOrder(uint(id)); err != nil {
@@ -412,7 +417,7 @@ func (h *Handler) UpdateOrder(c *gin.Context) {
 
 // @Summary Form order
 // @Security ApiKeyAuth
-// @Description Формирование заявки (расчет суммы)
+// @Description Формирование заявки и отправка на проверку администратору
 // @Tags orders
 // @Param id path int true "Order ID"
 // @Success 200 {object} map[string]interface{}
@@ -439,7 +444,7 @@ func (h *Handler) FormOrder(c *gin.Context) {
 
 	// только draft
 	if order.Status != "draft" {
-		c.JSON(400, gin.H{"error": "already formed"})
+		c.JSON(400, gin.H{"error": "order is already sent to review"})
 		return
 	}
 
@@ -462,7 +467,7 @@ func (h *Handler) FormOrder(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"status": "formed",
+		"status": "pending_review",
 		"total":  total,
 	})
 }
@@ -472,7 +477,7 @@ func (h *Handler) FormOrder(c *gin.Context) {
 // @Description Смена статуса заявки администратором
 // @Tags orders
 // @Param id path int true "Order ID"
-// @Param status query string true "draft or rejected"
+// @Param status query string true "formed, draft or rejected"
 // @Success 200 {object} map[string]string
 // @Router /api/orders/{id}/moderate [put]
 func (h *Handler) ModerateOrder(c *gin.Context) {
@@ -486,9 +491,9 @@ func (h *Handler) ModerateOrder(c *gin.Context) {
 	}
 
 	id, _ := strconv.Atoi(c.Param("id"))
-	status := c.Query("status") // draft / rejected
+	status := c.Query("status") // formed / draft / rejected
 
-	if status != "rejected" && status != "draft" {
+	if status != "formed" && status != "rejected" && status != "draft" {
 		c.JSON(400, gin.H{"error": "bad request"})
 		return
 	}
@@ -502,10 +507,12 @@ func (h *Handler) ModerateOrder(c *gin.Context) {
 	switch order.Status {
 	case "draft":
 		allowed = status == "rejected"
+	case "pending_review":
+		allowed = status == "formed" || status == "rejected" || status == "draft"
 	case "formed":
 		allowed = status == "rejected" || status == "draft"
 	case "rejected":
-		allowed = status == "rejected"
+		allowed = status == "draft"
 	}
 
 	if !allowed {
@@ -766,8 +773,8 @@ func (h *Handler) FinalizeOrder(c *gin.Context) {
 		return
 	}
 
-	// Update status to formed
-	err = h.repo.UpdateOrderStatus(req.OrderID, "formed")
+	// Update status to pending_review. Public publication is done by admin moderation.
+	err = h.repo.UpdateOrderStatus(req.OrderID, "pending_review")
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to finalize order"})
 		return

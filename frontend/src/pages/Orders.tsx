@@ -97,7 +97,7 @@ const Buildings: React.FC = () => {
           <Breadcrumbs items={breadcrumbItems} />
 
           <div className="buildings-header">
-            <h1>Наследие Нации</h1>
+            <h1>Национальное наследие</h1>
             <p className="buildings-subtitle">Поиск объектов культурного наследия с фильтрами по региону, категории и дате.</p>
           </div>
 

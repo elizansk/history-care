@@ -54,9 +54,14 @@ upload:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
   script:
-    - kind load docker-image "$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
-    - kind load docker-image "$FRONTEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
-    - kind load docker-image "$AI_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+    - docker save "$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" -o backend.tar
+    - docker save "$FRONTEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" -o frontend.tar
+    - docker save "$AI_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" -o ai.tar
+
+    - k3s ctr images import backend.tar
+    - k3s ctr images import frontend.tar
+    - k3s ctr images import ai.tar
+    - rm -f backend.tar frontend.tar ai.tar
 #создает/обновляет ConfigMap, применяет manifests
 #обновляет images в deployments
 #ждет rollout и показывает pods
@@ -71,7 +76,6 @@ deploy:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
   script:
-    - kubectl create configmap history-care-conf --from-file=configs/ --namespace=default -o yaml --dry-run=client | kubectl apply -f -
     - kubectl apply -R -f manifests/
     - kubectl set image deployment/history-care-backend history-care-backend="$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" migrate="$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
     - kubectl set image deployment/history-care-frontend history-care-frontend="$FRONTEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"

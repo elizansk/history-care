@@ -10,6 +10,7 @@ export interface MockAuthUser {
     name: 'Admin' | 'User' | 'City';
   };
   city_id?: number;
+  city_approved?: boolean;
 }
 
 export interface MockLoginResponse {
@@ -41,6 +42,7 @@ export const mockUsers: MockAuthUser[] = [
     role: 'City',
     Role: { id: 2, name: 'City' },
     city_id: 100,
+    city_approved: true,
   },
   {
     id: 3,
@@ -89,6 +91,7 @@ export function getMockUserFromToken(token: string | null): MockAuthUser | null 
       role,
       Role: payload.Role || { id: payload.roleId || 0, name: role },
       city_id: payload.city_id,
+      city_approved: payload.city_approved,
     };
   } catch {
     return null;

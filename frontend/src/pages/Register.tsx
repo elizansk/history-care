@@ -67,7 +67,11 @@ const handleSubmit = async (e: FormEvent) => {
         localStorage.setItem("token", data.token);
       }
 
-    alert('Успешная регистрация!');
+    alert(
+      form.role_id === 2
+        ? 'Регистрация отправлена. Администратор должен подтвердить аккаунт города.'
+        : 'Успешная регистрация!'
+    );
 
    window.location.href = '/';
   } catch (error) {

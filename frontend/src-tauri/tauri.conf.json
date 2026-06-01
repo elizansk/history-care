@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Наследие Нации",
+  "productName": "Национальное наследие",
   "version": "0.1.0",
   "identifier": "ru.historycare.app",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Наследие Нации",
+        "title": "Национальное наследие",
         "width": 1200,
         "height": 800,
         "minWidth": 900,

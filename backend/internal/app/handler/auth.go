@@ -141,7 +141,7 @@ func (h *Handler) Login(c *gin.Context) {
 	}
 
 	// Генерация JWT с ролью
-	token, err := jwt.GenerateJWT(user.ID, user.RoleID, user.Role.Name)
+	token, err := jwt.GenerateJWT(user.ID, user.RoleID, user.Role.Name, user.CityApproved)
 	if err != nil {
 		logger.Log.WithFields(logrus.Fields{
 			"user_id": user.ID,

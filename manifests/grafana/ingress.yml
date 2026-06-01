@@ -4,7 +4,7 @@ metadata:
   name: history-care-grafana-ingress
 spec:
   rules:
-    - host: grafana.history-care.local
+    - host: grafana.history-care.ru
       http:
         paths:
           - path: /

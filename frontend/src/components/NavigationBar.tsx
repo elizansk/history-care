@@ -29,7 +29,7 @@ const NavigationBar: React.FC = () => {
     <header className="main-header">
       <div className="header-container">
         <div className="header-left">
-          <Link to="/buildings">Фонд реконструкции исторических зданий</Link>
+          <Link to="/buildings">Национальное наследие</Link>
         </div>
         <div className="header-right">
           <Link to="/buildings">Исторические здания</Link>

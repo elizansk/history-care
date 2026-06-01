@@ -65,6 +65,13 @@
   color: red;
 }
 
+.user-message-info {
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff7df;
+  color: #6c4a00;
+}
+
 .user-field {
   display: flex;
   flex-direction: column;

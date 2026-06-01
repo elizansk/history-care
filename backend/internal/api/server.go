@@ -160,6 +160,7 @@ func StartServer() {
 	adminAPI.Use(middleware.AuthMiddleware(redisClient, "Admin"))
 	{
 		adminAPI.GET("/users", h.GetUsers)
+		adminAPI.PUT("/users/:id/city-approval", h.UpdateCityApproval)
 		adminAPI.PUT("/orders/:id/moderate", h.ModerateOrder) // PUT завершить/отклонить модератором
 		adminAPI.DELETE("/services/:id", h.DeleteService)
 		adminAPI.POST("/services", h.CreateService)

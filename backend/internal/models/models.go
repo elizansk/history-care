@@ -12,8 +12,9 @@ type User struct {
 	RoleID    uint   `json:"roleId"`
 	Password  string `gorm:"size:100;null" json:"-"`
 
-	CityID *uint `json:"city_id"`
-	City   *City `gorm:"foreignKey:CityID" json:"city"`
+	CityID       *uint `json:"city_id"`
+	City         *City `gorm:"foreignKey:CityID" json:"city"`
+	CityApproved bool  `gorm:"default:false" json:"city_approved"`
 }
 
 type BuildingCategory struct {

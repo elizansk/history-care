@@ -31,7 +31,7 @@ func (r *Repository) GetOrders(status string, from, to *time.Time) ([]models.Rec
 	}
 
 	err := query.Find(&orders).Error
-	return orders, err//филтрация
+	return orders, err //филтрация
 }
 
 func (r *Repository) GetDonatableOrders(categoryId, cityId uint, from, to *time.Time) ([]models.ReconstructionOrder, error) {
@@ -147,7 +147,7 @@ func (r *Repository) FormOrder(orderID uint, total float64) error {
 	return r.DB.Model(&models.ReconstructionOrder{}).
 		Where("id = ?", orderID).
 		Updates(map[string]interface{}{
-			"status":       "formed",
+			"status":       "pending_review",
 			"total_amount": total,
 			"created_at":   time.Now(),
 		}).Error

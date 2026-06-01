@@ -4,7 +4,7 @@ metadata:
   name: history-care-minio-ingress
 spec:
   rules:
-    - host: minio.history-care.local
+    - host: minio.history-care.ru
       http:
         paths:
           - path: /

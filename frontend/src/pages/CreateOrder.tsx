@@ -45,8 +45,7 @@ interface DraftOrderResponse {
 
 export default function CreateOrder() {
   const dispatch = useDispatch<AppDispatch>();
-  // Берем данные услуг и информацию о кэше из Redux.
-  const { loading, error, categories, cities, services, servicesCacheInfo, building, order } = useSelector((state: RootState) => state.order);//берём данные из Redux store
+  const { loading, error, categories, cities, services, building, order } = useSelector((state: RootState) => state.order);//берём данные из Redux store
   const token = localStorage.getItem("token");
 
   const [selectedServices, setSelectedServices] = useState< //локальная корзина услуг (ещё НЕ в Redux)
@@ -318,14 +317,14 @@ export default function CreateOrder() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {//отправляем заявку в статус сформирована
+  const handleSubmit = async (e: React.FormEvent) => {//отправляем заявку на проверку администратору
     e.preventDefault();
 
     try {
       const result = await dispatch(FormOrder({ orderId: orderId! })).unwrap();
       console.log(result);
-      if (result.status === 'formed') {
-        alert("Заявка создана! ID: " + orderId);
+      if (result.status === 'pending_review') {
+        alert("Заявка отправлена на проверку администратору! ID: " + orderId);
       }
 
 
@@ -405,8 +404,6 @@ export default function CreateOrder() {
           {currentStep === 2 && (
             <CreateOrderServicesStep
               services={services}
-              // Передаем HIT/MISS в компонент выбора услуг.
-              cacheInfo={servicesCacheInfo}
               selectedServices={selectedServices}
               serviceDescriptions={serviceDescriptions}
               onAddService={(serviceId) => {

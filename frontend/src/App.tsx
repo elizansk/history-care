@@ -85,7 +85,7 @@ function App() {
         <Route
           path="/create-order"
           element={
-            <ProtectedRoute allowedRoles={["City", "Admin"]}>
+            <ProtectedRoute allowedRoles={["City", "Admin"]} requireApprovedCity>
               <CreateOrder />
             </ProtectedRoute>
           }

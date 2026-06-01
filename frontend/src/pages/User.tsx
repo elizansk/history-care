@@ -31,7 +31,8 @@ export default function User() {
 
   if (!user) return <p className="user-loading">Loading...</p>;
 
-  const canCreateOrder = roleName === 'City' || roleName === 'Admin';
+  const cityIsWaitingApproval = roleName === 'City' && user.city_approved !== true;
+  const canCreateOrder = roleName === 'Admin' || (roleName === 'City' && user.city_approved === true);
   const canViewCreatedOrders = roleName === 'City' || roleName === 'Admin';
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
@@ -104,6 +105,11 @@ export default function User() {
           <h3 className="card-title">{user.first_name || user.name} {user.last_name || ''}</h3>
           <p>Email: {user.email}</p>
           <p>Роль: {roleName}</p>
+          {cityIsWaitingApproval && (
+            <p className="user-message-info">
+              Аккаунт города ожидает подтверждения администратором. После проверки станет доступно создание заявок.
+            </p>
+          )}
           <div className="user-actions">
             {canCreateOrder && (
               <Link

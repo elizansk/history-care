@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         includeAssets: ['icons/icon-192.png', 'icons/icon-512.png'],
         manifest: {
-          name: 'Наследие Нации',
+          name: 'Национальное наследие',
           short_name: 'Наследие',
           description: 'Платформа для сбора заявок и пожертвований на реконструкцию исторических зданий',
           lang: 'ru',

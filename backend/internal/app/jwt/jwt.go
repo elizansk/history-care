@@ -10,12 +10,13 @@ import (
 
 var jwtKey = []byte("super_secret_key")
 
-func GenerateJWT(userID, roleID uint, role string) (string, error) {
+func GenerateJWT(userID, roleID uint, role string, cityApproved bool) (string, error) {
 	claims := jwt.MapClaims{
-		"user_id": userID,
-		"role_id": roleID,
-		"role":    role,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+		"user_id":       userID,
+		"role_id":       roleID,
+		"role":          role,
+		"city_approved": cityApproved,
+		"exp":           time.Now().Add(24 * time.Hour).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	result, err := token.SignedString(jwtKey)
@@ -26,6 +27,7 @@ func GenerateJWT(userID, roleID uint, role string) (string, error) {
 		"user_id":  userID,
 		"role_id":  roleID,
 		"role":     role,
+		"city_ok":  cityApproved,
 		"jwtToken": result,
 	}).Debug("Generating JWT")
 	return result, err

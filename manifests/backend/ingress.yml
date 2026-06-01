@@ -8,7 +8,7 @@ metadata:
 spec:
   rules:
     # Домен, по которому будет доступен backend
-    - host: api.history-care.local
+    - host: api.history-care.ru
       http:
         paths:
           # Все запросы с этого домена идут в backend

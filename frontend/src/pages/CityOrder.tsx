@@ -39,6 +39,7 @@ interface EditableOrder {
 
 const statusTranslations: Record<string, string> = {
   draft: 'Черновик',
+  pending_review: 'На проверке',
   formed: 'Опубликована',
   collection_started: 'Сбор начат',
   finished: 'Завершена',
@@ -124,15 +125,15 @@ export default function MyOrders() {
       });
       setOrders(prev =>
           prev.map(o =>
-              o.id === orderId ? { ...o, status: 'formed' } : o
+              o.id === orderId ? { ...o, status: 'pending_review' } : o
           )
       );
     } catch (err) {
       console.error('Error publishing order:', err);
       if (isMockAuthAvailable) {
-        setOrders(prev =>
+          setOrders(prev =>
             prev.map(o =>
-                o.id === orderId ? { ...o, status: 'formed' } : o
+                o.id === orderId ? { ...o, status: 'pending_review' } : o
             )
         );
         return;
@@ -287,9 +288,14 @@ export default function MyOrders() {
                             onClick={() => handlePublish(order.id)}
                             className="city-order-button city-order-button-publish"
                           >
-                            Опубликовать
+                            Отправить на проверку
                           </button>
                         </>
+                      )}
+                      {order.status === 'pending_review' && (
+                        <span className="city-order-muted">
+                          Ожидает проверки администратором
+                        </span>
                       )}
                       {(order.status === 'formed' || order.status === 'collection_started') && (
                         <span className="city-order-muted">

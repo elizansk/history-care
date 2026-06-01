@@ -103,6 +103,8 @@ func AuthMiddleware(redis *redis.Client, requiredRoles ...string) gin.HandlerFun
 			return
 		}
 
+		cityApproved, _ := claims["city_approved"].(bool)
+
 		// Проверка ролей, если они переданы
 		if len(requiredRoles) > 0 { // если роль пользователя НЕ входит в allowed roles → 403
 			allowed := false
@@ -123,9 +125,22 @@ func AuthMiddleware(redis *redis.Client, requiredRoles ...string) gin.HandlerFun
 				return
 			}
 		}
+
+		if len(requiredRoles) > 0 && role == "City" && !cityApproved {
+			logger.Log.WithFields(logrus.Fields{
+				"user_id": userID,
+				"role":    role,
+				"method":  c.Request.Method,
+				"path":    c.Request.URL.Path,
+			}).Warn("City user is not approved")
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "city account is not approved"})
+			return
+		}
+
 		// пользователь прошёл проверку JWT + роль
 		c.Set("user_id", userID)
 		c.Set("role", role)
+		c.Set("city_approved", cityApproved)
 		c.Next()
 	}
 }

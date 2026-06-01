@@ -109,6 +109,15 @@ const Donate: React.FC = () => {//создаем реакт компонент
 
   const formatAmount = (value: number) => new Intl.NumberFormat('ru-RU').format(value);
 
+  const getOrderMainPhoto = (source: MockOrder) =>
+    source.building.resources.find((resource) => resource.resource_type === 'photo' && resource.is_main) ||
+    source.building.resources.find((resource) => resource.resource_type === 'photo');
+
+  const getOrderProgress = (source: MockOrder) => {
+    const sourceGoal = source.total_amount || 1;
+    return Math.min(100, Math.round((source.collected_amount / sourceGoal) * 100));
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -358,15 +367,44 @@ const Donate: React.FC = () => {//создаем реакт компонент
         </div>
       </Container>
 
-      <Modal show={showPaymentSuccess} onHide={() => setShowPaymentSuccess(false)} size="lg" centered>
+      <Modal
+        show={showPaymentSuccess}
+        onHide={() => setShowPaymentSuccess(false)}
+        size="xl"
+        centered
+        dialogClassName="donation-success-modal"
+      >
         <Modal.Header closeButton>
           <Modal.Title>Пожертвование принято</Modal.Title>
         </Modal.Header>
-        <Modal.Body className="text-center">
-          <p className="mt-3">Спасибо! Платеж прошел, и сумма добавлена к заявке.</p>
+        <Modal.Body>
+          <div className="success-hero">
+            <span className="success-mark" aria-hidden="true">✓</span>
+            <div>
+              <p className="success-kicker">Спасибо за вклад</p>
+              <h3>Платеж прошел, сумма добавлена к заявке.</h3>
+              <p>
+                Ниже есть еще несколько объектов, которым тоже нужна поддержка.
+              </p>
+            </div>
+          </div>
 
-          <section className="similar-section mt-4 text-start">
-            <h5>Похожие заявки</h5>
+          <section className="similar-section">
+            <div className="similar-section-heading">
+              <div>
+                <p>Рекомендации</p>
+                <h5>Другие заявки, которым нужна помощь</h5>
+              </div>
+              {similarOrders.length > 0 && (
+                <Link
+                  to="/buildings"
+                  className="similar-all-link"
+                  onClick={() => setShowPaymentSuccess(false)}
+                >
+                  Смотреть все
+                </Link>
+              )}
+            </div>
             {similarLoading && <p>Ищем похожие заявки...</p>}
             {!similarLoading && similarError && similarOrders.length === 0 && (
               <Alert variant="warning">{similarError}</Alert>
@@ -376,38 +414,62 @@ const Donate: React.FC = () => {//создаем реакт компонент
             )}
             <div className="similar-grid">
               {similarOrders.map((similar) => {
-                const media =
-                  similar.building.resources.find((r) => r.resource_type === 'photo' && r.is_main) ||
-                  similar.building.resources.find((r) => r.resource_type === 'video' && r.is_main);
-                const isVideo = media?.resource_type === 'video';
+                const media = getOrderMainPhoto(similar);
+                const similarProgress = getOrderProgress(similar);
                 return (
                   <article className="similar-card" key={similar.id}>
-                    {media && !isVideo && (
-                      <img
-                        src={media.url}
-                        alt={similar.building.name}
-                        className="similar-card-image"
-                      />
-                    )}
-                    {media && isVideo && (
-                      <div className="video-thumbnail similar-card-image">
-                        <video src={media.url} />
-                        <span className="play-icon">▶</span>
+                    <div className="similar-card-media">
+                      {media ? (
+                        <img
+                          src={media.url}
+                          alt={similar.building.name}
+                          className="similar-card-image"
+                        />
+                      ) : (
+                        <div className="similar-card-placeholder">
+                          {similar.building.category.name}
+                        </div>
+                      )}
+                      <div className="similar-card-badges">
+                        <span>{similar.building.city.name}</span>
+                        <span>{similar.building.category.name}</span>
                       </div>
-                    )}
+                    </div>
                     <div className="similar-card-body">
                       <h4>{similar.building.name}</h4>
                       <p>
                         {similar.building.description?.slice(0, 120)}
                         {similar.building.description && similar.building.description.length > 120 ? '...' : ''}
                       </p>
-                      <div className="similar-card-meta">
-                        <span>{similar.building.city.name}</span>
-                        <span>{similar.building.category.name}</span>
+                      <div className="similar-donation-progress">
+                        <div className="similar-progress-top">
+                          <span>Собрано {formatAmount(similar.collected_amount)} ₽</span>
+                          <strong>{similarProgress}%</strong>
+                        </div>
+                        <div className="similar-progress-track">
+                          <span style={{ width: `${similarProgress}%` }} />
+                        </div>
+                        <div className="similar-progress-bottom">
+                          <span>Цель</span>
+                          <strong>{formatAmount(similar.total_amount)} ₽</strong>
+                        </div>
                       </div>
-                      <Link to={`/building/${similar.id}`} className="btn btn-outline-primary btn-sm">
-                        Открыть
-                      </Link>
+                      <div className="similar-card-actions">
+                        <Link
+                          to={`/building/${similar.id}`}
+                          className="btn btn-outline-primary btn-sm"
+                          onClick={() => setShowPaymentSuccess(false)}
+                        >
+                          Подробнее
+                        </Link>
+                        <Link
+                          to={`/donate/${similar.id}`}
+                          className="btn btn-success btn-sm"
+                          onClick={() => setShowPaymentSuccess(false)}
+                        >
+                          Поддержать
+                        </Link>
+                      </div>
                     </div>
                   </article>
                 );

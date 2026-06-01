@@ -14,6 +14,7 @@ func (r *Repository) GetUserByEmail(email string) (*models.User, error) {
 	if err := r.DB.
 		Where("email = ?", email).
 		Preload("Role").
+		Preload("City").
 		First(&user).Error; err != nil {
 		return nil, err
 	}

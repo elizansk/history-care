@@ -61,7 +61,7 @@ spec:
             - name: MINIO_SECRET
               value: password122
             - name: FRONTEND_URL
-              value: http://history-care.local
+              value: http://history-care.ru
             - name: STRIPE_CURRENCY
               value: rub
             - name: STRIPE_SECRET_KEY

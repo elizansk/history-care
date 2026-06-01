@@ -12,6 +12,7 @@ dist
 dist-ssr
 build
 coverage
+docs/
 
 compose/data/buildings/
 compose/data/.minio.sys/
