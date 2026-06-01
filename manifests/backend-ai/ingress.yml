@@ -1,0 +1,23 @@
+# Версия API AI для Ingress
+apiVersion: networking.k8s.io/v1
+# Ресурс для внешнего HTTP-доступа к сервису
+kind: Ingress
+metadata:
+  # Имя Ingress в Kubernetes
+  name: history-care-backend-ai-ingress
+spec:
+  rules:
+    # Домен, по которому будет доступен backend
+    - host: ai.history-care.ru
+      http:
+        paths:
+          # Все запросы с этого домена идут в backend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                # Внутренний Service backend'а
+                name: history-care-ai-backend
+                port:
+                  # Порт backend-сервиса
+                  number: 8080
