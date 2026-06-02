@@ -196,9 +196,15 @@ func (h *Handler) CreateService(c *gin.Context) {
 	}()
 
 	imgName := fmt.Sprintf("service_img_%d_%s", time.Now().UnixNano(), imageFile.Filename)
+	ctx := context.Background()
+	if err := storage.EnsurePublicBucket(ctx, "services"); err != nil {
+		log.Println("failed to prepare services bucket:", err)
+		c.JSON(500, gin.H{"error": "failed to prepare image storage", "details": err.Error()})
+		return
+	}
 
 	_, err = storage.MinioClient.PutObject(
-		context.Background(),
+		ctx,
 		"services",
 		imgName,
 		imgSrc,
@@ -209,7 +215,8 @@ func (h *Handler) CreateService(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(500, gin.H{"error": "failed to upload image"})
+		log.Println("failed to upload service image:", err)
+		c.JSON(500, gin.H{"error": "failed to upload image", "details": err.Error()})
 		return
 	}
 
@@ -281,9 +288,15 @@ func (h *Handler) UpdateService(c *gin.Context) {
 		}()
 
 		imgName := fmt.Sprintf("service_img_%d_%s", time.Now().UnixNano(), imageFile.Filename)
+		ctx := context.Background()
+		if err := storage.EnsurePublicBucket(ctx, "services"); err != nil {
+			log.Println("failed to prepare services bucket:", err)
+			c.JSON(500, gin.H{"error": "failed to prepare image storage", "details": err.Error()})
+			return
+		}
 
 		_, err = storage.MinioClient.PutObject(
-			context.Background(),
+			ctx,
 			"services",
 			imgName,
 			imgSrc,
@@ -292,7 +305,8 @@ func (h *Handler) UpdateService(c *gin.Context) {
 		)
 
 		if err != nil {
-			c.JSON(500, gin.H{"error": "failed to upload image"})
+			log.Println("failed to upload service image:", err)
+			c.JSON(500, gin.H{"error": "failed to upload image", "details": err.Error()})
 			return
 		}
 

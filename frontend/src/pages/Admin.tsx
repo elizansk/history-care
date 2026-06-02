@@ -517,8 +517,8 @@ export default function Admin() {
             await loadServices();
         } catch (error) {
             console.error(error);
-            const message = axios.isAxiosError<{ error?: string }>(error)
-                ? error.response?.data?.error || "Не удалось создать услугу"
+            const message = axios.isAxiosError<{ error?: string; details?: string }>(error)
+                ? [error.response?.data?.error, error.response?.data?.details].filter(Boolean).join(": ") || "Не удалось создать услугу"
                 : "Не удалось создать услугу";
             setServiceError(message);
         } finally {

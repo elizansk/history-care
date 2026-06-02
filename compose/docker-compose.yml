@@ -86,7 +86,7 @@ services:
       TEMPLATES_PATH: "frontend/src/templates/*"
       STATIC_PATH: "frontend/src/resources"
       REDIS_HOST: local:redis:6379
-      MINIO_HOST: minio
+      MINIO_HOST: minio:9000
       MINIO_KEY: "admin"
       MINIO_SECRET: "password122"
       FRONTEND_URL: http://localhost
@@ -122,7 +122,7 @@ services:
       - "80:80"
     depends_on:
       - history-care-backend
-      - backend-ai
+      - history-care-ai
 
   prometheus:
     image: prom/prometheus

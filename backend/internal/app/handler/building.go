@@ -125,6 +125,12 @@ func (h *Handler) CreateBuilding(c *gin.Context) {
 
 	hasMainPhoto := false
 	hasMainVideo := false
+	ctx := context.Background()
+	if err := storage.EnsurePublicBucket(ctx, "buildings"); err != nil {
+		log.Println("failed to prepare buildings bucket:", err)
+		c.JSON(500, gin.H{"error": "failed to prepare file storage"})
+		return
+	}
 
 	for _, file := range files {
 
@@ -141,7 +147,7 @@ func (h *Handler) CreateBuilding(c *gin.Context) {
 		objectName := fmt.Sprintf("building_%d_%s", time.Now().UnixNano(), file.Filename)
 
 		_, err = storage.MinioClient.PutObject(
-			context.Background(),
+			ctx,
 			"buildings",
 			objectName,
 			src,
@@ -151,6 +157,7 @@ func (h *Handler) CreateBuilding(c *gin.Context) {
 			},
 		)
 		if err != nil {
+			log.Println("failed to upload building file:", err)
 			continue
 		}
 
@@ -282,6 +289,12 @@ func (h *Handler) UpdateBuilding(c *gin.Context) {
 	if formErr == nil {
 		if len(files) > 0 {
 			var resources []models.BuildingResource
+			ctx := context.Background()
+			if err := storage.EnsurePublicBucket(ctx, "buildings"); err != nil {
+				log.Println("failed to prepare buildings bucket:", err)
+				c.JSON(500, gin.H{"error": "failed to prepare file storage"})
+				return
+			}
 
 			for _, file := range files {
 				src, err := file.Open()
@@ -297,7 +310,7 @@ func (h *Handler) UpdateBuilding(c *gin.Context) {
 				objectName := fmt.Sprintf("building_%d_%s", time.Now().UnixNano(), file.Filename)
 
 				_, err = storage.MinioClient.PutObject(
-					context.Background(),
+					ctx,
 					"buildings",
 					objectName,
 					src,
@@ -307,6 +320,7 @@ func (h *Handler) UpdateBuilding(c *gin.Context) {
 					},
 				)
 				if err != nil {
+					log.Println("failed to upload building file:", err)
 					continue
 				}
 
