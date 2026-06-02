@@ -1,4 +1,4 @@
-import { Fragment, type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
@@ -183,12 +183,12 @@ export default function Admin() {
     const [ordersLoading, setOrdersLoading] = useState(true);
     const [ordersError, setOrdersError] = useState<string | null>(null);
     const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
-    const [expandedOrderIds, setExpandedOrderIds] = useState<number[]>([]);
+    const [ordersVisible, setOrdersVisible] = useState(true);
     const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
     const [services, setServices] = useState<AdminService[]>([]);
     const [servicesLoading, setServicesLoading] = useState(false);
     const [servicesError, setServicesError] = useState<string | null>(null);
-    const [expandedServiceIds, setExpandedServiceIds] = useState<number[]>([]);
+    const [servicesVisible, setServicesVisible] = useState(true);
     const [deletingServiceId, setDeletingServiceId] = useState<number | null>(null);
     const [serviceForm, setServiceForm] = useState<ServiceFormState>({
         name: "",
@@ -198,6 +198,12 @@ export default function Admin() {
     const [serviceSubmitting, setServiceSubmitting] = useState(false);
     const [serviceMessage, setServiceMessage] = useState<string | null>(null);
     const [serviceError, setServiceError] = useState<string | null>(null);
+    const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
+    const [editingServiceForm, setEditingServiceForm] = useState<ServiceFormState>({
+        name: "",
+        description: "",
+        icon: null,
+    });
 
     const loadProfile = useCallback(async () => {
         if (!token) return;
@@ -351,21 +357,8 @@ export default function Admin() {
         };
     }, [orders, services, users]);
 
-    const toggleOrderExpanded = (orderId: number) => {
-        setExpandedOrderIds((previous) =>
-            previous.includes(orderId)
-                ? previous.filter((id) => id !== orderId)
-                : [...previous, orderId]
-        );
-    };
-
-    const toggleServiceExpanded = (serviceId: number) => {
-        setExpandedServiceIds((previous) =>
-            previous.includes(serviceId)
-                ? previous.filter((id) => id !== serviceId)
-                : [...previous, serviceId]
-        );
-    };
+    const toggleOrdersVisible = () => setOrdersVisible((v) => !v);
+    const toggleServicesVisible = () => setServicesVisible((v) => !v);
 
     const handleStatusChange = async (orderId: number, status: "formed" | "draft" | "rejected") => {
         setUpdatingOrderId(orderId);
@@ -553,6 +546,63 @@ export default function Admin() {
             setServicesError(message);
         } finally {
             setDeletingServiceId(null);
+        }
+    };
+
+    const startEditService = (service: AdminService) => {
+        setEditingServiceId(service.id);
+        setEditingServiceForm({
+            name: service.name || "",
+            description: service.description || "",
+            icon: null,
+        });
+        setServiceMessage(null);
+        setServiceError(null);
+    };
+
+    const cancelEditService = () => {
+        setEditingServiceId(null);
+        setEditingServiceForm({ name: "", description: "", icon: null });
+    };
+
+    const handleEditService = async (event?: FormEvent<HTMLFormElement>, serviceId?: number) => {
+        if (event) event.preventDefault();
+        const id = serviceId ?? editingServiceId;
+        if (!id) return;
+
+        if (!editingServiceForm.name.trim()) {
+            setServiceError("Введите название услуги");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("name", editingServiceForm.name.trim());
+        formData.append("description", editingServiceForm.description.trim());
+        if (editingServiceForm.icon) formData.append("image", editingServiceForm.icon);
+
+        setServiceSubmitting(true);
+        setServiceError(null);
+        setServiceMessage(null);
+
+        try {
+            await axios.put(`/api/services/${id}`, formData, {
+                headers: {
+                    ...authHeaders,
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+            localStorage.removeItem("history-care:services");
+            setServiceMessage("Услуга обновлена");
+            cancelEditService();
+            await loadServices();
+        } catch (error) {
+            console.error(error);
+            const message = axios.isAxiosError<{ error?: string }>(error)
+                ? error.response?.data?.error || "Не удалось обновить услугу"
+                : "Не удалось обновить услугу";
+            setServiceError(message);
+        } finally {
+            setServiceSubmitting(false);
         }
     };
 
@@ -769,56 +819,52 @@ export default function Admin() {
                             <span className="admin-card-kicker">Справочник</span>
                             <h2>Услуги</h2>
                         </div>
-                        <span>{services.length} записей</span>
+                        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                            <span>{services.length} записей</span>
+                            <Button size="sm" variant="outline-secondary" onClick={toggleServicesVisible}>
+                                {servicesVisible ? "Свернуть" : "Развернуть"}
+                            </Button>
+                        </div>
                     </div>
 
                     {servicesError && <p className="admin-error">{servicesError}</p>}
                     {servicesLoading && <p className="admin-loading-text">Загрузка услуг...</p>}
 
                     {!servicesLoading && (
-                        <div className="admin-service-list">
-                            {services.length === 0 && (
-                                <div className="admin-empty-panel">Услуги пока не созданы</div>
-                            )}
-                            {services.map((service) => {
-                                const isExpanded = expandedServiceIds.includes(service.id);
-                                const isDeleted = service.status === "deleted";
+                        servicesVisible ? (
+                            <div className="admin-service-list">
+                                {services.length === 0 && (
+                                    <div className="admin-empty-panel">Услуги пока не созданы</div>
+                                )}
+                                {services.map((service) => {
+                                    const isDeleted = service.status === "deleted";
 
-                                return (
-                                    <article
-                                        key={service.id}
-                                        className={`admin-service-item ${isDeleted ? "admin-service-item-deleted" : ""}`}
-                                    >
-                                        <button
-                                            type="button"
-                                            className="admin-collapse-toggle admin-service-toggle"
-                                            onClick={() => toggleServiceExpanded(service.id)}
-                                            aria-expanded={isExpanded}
+                                    return (
+                                        <article
+                                            key={service.id}
+                                            className={`admin-service-item ${isDeleted ? "admin-service-item-deleted" : ""}`}
                                         >
-                                            <span>{isExpanded ? "Свернуть" : "Развернуть"}</span>
-                                        </button>
-                                        <div className="admin-service-main">
-                                            {service.image_url ? (
-                                                <img
-                                                    src={service.image_url}
-                                                    alt=""
-                                                    className="admin-service-icon"
-                                                />
-                                            ) : (
-                                                <div className="admin-service-icon admin-service-icon-empty" />
-                                            )}
-                                            <div>
-                                                <div className="admin-table-title">{service.name}</div>
-                                                <div className="admin-small-muted">
-                                                    Создана: {formatDate(service.created_at)}
+                                            <div className="admin-service-main">
+                                                {service.image_url ? (
+                                                    <img
+                                                        src={service.image_url}
+                                                        alt=""
+                                                        className="admin-service-icon"
+                                                    />
+                                                ) : (
+                                                    <div className="admin-service-icon admin-service-icon-empty" />
+                                                )}
+                                                <div>
+                                                    <div className="admin-table-title">{service.name}</div>
+                                                    <div className="admin-small-muted">
+                                                        Создана: {formatDate(service.created_at)}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <span className={isDeleted ? "admin-status-badge admin-status-deleted" : "admin-status-badge admin-status-published"}>
-                                            {isDeleted ? "Удалена" : "Активна"}
-                                        </span>
+                                            <span className={isDeleted ? "admin-status-badge admin-status-deleted" : "admin-status-badge admin-status-published"}>
+                                                {isDeleted ? "Удалена" : "Активна"}
+                                            </span>
 
-                                        {isExpanded && (
                                             <div className="admin-service-details">
                                                 <p>{service.description || "Описание не указано"}</p>
                                                 {service.image_url && (
@@ -827,22 +873,80 @@ export default function Admin() {
                                                     </a>
                                                 )}
                                                 {!isDeleted && (
-                                                    <Button
-                                                        type="button"
-                                                        size="sm"
-                                                        variant="outline-danger"
-                                                        disabled={deletingServiceId === service.id}
-                                                        onClick={() => handleDeleteService(service.id)}
+                                                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            variant="outline-primary"
+                                                            onClick={() => startEditService(service)}
+                                                        >
+                                                            Редактировать
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            variant="outline-danger"
+                                                            disabled={deletingServiceId === service.id}
+                                                            onClick={() => handleDeleteService(service.id)}
+                                                        >
+                                                            {deletingServiceId === service.id ? "Удаление..." : "Удалить услугу"}
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                                {editingServiceId === service.id && (
+                                                    <form
+                                                        className="admin-edit-service-form"
+                                                        onSubmit={(e) => void handleEditService(e, service.id)}
                                                     >
-                                                        {deletingServiceId === service.id ? "Удаление..." : "Удалить услугу"}
-                                                    </Button>
+                                                        <label className="admin-filter-field">
+                                                            Название
+                                                            <input
+                                                                type="text"
+                                                                value={editingServiceForm.name}
+                                                                onChange={(event) =>
+                                                                    setEditingServiceForm((prev) => ({ ...prev, name: event.target.value }))
+                                                                }
+                                                            />
+                                                        </label>
+                                                        <label className="admin-filter-field">
+                                                            Иконка
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                onChange={(event) =>
+                                                                    setEditingServiceForm((prev) => ({ ...prev, icon: event.target.files?.[0] || null }))
+                                                                }
+                                                            />
+                                                        </label>
+                                                        <label className="admin-filter-field">
+                                                            Описание
+                                                            <textarea
+                                                                value={editingServiceForm.description}
+                                                                onChange={(event) =>
+                                                                    setEditingServiceForm((prev) => ({ ...prev, description: event.target.value }))
+                                                                }
+                                                                rows={3}
+                                                            />
+                                                        </label>
+                                                        {serviceError && <p className="admin-error">{serviceError}</p>}
+                                                        <div className="admin-service-form-actions">
+                                                            <Button type="submit" variant="success" disabled={serviceSubmitting} size="sm">
+                                                                {serviceSubmitting ? "Сохранение..." : "Сохранить"}
+                                                            </Button>
+                                                            <Button type="button" variant="secondary" size="sm" onClick={cancelEditService}>
+                                                                Отмена
+                                                            </Button>
+                                                        </div>
+                                                    </form>
                                                 )}
                                             </div>
-                                        )}
-                                    </article>
-                                );
-                            })}
-                        </div>
+                                        </article>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="admin-empty-panel">Услуги свернуты</div>
+                        )
                     )}
                 </section>
 
@@ -852,11 +956,16 @@ export default function Admin() {
                             <span className="admin-card-kicker">Модерация</span>
                             <h2>Заявки</h2>
                         </div>
-                        <span>
-                            {lastUpdatedAt
-                                ? `Обновлено: ${lastUpdatedAt.toLocaleTimeString("ru-RU")}`
-                                : "Автообновление каждые 5 секунд"}
-                        </span>
+                        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                            <span>
+                                {lastUpdatedAt
+                                    ? `Обновлено: ${lastUpdatedAt.toLocaleTimeString("ru-RU")}`
+                                    : "Автообновление каждые 5 секунд"}
+                            </span>
+                            <Button size="sm" variant="outline-secondary" onClick={toggleOrdersVisible}>
+                                {ordersVisible ? "Свернуть" : "Развернуть"}
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="admin-filters-card">
@@ -906,44 +1015,31 @@ export default function Admin() {
                     {ordersLoading && <p className="admin-loading-text">Загрузка заявок...</p>}
 
                     {!ordersLoading && (
-                        <div className="admin-table-wrap">
-                            <table className="admin-table">
-                                <thead>
-                                <tr>
-                                    <th>Детали</th>
-                                    <th>ID</th>
-                                    <th>Здание</th>
-                                    <th>Создатель</th>
-                                    <th>Статус</th>
-                                    <th>Сумма</th>
-                                    <th>Дата</th>
-                                    <th>Действия</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {filteredOrders.length === 0 && (
+                        ordersVisible ? (
+                            <div className="admin-table-wrap">
+                                <table className="admin-table">
+                                    <thead>
                                     <tr>
-                                        <td colSpan={8} className="admin-empty-cell">
-                                            Заявки не найдены
-                                        </td>
+                                        <th>ID</th>
+                                        <th>Здание</th>
+                                        <th>Создатель</th>
+                                        <th>Статус</th>
+                                        <th>Сумма</th>
+                                        <th>Дата</th>
+                                        <th>Действия</th>
                                     </tr>
-                                )}
-                                {filteredOrders.map((order) => {
-                                    const isExpanded = expandedOrderIds.includes(order.id);
-
-                                    return (
-                                        <Fragment key={order.id}>
-                                            <tr>
-                                                <td>
-                                                    <button
-                                                        type="button"
-                                                        className="admin-collapse-toggle"
-                                                        onClick={() => toggleOrderExpanded(order.id)}
-                                                        aria-expanded={isExpanded}
-                                                    >
-                                                        {isExpanded ? "Свернуть" : "Открыть"}
-                                                    </button>
-                                                </td>
+                                    </thead>
+                                    <tbody>
+                                    {filteredOrders.length === 0 && (
+                                        <tr>
+                                            <td colSpan={7} className="admin-empty-cell">
+                                                Заявки не найдены
+                                            </td>
+                                        </tr>
+                                    )}
+                                    {filteredOrders.map((order) => {
+                                        return (
+                                            <tr key={order.id}>
                                                 <td className="admin-id-cell">#{order.id}</td>
                                                 <td>
                                                     <div className="admin-table-title">{order.building?.name || "Без названия"}</div>
@@ -974,36 +1070,14 @@ export default function Admin() {
                                                     </div>
                                                 </td>
                                             </tr>
-                                            {isExpanded && (
-                                                <tr className="admin-detail-row">
-                                                    <td colSpan={8}>
-                                                        <div className="admin-order-details">
-                                                            <div>
-                                                                <span>Собрано</span>
-                                                                <strong>{formatAmount(order.collected_amount)} ₽</strong>
-                                                            </div>
-                                                            <div>
-                                                                <span>Завершена</span>
-                                                                <strong>{formatDate(order.completed_at)}</strong>
-                                                            </div>
-                                                            <div>
-                                                                <span>Создатель</span>
-                                                                <strong>{formatUserName(order.creator)}</strong>
-                                                            </div>
-                                                            <div>
-                                                                <span>Адрес здания</span>
-                                                                <strong>{order.building?.address || "Не указан"}</strong>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </Fragment>
-                                    );
-                                })}
-                                </tbody>
-                            </table>
-                        </div>
+                                        );
+                                    })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="admin-empty-panel">Заявки свернуты</div>
+                        )
                     )}
                 </section>
 

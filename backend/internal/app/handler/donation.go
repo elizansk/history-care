@@ -148,7 +148,7 @@ func createStripeCheckoutSession(req DonationRequest) (*stripeCheckoutSession, e
 			return createDemoCheckoutSession(req)
 		}
 
-		return nil, fmt.Errorf("Stripe is not configured: set STRIPE_SECRET_KEY")
+		return nil, fmt.Errorf("stripe is not configured: set STRIPE_SECRET_KEY")
 	}
 
 	frontendURL := strings.TrimRight(os.Getenv("FRONTEND_URL"), "/")
@@ -196,7 +196,9 @@ func createStripeCheckoutSession(req DonationRequest) (*stripeCheckoutSession, e
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
+	defer func() {
+		_ = response.Body.Close()
+	}()
 
 	var session stripeCheckoutSession
 	if err := json.NewDecoder(response.Body).Decode(&session); err != nil {
@@ -204,10 +206,10 @@ func createStripeCheckoutSession(req DonationRequest) (*stripeCheckoutSession, e
 	}
 
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("Stripe checkout error: %s", response.Status)
+		return nil, fmt.Errorf("stripe checkout error: %s", response.Status)
 	}
 	if session.URL == "" {
-		return nil, fmt.Errorf("Stripe checkout session URL is empty")
+		return nil, fmt.Errorf("stripe checkout session URL is empty")
 	}
 
 	return &session, nil

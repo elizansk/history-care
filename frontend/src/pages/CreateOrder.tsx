@@ -41,11 +41,35 @@ interface StoredSelectedService {
 interface DraftOrderResponse {
   id?: number;
   order_id?: number;
+  building_id?: number;
+  building?: {
+    id?: number;
+    name?: string;
+    description?: string;
+    address?: string;
+    category_id?: number;
+    city_id?: number;
+    resources?: {
+      resource_type?: string;
+      url?: string;
+    }[];
+  };
+  services?: {
+    service_id?: number;
+    service?: {
+      id?: number;
+    };
+    price?: number;
+    description?: string;
+    quantity?: number;
+  }[];
+  total_amount?: number;
+  description?: string;
 }
 
 export default function CreateOrder() {
   const dispatch = useDispatch<AppDispatch>();
-  const { loading, error, categories, cities, services, building, order } = useSelector((state: RootState) => state.order);//берём данные из Redux store
+  const { loading, error, categories, cities, services, building } = useSelector((state: RootState) => state.order);//берём данные из Redux store
   const token = localStorage.getItem("token");
 
   const [selectedServices, setSelectedServices] = useState< //локальная корзина услуг (ещё НЕ в Redux)
@@ -71,6 +95,7 @@ export default function CreateOrder() {
   const [orderDescription, setOrderDescription] = useState("");
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [draftServiceIds, setDraftServiceIds] = useState<number[]>([]);
+  const [hasExistingBuildingPhoto, setHasExistingBuildingPhoto] = useState(false);
 
   // 3 шага заявки
   const [currentStep, setCurrentStep] = useState(1);
@@ -100,8 +125,8 @@ export default function CreateOrder() {
     const savedTotal = sessionStorage.getItem("orderTotal");
     const savedOrderDescription = sessionStorage.getItem("orderDescription");
     const savedSelectedServices = sessionStorage.getItem("selectedServices");
+    const savedBuildingData = sessionStorage.getItem("buildingData");
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (savedBuildingId) setBuildingId(Number(savedBuildingId));
     if (savedOrderId) setOrderId(Number(savedOrderId));
     if (savedName) setName(savedName);
@@ -115,21 +140,79 @@ export default function CreateOrder() {
       const parsed = JSON.parse(savedSelectedServices) as StoredSelectedService[];
       setSelectedServices(parsed.map((s) => ({ ...s, description: s.description || "", quantity: s.quantity || 1 })));
     }
+    if (savedBuildingData) {
+      const parsedBuilding = JSON.parse(savedBuildingData) as DraftOrderResponse["building"];
+      setHasExistingBuildingPhoto(Boolean(parsedBuilding?.resources?.some((resource) => resource.resource_type === "photo")));
+    }
   }, []);
 
   useEffect(() => {//получение пользователя
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(getUser());
   }, []);
 
   useEffect(() => {//фикс города под сити
     if (user) {
-      if (userRole === "City") {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setCityId(0);
+      if (userRole === "City" && user.city_id && !buildingId && !cityId) {
+        setCityId(user.city_id);
       }
     }
-  }, [user, userRole]);
+  }, [user, userRole, buildingId, cityId]);
+
+  const hydrateDraftOrder = (draft: DraftOrderResponse) => {
+    const draftOrderId = draft.id || draft.order_id || null;
+    const draftBuilding = draft.building;
+    const draftBuildingId = draft.building_id || draftBuilding?.id || null;
+    const restoredServices = (draft.services || [])
+      .map((item) => {
+        const serviceId = item.service_id || item.service?.id;
+        if (!serviceId) return null;
+
+        return {
+          id: serviceId,
+          price: Number(item.price || 0),
+          description: item.description || "",
+          quantity: item.quantity || 1,
+        };
+      })
+      .filter((item): item is { id: number; price: number; description: string; quantity: number } => item !== null);
+    const restoredDescriptions = restoredServices.reduce<Record<number, string>>((acc, service) => {
+      acc[service.id] = service.description;
+      return acc;
+    }, {});
+
+    if (draftOrderId) setOrderId(draftOrderId);
+    if (draftBuildingId) setBuildingId(draftBuildingId);
+    if (draftBuilding?.name) setName(draftBuilding.name);
+    if (draftBuilding?.description) setDescription(draftBuilding.description);
+    if (draftBuilding?.address) setAddress(draftBuilding.address);
+    if (draftBuilding?.category_id) setCategoryId(draftBuilding.category_id);
+    if (draftBuilding?.city_id) setCityId(draftBuilding.city_id);
+    setHasExistingBuildingPhoto(Boolean(draftBuilding?.resources?.some((resource) => resource.resource_type === "photo")));
+
+    setSelectedServices(restoredServices);
+    setServiceDescriptions(restoredDescriptions);
+    setDraftServiceIds(restoredServices.map((service) => service.id));
+    setTotal(Number(draft.total_amount || restoredServices.reduce((sum, service) => sum + service.price, 0)));
+    setOrderDescription(draft.description || "");
+
+    if (draftOrderId) sessionStorage.setItem("orderId", String(draftOrderId));
+    if (draftBuildingId) sessionStorage.setItem("buildingId", String(draftBuildingId));
+    if (draftBuilding) {
+      sessionStorage.setItem("buildingData", JSON.stringify(draftBuilding));
+      sessionStorage.setItem("buildingName", draftBuilding.name || "");
+      sessionStorage.setItem("buildingDescription", draftBuilding.description || "");
+      sessionStorage.setItem("buildingAddress", draftBuilding.address || "");
+      sessionStorage.setItem("buildingCategoryId", String(draftBuilding.category_id || ""));
+      sessionStorage.setItem("buildingCityId", String(draftBuilding.city_id || ""));
+    }
+    sessionStorage.setItem("selectedServices", JSON.stringify(restoredServices));
+    sessionStorage.setItem("orderTotal", String(draft.total_amount || restoredServices.reduce((sum, service) => sum + service.price, 0)));
+    sessionStorage.setItem("orderDescription", draft.description || "");
+
+    if (draftBuildingId) {
+      setCurrentStep(restoredServices.length > 0 ? 3 : 2);
+    }
+  };
 
   useEffect(() => {
     if (!token || draftLoaded) {
@@ -137,21 +220,21 @@ export default function CreateOrder() {
     }
 
     const loadDraft = async () => {
-      await dispatch(fetchDraftOrder());//проверяем есть ли уже черновик заявки
+      const draft = await dispatch(fetchDraftOrder()).unwrap() as DraftOrderResponse | null;//проверяем есть ли уже черновик заявки
       setDraftLoaded(true);
-      if (order && (order.order_id || order.id)) {
-        setCurrentStep(2);
-      } else {
-        setCurrentStep(1);
+      if (draft && (draft.order_id || draft.id)) {
+        hydrateDraftOrder(draft);
+        return;
       }
+
+      setCurrentStep(sessionStorage.getItem("buildingId") ? 2 : 1);
     };
 
     loadDraft();
-  }, [token, draftLoaded, dispatch, order]);
+  }, [token, draftLoaded, dispatch]);
 
   useEffect(() => {
     const computedTotal = selectedServices.reduce((sum, service) => sum + service.price, 0);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTotal(computedTotal);//сумма всех услуг
   }, [selectedServices]);
 
@@ -174,6 +257,12 @@ export default function CreateOrder() {
       alert("Пожалуйста, заполните все обязательные поля для здания.");
       return false;
     }
+    const hasSelectedPhoto = files.some((file) => file.type.startsWith("image/"));
+    if (!hasExistingBuildingPhoto && !hasSelectedPhoto) {
+      alert("Пожалуйста, загрузите хотя бы одно фото здания.");
+      return false;
+    }
+
     try {
       let result;
       if (buildingId) {
@@ -182,6 +271,7 @@ export default function CreateOrder() {
         result = await dispatch(createBuilding({ name, description, address, category_id: Number(categoryId), city_id: Number(cityId), files })).unwrap();
         setBuildingId(result.id ?? null);
       }
+      if (hasSelectedPhoto) setHasExistingBuildingPhoto(true);
 
       return result.id || buildingId || false;
     } catch (err) {
@@ -247,8 +337,9 @@ export default function CreateOrder() {
     } catch (err) {
       console.error(err);
       if (typeof err === 'object' && err !== null && 'response' in err && (err as { response?: { status?: number } }).response?.status === 400) {
-        await dispatch(fetchDraftOrder());
-        if (order && (order.order_id || order.id)) {
+        const draft = await dispatch(fetchDraftOrder()).unwrap() as DraftOrderResponse | null;
+        if (draft && (draft.order_id || draft.id)) {
+          hydrateDraftOrder(draft);
           return true;
         }
       }
@@ -352,6 +443,7 @@ export default function CreateOrder() {
       setSelectedServices([]);
       setBuildingId(null);
       setOrderId(null);
+      setHasExistingBuildingPhoto(false);
       setCurrentStep(1);
       setDraftLoaded(false);
     } catch (err) {

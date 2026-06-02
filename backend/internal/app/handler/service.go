@@ -240,6 +240,111 @@ func (h *Handler) CreateService(c *gin.Context) {
 	c.JSON(201, service)
 }
 
+// @Summary Update service
+// @Security ApiKeyAuth
+// @Description Обновление услуги (изменение name/description/image)
+// @Tags services
+// @Accept multipart/form-data
+// @Produce json
+// @Param id path int true "Service ID"
+// @Param name formData string false "Service name"
+// @Param description formData string false "Description"
+// @Param image formData file false "Service icon file"
+// @Success 200 {object} models.Service
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/services/{id} [put]
+func (h *Handler) UpdateService(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "invalid id"})
+		return
+	}
+
+	name := c.PostForm("name")
+	description := c.PostForm("description")
+
+	var imageURL string
+	// Попробуем получить файл, но не обязательно
+	imageFile, err := c.FormFile("image")
+	if err == nil {
+		imgSrc, err := imageFile.Open()
+		if err != nil {
+			c.JSON(500, gin.H{"error": "failed to open image"})
+			return
+		}
+		defer func() {
+			if err := imgSrc.Close(); err != nil {
+				log.Println(err)
+			}
+		}()
+
+		imgName := fmt.Sprintf("service_img_%d_%s", time.Now().UnixNano(), imageFile.Filename)
+
+		_, err = storage.MinioClient.PutObject(
+			context.Background(),
+			"services",
+			imgName,
+			imgSrc,
+			imageFile.Size,
+			minio.PutObjectOptions{ContentType: imageFile.Header.Get("Content-Type")},
+		)
+
+		if err != nil {
+			c.JSON(500, gin.H{"error": "failed to upload image"})
+			return
+		}
+
+		imageURL = "http://localhost:9000/services/" + imgName
+	}
+
+	updates := map[string]interface{}{}
+	if name != "" {
+		updates["name"] = name
+	}
+	if description != "" {
+		updates["description"] = description
+	}
+	if imageURL != "" {
+		updates["image_url"] = imageURL
+	}
+
+	if len(updates) == 0 {
+		c.JSON(400, gin.H{"error": "no fields to update"})
+		return
+	}
+
+	if err := h.repo.UpdateService(uint(id), updates); err != nil {
+		c.JSON(500, gin.H{"error": "failed to update service"})
+		return
+	}
+
+	// Инвалидация кэша
+	ctx := context.Background()
+	keyList := "services:all"
+	keyItem := fmt.Sprintf("services:%d", id)
+	if err := h.redis.Del(ctx, keyList).Err(); err != nil {
+		logger.CacheError(keyList, err, "delete")
+	} else {
+		logger.CacheInvalidate(keyList)
+	}
+	if err := h.redis.Del(ctx, keyItem).Err(); err != nil {
+		logger.CacheError(keyItem, err, "delete")
+	} else {
+		logger.CacheInvalidate(keyItem)
+	}
+
+	// Вернем обновленную запись
+	service, err := h.repo.GetServiceByID(uint(id))
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to fetch service after update"})
+		return
+	}
+
+	c.JSON(200, service)
+}
+
 // @Summary Delete service
 // @Security ApiKeyAuth
 // @Description Удаление услуги (status = deleted)

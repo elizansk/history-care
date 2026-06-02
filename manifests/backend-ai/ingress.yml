@@ -7,17 +7,17 @@ metadata:
   name: history-care-backend-ai-ingress
 spec:
   rules:
-    # Домен, по которому будет доступен backend
+    # Домен, по которому будет доступен AI backend
     - host: ai.history-care.ru
       http:
         paths:
-          # Все запросы с этого домена идут в backend
+          # Все запросы с этого домена идут в AI backend
           - path: /
             pathType: Prefix
             backend:
               service:
-                # Внутренний Service backend'а
-                name: history-care-ai-backend
+                # Внутренний Service AI backend'а
+                name: history-care-ai
                 port:
-                  # Порт backend-сервиса
-                  number: 8080
+                  # Порт AI backend-сервиса
+                  number: 3000

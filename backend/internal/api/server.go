@@ -163,6 +163,7 @@ func StartServer() {
 		adminAPI.PUT("/users/:id/city-approval", h.UpdateCityApproval)
 		adminAPI.PUT("/orders/:id/moderate", h.ModerateOrder) // PUT завершить/отклонить модератором
 		adminAPI.DELETE("/services/:id", h.DeleteService)
+		adminAPI.PUT("/services/:id", h.UpdateService)
 		adminAPI.POST("/services", h.CreateService)
 		adminAPI.POST("/services/all", h.GetAllServices)
 	}

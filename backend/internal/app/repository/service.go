@@ -34,3 +34,9 @@ func (r *Repository) DeleteService(id uint) error {
 		Where("id = ?", id).
 		Update("status", "deleted").Error
 }
+
+func (r *Repository) UpdateService(id uint, updates map[string]interface{}) error {
+	return r.DB.Model(&models.Service{}).
+		Where("id = ?", id).
+		Updates(updates).Error
+}

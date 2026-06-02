@@ -6,6 +6,7 @@ import (
 	"history-care-texnology/internal/models"
 	"history-care-texnology/internal/storage"
 	"log"
+	"mime/multipart"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +14,26 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
 )
+
+func hasImageUpload(files []*multipart.FileHeader) bool {
+	for _, file := range files {
+		if strings.HasPrefix(file.Header.Get("Content-Type"), "image/") {
+			return true
+		}
+	}
+
+	return false
+}
+
+func hasPhotoResource(resources []models.BuildingResource) bool {
+	for _, resource := range resources {
+		if resource.ResourceType == "photo" {
+			return true
+		}
+	}
+
+	return false
+}
 
 // @Summary Create building
 // @Security ApiKeyAuth
@@ -73,7 +94,20 @@ func (h *Handler) CreateBuilding(c *gin.Context) {
 		return
 	}
 
-	//  4. создаём здание
+	//  4. файлы: для заявки обязательно хотя бы одно фото здания
+	form, err := c.MultipartForm()
+	if err != nil {
+		c.JSON(400, gin.H{"error": "multipart error"})
+		return
+	}
+
+	files := form.File["files"]
+	if !hasImageUpload(files) {
+		c.JSON(400, gin.H{"error": "at least one building photo is required"})
+		return
+	}
+
+	//  5. создаём здание
 	building := models.Building{
 		Name:        name,
 		Description: description,
@@ -86,15 +120,6 @@ func (h *Handler) CreateBuilding(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "failed to create building"})
 		return
 	}
-
-	//  5. файлы
-	form, err := c.MultipartForm()
-	if err != nil {
-		c.JSON(400, gin.H{"error": "multipart error"})
-		return
-	}
-
-	files := form.File["files"]
 
 	var resources []models.BuildingResource
 
@@ -203,6 +228,17 @@ func (h *Handler) UpdateBuilding(c *gin.Context) {
 		return
 	}
 
+	form, formErr := c.MultipartForm()
+	files := []*multipart.FileHeader{}
+	if formErr == nil {
+		files = form.File["files"]
+	}
+
+	if !hasPhotoResource(building.Resources) && !hasImageUpload(files) {
+		c.JSON(400, gin.H{"error": "at least one building photo is required"})
+		return
+	}
+
 	// Update fields if provided
 	name := c.PostForm("name")
 	description := c.PostForm("description")
@@ -229,7 +265,7 @@ func (h *Handler) UpdateBuilding(c *gin.Context) {
 	}
 
 	cityID := building.CityID
-	if cityIDStr != "" {
+	if cityIDStr != "" && cityIDStr != "0" {
 		if id, err := strconv.Atoi(cityIDStr); err == nil {
 			cityID = uint(id)
 		}
@@ -243,10 +279,7 @@ func (h *Handler) UpdateBuilding(c *gin.Context) {
 	}
 
 	// Handle new files if provided
-	form, err := c.MultipartForm()
-	if err == nil {
-		files := form.File["files"]
-
+	if formErr == nil {
 		if len(files) > 0 {
 			var resources []models.BuildingResource
 

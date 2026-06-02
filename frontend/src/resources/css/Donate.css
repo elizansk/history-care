@@ -160,7 +160,7 @@
   text-transform: uppercase;
 }
 
-.success-hero h3 {
+.donation-success-modal .success-hero h3 {
   margin: 0 0 6px;
   color: #113827;
   font-size: 24px;
@@ -185,7 +185,7 @@
   margin-bottom: 18px;
 }
 
-.similar-section-heading p {
+.donation-success-modal .similar-section-heading p {
   margin: 0 0 3px;
   color: #2b8b61;
   font-size: 13px;
@@ -313,7 +313,7 @@
   overflow-wrap: anywhere;
 }
 
-.similar-card-body p {
+.donation-success-modal .similar-card-body p {
   color: #456d57;
   font-size: 14px;
   line-height: 1.55;
