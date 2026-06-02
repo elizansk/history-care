@@ -14,7 +14,7 @@ spec:
                 name: history-care-minio
                 port:
                   number: 9000
-    - host: minio-console.history-care.local
+    - host: minio-console.history-care.ru
       http:
         paths:
           - path: /
