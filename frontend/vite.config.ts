@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   const isGithubPages = mode === 'github-pages'
   const isTauri = mode === 'tauri'
   const isHttpsDev = mode === 'https'
-  const base = isGithubPages ? '/history-care/' : './'
+  const base = isGithubPages ? '/history-care/' : '/'
 
   return {
     base,
