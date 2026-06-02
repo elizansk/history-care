@@ -17,3 +17,11 @@ spec:
           image: grafana/grafana:latest
           ports:
             - containerPort: 3000
+          volumeMounts:
+            - name: grafana-datasources
+              mountPath: /etc/grafana/provisioning/datasources/datasources.yml
+              subPath: datasources.yml
+      volumes:
+        - name: grafana-datasources
+          configMap:
+            name: history-care-grafana-datasources
