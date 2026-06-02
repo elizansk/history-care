@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -55,4 +57,13 @@ func EnsurePublicBucket(ctx context.Context, bucketName string) error {
 	}
 
 	return nil
+}
+
+func PublicObjectURL(bucketName, objectName string) string {
+	publicURL := strings.TrimRight(os.Getenv("MINIO_PUBLIC_URL"), "/")
+	if publicURL == "" {
+		publicURL = "http://localhost:9000"
+	}
+
+	return fmt.Sprintf("%s/%s/%s", publicURL, bucketName, url.PathEscape(objectName))
 }

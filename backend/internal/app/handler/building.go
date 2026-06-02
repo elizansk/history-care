@@ -161,7 +161,7 @@ func (h *Handler) CreateBuilding(c *gin.Context) {
 			continue
 		}
 
-		url := "http://localhost:9000/buildings/" + objectName
+		url := storage.PublicObjectURL("buildings", objectName)
 
 		contentType := file.Header.Get("Content-Type")
 
@@ -324,7 +324,7 @@ func (h *Handler) UpdateBuilding(c *gin.Context) {
 					continue
 				}
 
-				url := "http://localhost:9000/buildings/" + objectName
+				url := storage.PublicObjectURL("buildings", objectName)
 				contentType := file.Header.Get("Content-Type")
 
 				var resourceType string

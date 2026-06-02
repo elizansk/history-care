@@ -220,7 +220,7 @@ func (h *Handler) CreateService(c *gin.Context) {
 		return
 	}
 
-	imageURL = "http://localhost:9000/services/" + imgName
+	imageURL = storage.PublicObjectURL("services", imgName)
 
 	// 5. save to DB
 	service := models.Service{
@@ -310,7 +310,7 @@ func (h *Handler) UpdateService(c *gin.Context) {
 			return
 		}
 
-		imageURL = "http://localhost:9000/services/" + imgName
+		imageURL = storage.PublicObjectURL("services", imgName)
 	}
 
 	updates := map[string]interface{}{}
