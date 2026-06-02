@@ -12,7 +12,11 @@ import type { ModelsService } from '../api/generated';
 //импорт автосгенерированных API клиентов из swagger
 const config = new Configuration({// конфиг для API клиентов
   basePath: import.meta.env.VITE_API_URL || '',//базовый URL backend
-  accessToken: () => localStorage.getItem('token') || '',//автоматически добавляет JWT ко всем запросам
+  apiKey: () => {
+    const token = localStorage.getItem('token');
+    return token ? `Bearer ${token}` : '';
+  },//автоматически добавляет JWT ко всем запросам
+  accessToken: () => localStorage.getItem('token') || '',
 });
 console.log(config);
 
