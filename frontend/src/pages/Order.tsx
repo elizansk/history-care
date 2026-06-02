@@ -51,7 +51,6 @@ const Building: React.FC = () => {
   const mainVideo = order.building.resources.find(r => r.resource_type === 'video' && r.is_main);
   const mainPhoto = order.building.resources.find(r => r.resource_type === 'photo' && r.is_main);
   const otherResources = order.building.resources.filter(r => !r.is_main);
-  console.log('Order details:', order);
   const breadcrumbItems = [
     { label: 'Главная', href: '/' },
     { label: 'Исторические здания', href: '/buildings' },

@@ -509,8 +509,6 @@ func (h *Handler) ModerateOrder(c *gin.Context) {
 		allowed = status == "rejected"
 	case "pending_review":
 		allowed = status == "formed" || status == "rejected" || status == "draft"
-	case "formed":
-		allowed = status == "rejected" || status == "draft"
 	case "rejected":
 		allowed = status == "draft"
 	}

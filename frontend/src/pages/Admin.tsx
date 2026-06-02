@@ -678,7 +678,7 @@ export default function Admin() {
             case "pending_review":
                 return [actions.approve, actions.reject, actions.draft];
             case "formed":
-                return [actions.reject, actions.draft];
+                return <span className="admin-muted">Заявка опубликована</span>;
             case "finished":
                 return <span className="admin-muted">Нет действий</span>;
             case "rejected":
