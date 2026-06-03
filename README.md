@@ -1,76 +1,99 @@
 # Национальное наследие
 
-Информационная система для создания, модерации и поддержки заявок на восстановление исторических зданий. Проект объединяет публичный каталог заявок, личные кабинеты пользователей, административную панель, загрузку медиафайлов, AI-генерацию описания здания и демонстрационный сценарий пожертвования.
+`Национальное наследие` - информационная система для публикации заявок на реконструкцию исторических зданий и сбора пожертвований на их восстановление. Проект объединяет публичный каталог объектов, личные кабинеты пользователей, административную панель, загрузку фото и видео, AI-генерацию описания здания, демонстрационную оплату и мониторинг работы backend.
 
-## Возможности
+## Ссылки
 
-- просмотр опубликованных заявок на восстановление объектов культурного наследия;
-- регистрация пользователей с ролями `user`, `city` и `admin`;
+| Ресурс | Ссылка |
+| --- | --- |
+| GitHub Pages | https://elizansk.github.io/history-care/ |
+| Основной сайт | http://history-care.ru |
+| Backend API / Swagger | http://api.history-care.ru/swagger/index.html |
+| AI-сервис | http://ai.history-care.ru |
+| Grafana | http://grafana.history-care.ru |
+| Prometheus | http://prometheus.history-care.ru |
+| Adminer | http://adminer.history-care.ru |
+| MinIO | http://minio.history-care.ru |
+| Репозиторий GitHub | https://github.com/elizansk/history-care |
+| Репозиторий MosHub | https://hub.mos.ru/liza.forspam/lab8-architecture |
+
+## Возможности системы
+
+- просмотр опубликованных заявок на реконструкцию исторических зданий;
+- регистрация и авторизация пользователей;
+- разделение доступа по ролям: гость, пользователь, администратор города, администратор системы;
 - подтверждение городских администраторов системным администратором;
-- создание заявки от имени города: карточка здания, описание, фото, видео, услуги и расчет суммы;
-- генерация описания здания через отдельный AI-сервис на Express и Ollama;
-- модерация заявок: публикация, отклонение или возврат на доработку;
-- создание и управление услугами восстановления;
-- пожертвования через Stripe Checkout или демонстрационный режим;
+- создание заявки от имени города или через администратора;
+- загрузка основного фото, дополнительных материалов и видео по объекту;
+- автоматическая генерация описания здания через отдельный AI-сервис;
+- выбор услуг реконструкции и автоматический расчет итоговой суммы;
+- модерация заявок администратором системы;
+- пожертвование на опубликованные заявки через Stripe Checkout;
 - хранение медиафайлов в MinIO;
-- метрики backend для Prometheus и визуализация в Grafana;
-- Docker/Kubernetes-инфраструктура и CI/CD pipeline.
+- сбор метрик backend в Prometheus и визуализация в Grafana;
+- развертывание в Kubernetes через GitLab CI/CD.
 
-## Роли
+## Роли пользователей
 
-| Роль | Возможности |
+| Роль | Что доступно |
 | --- | --- |
-| Гость | Просматривает опубликованные заявки и может сделать пожертвование. |
-| Пользователь | Входит в личный кабинет, просматривает профиль и участвует в пожертвованиях. |
-| Администратор города | После подтверждения создает заявки на восстановление зданий своего города. |
-| Администратор системы | Подтверждает city-пользователей, модерирует заявки, управляет услугами и следит за системой. |
+| Гость | Просмотр главной страницы, опубликованных заявок и донат на выбранную заявку. |
+| Пользователь | Личный кабинет, просмотр профиля и участие в пожертвованиях. |
+| Администратор города | Создание и формирование заявок после подтверждения системным администратором. |
+| Администратор системы | Подтверждение city-пользователей, создание заявок, модерация, управление услугами и контроль системы. |
 
-## Стек
+## Технологический стек
 
-| Часть системы | Технологии |
+| Часть | Технологии |
 | --- | --- |
-| Frontend | React, TypeScript, Vite, React Router, Bootstrap |
-| Backend | Go, Gin, GORM, JWT, Prometheus metrics |
-| AI-сервис | Node.js, Express, TypeScript, Ollama |
+| Frontend | React, TypeScript, Vite, React Router, Redux Toolkit, Axios, React Bootstrap, PWA |
+| Desktop | Tauri |
+| Backend | Go, Gin, GORM, JWT, Swagger, Prometheus metrics |
+| AI-сервис | Node.js, Express, TypeScript, Ollama API |
 | База данных | PostgreSQL |
-| Файловое хранилище | MinIO |
-| Платежи | Stripe Checkout / demo mode |
-| Инфраструктура | Docker, Kubernetes manifests, GitLab CI/CD |
+| Кэш и служебное хранилище | Redis |
+| Файлы | MinIO |
+| Платежи | Stripe Checkout |
+| Инфраструктура | Docker, Docker Compose, Kubernetes/k3s, Ingress |
+| CI/CD | GitLab CI/CD |
 | Мониторинг | Prometheus, Grafana |
 
 ## Структура проекта
 
 ```text
 .
-├── backend/        # Go/Gin API, модели, обработчики, миграции
-├── backend_ai/     # Express-сервис генерации описания здания
-├── frontend/       # React-приложение
-├── compose/        # docker-compose для локальной инфраструктуры
-├── manifests/      # Kubernetes-манифесты
-├── configs/        # nginx и конфигурации для деплоя
-└── docs/           # диаграммы и материалы курсовой
+├── backend/        # Go/Gin API, обработчики, репозитории, модели, миграции
+├── backend_ai/     # Express-сервис для генерации описания здания через Ollama
+├── frontend/       # React/Vite приложение, PWA и Tauri-конфигурация
+├── compose/        # docker-compose для локального запуска инфраструктуры
+├── configs/        # nginx-конфигурации для стенда
+├── manifests/      # Kubernetes-манифесты сервисов, ingress и deployment
+└── grafana-dashboards/ # JSON-дашборды Grafana для импорта
 ```
 
-## Быстрый запуск через Docker Compose
+## Локальный запуск
+
+### 1. Инфраструктура через Docker Compose
 
 ```bash
 cd compose
 docker compose up --build
 ```
 
-После запуска:
+После запуска доступны:
 
-- frontend: `http://localhost`
-- backend API: `http://localhost:8000`
-- PostgreSQL: `localhost:5433`
-- MinIO console: `http://localhost:9001`
-- Adminer: `http://localhost:8081`
-- Prometheus: `http://localhost:9090`
-- Grafana: `http://localhost:3000`
+| Сервис | Локальный адрес |
+| --- | --- |
+| Frontend | http://localhost |
+| Backend API | http://localhost:8000 |
+| AI-сервис | http://localhost:3000 |
+| PostgreSQL | localhost:5433 |
+| MinIO | http://localhost:9001 |
+| Adminer | http://localhost:8081 |
+| Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000 |
 
-## Локальный запуск по частям
-
-### Backend
+### 2. Backend отдельно
 
 ```bash
 cd backend
@@ -78,9 +101,9 @@ go run ./cmd/migrate/main.go
 go run ./cmd/awesomeProject/main.go
 ```
 
-Основные переменные окружения задаются в `backend/.env.development`.
+Основные переменные окружения backend задаются в `backend/.env.development`.
 
-### AI-сервис
+### 3. AI-сервис отдельно
 
 ```bash
 cd backend_ai
@@ -88,9 +111,9 @@ npm install
 npm run dev
 ```
 
-Для генерации описаний нужен доступный Ollama API. Адрес задается переменной `OLLAMA_BASE_URL`.
+Для генерации описаний нужен доступ к Ollama API. Адрес задается через `OLLAMA_BASE_URL`, модель - через `OLLAMA_MODEL`.
 
-### Frontend
+### 4. Frontend отдельно
 
 ```bash
 cd frontend
@@ -98,7 +121,23 @@ npm install
 npm run dev
 ```
 
-По умолчанию Vite запускает приложение на `http://localhost:5173`.
+Vite запускает приложение на `http://localhost:5173`. В режиме разработки запросы `/api` проксируются на backend, а `/ai` - на AI-сервис.
+
+## Сборка frontend
+
+```bash
+cd frontend
+npm run build
+```
+
+Сборка для GitHub Pages:
+
+```bash
+cd frontend
+npm run build:github
+```
+
+В этом режиме используется базовый путь `/history-care/`, поэтому приложение корректно открывается на GitHub Pages.
 
 ## Основные API-домены
 
@@ -108,40 +147,41 @@ npm run dev
 | Пользователи | `GET /api/profile`, `PUT /api/profile`, `GET /api/users`, `PUT /api/users/:id/city-approval` |
 | Заявки | `GET /api/orders`, `POST /api/orders/draft`, `PUT /api/orders/:id/form`, `PUT /api/orders/:id/moderate` |
 | Здания | `POST /api/buildings`, `PUT /api/buildings/:id` |
-| Услуги | `GET /api/services`, `POST /api/services`, `DELETE /api/services/:id` |
+| Услуги | `GET /api/services`, `GET /api/services/:id`, `POST /api/services`, `DELETE /api/services/:id` |
 | Пожертвования | `GET /api/orders/formed`, `POST /api/donations/checkout`, `POST /api/donations` |
 | AI | `POST /generate-building-description` |
 | Метрики | `GET /metrics` |
 
-## CI/CD и развертывание
+## Развертывание
 
-Pipeline собирает frontend и backend, публикует контейнерные образы и применяет Kubernetes-манифесты. На этапе deploy выполняются команды:
+Проект разворачивается в Kubernetes/k3s. Основные манифесты находятся в `manifests/`:
 
-```bash
-kubectl create configmap history-care-conf --from-file=configs/ --namespace=default -o yaml --dry-run=client | kubectl apply -f -
-kubectl apply -R -f manifests/
-kubectl set image deployment/history-care-backend history-care-backend="$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA" migrate="$BACKEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
-kubectl set image deployment/history-care-frontend history-care-frontend="$FRONTEND_IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
-kubectl rollout status deployment/history-care-backend
-kubectl rollout status deployment/history-care-frontend
+- `backend` - основной Go API;
+- `backend-ai` - AI-сервис на Express;
+- `frontend` - nginx со статической сборкой React;
+- `postgres` - база данных;
+- `redis` - кэш;
+- `minio` - файловое хранилище;
+- `adminer` - просмотр базы данных;
+- `prometheus` - сбор метрик;
+- `grafana` - визуализация метрик.
+
+CI/CD pipeline выполняет сборку Docker-образов, загрузку образов в кластер и обновление Kubernetes deployment на ветке `main`.
+
+## Мониторинг
+
+Backend публикует метрики на endpoint:
+
+```text
+/metrics
 ```
 
-## Документация
+Prometheus собирает эти метрики, а Grafana используется для демонстрационного дашборда: количество HTTP-запросов, ошибки, время ответа, нагрузка по endpoint и состояние сервисов.
 
-В `docs/` находятся материалы для курсовой работы:
+## Документация и диаграммы
 
-- BPMN и UML-диаграммы;
-- логическая и физическая модели данных;
-- диаграммы draw.io;
-- пояснительная записка;
-- план презентации и текст выступления.
-
-## Ссылки
-
-- Репозиторий: `https://github.com/elizansk/history-care`
-- GitHub Pages: добавить после публикации frontend
-- Backend/API: добавить после публикации backend или стенда
+В проекте подготовлены материалы для курсовой работы: BPMN, диаграммы прецедентов, состояний, развертывания, последовательности HTTP-запросов, логическая и физическая модели данных, а также пояснительная записка.
 
 ## Автор
 
-Якуш Елизавета, группа ИС-23.
+Якуш Елизавета Анатольевна, группа ИС-23.
