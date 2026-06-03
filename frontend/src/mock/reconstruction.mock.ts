@@ -70,13 +70,14 @@ export const mockOrders: MockOrder[] = [
     moderator_id: null,
     building: {
       id: 33,
-      name: 'bild',
-      description: 'string',
-      address: 'string',
+      name: 'Дом Пушкина, где он провел юность',
+      description:
+        'Историческое здание связано с городской памятью и нуждается в восстановлении фасада, кровли и деревянных элементов. Заявка помогает собрать средства на первоочередные работы и сохранить облик объекта.',
+      address: 'ул. Советская, 18',
       category_id: 9,
-      category: { id: 9, name: 'Поликлиника' },
+      category: { id: 9, name: 'Историческое здание' },
       city_id: 9,
-      city: { id: 9, name: 'Самара' },
+      city: { id: 9, name: 'Новосибирск' },
       resources: [
         {
           id: 24,
@@ -102,15 +103,15 @@ export const mockOrders: MockOrder[] = [
         service_id: 2,
         service: {
           id: 2,
-          name: 'Починить крышу21344',
-          description: 'Починить крышу полностью',
+          name: 'Восстановление кровли',
+          description: 'Ремонт кровли, защита от протечек и укрепление несущих элементов.',
           status: 'active',
           image_url: firstServiceImage,
           video_url: firstVideo,
           created_at: '2026-04-15T11:05:16.548118+07:00',
         },
         price: 200000,
-        description: 'Крыша в очень плохом состоянии',
+        description: 'Кровля повреждена и требует срочного ремонта.',
       },
       {
         id: 11,
@@ -118,15 +119,15 @@ export const mockOrders: MockOrder[] = [
         service_id: 3,
         service: {
           id: 3,
-          name: 'Починить окно',
-          description: 'Починить окна полностью',
+          name: 'Реставрация окон',
+          description: 'Восстановление исторических оконных рам и замена поврежденных стекол.',
           status: 'active',
           image_url: secondServiceImage,
           video_url: secondVideo,
           created_at: '2026-04-15T11:18:35.732698+07:00',
         },
         price: 50000,
-        description: 'Окно разбито',
+        description: 'Оконные рамы частично утрачены, стекла повреждены.',
       },
     ],
     donations: [],
@@ -143,7 +144,7 @@ export const mockOrders: MockOrder[] = [
     moderator_id: null,
     building: {
       id: 37,
-      name: 'Первый дом Норильска123432423у4',
+      name: 'Первый дом Норильска',
       description:
         'Первый дом Норильска построила первая геологоразведочная экспедиция Николая Урванцева летом 1921 года. В этом доме ученый-геолог, первооткрыватель норильских месторождений и один из основателей города Николай Николаевич Урванцев провел первую зимовку. Сегодня в музее представлена экспозиция, рассказывающая о быте геологической экспедиции 1923-1924 годов. Дом-музей находится рядом с основным зданием Музея Норильска. В 2017 году там же, в музейном сквере, открыли памятник Урванцеву.',
       address: 'Ленинский проспект 14',
@@ -197,15 +198,15 @@ export const mockOrders: MockOrder[] = [
         service_id: 2,
         service: {
           id: 2,
-          name: 'Починить крышу',
-          description: 'Починить крышу полностью',
+          name: 'Укрепление кровли',
+          description: 'Комплекс работ по укреплению и ремонту кровельных конструкций.',
           status: 'active',
           image_url: firstServiceImage,
           video_url: firstVideo,
           created_at: '2026-04-15T11:05:16.548118+07:00',
         },
         price: 100000,
-        description: 'Крыша просела',
+        description: 'Кровля просела и нуждается в укреплении.',
       },
       {
         id: 13,
@@ -213,15 +214,15 @@ export const mockOrders: MockOrder[] = [
         service_id: 3,
         service: {
           id: 3,
-          name: 'Починить окно',
-          description: 'Починить окна полностью',
+          name: 'Реставрация окон',
+          description: 'Восстановление оконных проемов с сохранением исторического облика.',
           status: 'active',
           image_url: secondServiceImage,
           video_url: secondVideo,
           created_at: '2026-04-15T11:18:35.732698+07:00',
         },
         price: 70000,
-        description: 'Окна потрескались',
+        description: 'Оконные рамы и стекла требуют реставрации.',
       },
     ],
     donations: [
@@ -249,12 +250,12 @@ export const mockOrders: MockOrder[] = [
 
 export const mockCategories = [
   { id: 1, name: 'Жилой дом' },
-  { id: 9, name: 'Поликлиника' },
+  { id: 9, name: 'Историческое здание' },
   { id: 10, name: 'Школа' },
 ];
 
 export const mockCities = [
-  { id: 9, name: 'Самара' },
+  { id: 9, name: 'Новосибирск' },
   { id: 100, name: 'Норильск' },
   { id: 10, name: 'Москва' },
 ];
